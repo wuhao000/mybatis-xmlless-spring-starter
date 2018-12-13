@@ -1,6 +1,6 @@
 ## 介绍
 
-如果你对于写mapper文件非常厌恶，那么这个插件 
+**如果你对于写mapper文件非常厌恶，那么这个项目非常适合你** 
 
 本项目是为了较少mybatis中xml配置诞生的，项目依赖于mybatis及mybatis-plus
 
@@ -8,6 +8,11 @@
 
 > 文档中的示例sql均为简化的sql，目的在于表达，并不是最终生成的sql
 > 文档中的示例代码均为kotlin代码
+
+
+## 配置说明
+
+本项目无需任何
 
 ## sql推断说明
 
@@ -64,3 +69,13 @@ fun findSimpleInfoList(): List<User>
 上一个示例中的 @ResolvedName("findIdAndNameAndAge") 便可以用 @SelectedProperties(properties=["id", "name", "age"]) 来代替
 
 - 注：使用@SelectedProperties注解之后，从方法名中推断的查询属性将被忽略
+
+
+### delete操作推断
+
+支持 deleteAll deleteById deleteByName的写法
+
+
+### update操作推断
+
+支持 update 一个对象

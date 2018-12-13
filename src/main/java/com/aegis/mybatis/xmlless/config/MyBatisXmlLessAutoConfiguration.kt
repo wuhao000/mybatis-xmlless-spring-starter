@@ -25,6 +25,7 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.io.ResourceLoader
 import org.springframework.util.CollectionUtils
@@ -39,6 +40,7 @@ import javax.sql.DataSource
  * @author 吴昊
  * @since 0.0.4
  */
+@ComponentScan("com.aegis.mybatis.xmlless")
 @Configuration
 @ConditionalOnClass(SqlSessionFactory::class, SqlSessionFactoryBean::class)
 @ConditionalOnSingleCandidate(DataSource::class)
