@@ -9,12 +9,12 @@ import org.slf4j.LoggerFactory
  */
 object ColumnsResolver {
 
-  private val log = LoggerFactory.getLogger(ColumnsResolver::class.java)
+  private val LOG = LoggerFactory.getLogger(ColumnsResolver::class.java)
 
-  fun resolve(mappings: FieldMappings, properties: List<String>, tableName: String): BuildSqlResult {
-    if (log.isDebugEnabled) {
-      log.debug("Available properties for class ${mappings.modelClass}: ${mappings.mappings.map { it.property }}")
-      log.debug("Fetch properties for class ${mappings.modelClass}: $properties")
+  fun resolve(mappings: FieldMappings, properties: List<String>): BuildSqlResult {
+    if (LOG.isDebugEnabled) {
+      LOG.debug("Available properties for class ${mappings.modelClass}: ${mappings.mappings.map { it.property }}")
+      LOG.debug("Fetch properties for class ${mappings.modelClass}: $properties")
     }
     val propertyMap = mappings.tableInfo.fieldInfoMap(
         mappings.modelClass

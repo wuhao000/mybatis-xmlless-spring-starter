@@ -8,7 +8,6 @@ import com.aegis.mybatis.xmlless.model.ResolvedQueries
 import com.baomidou.mybatisplus.core.MybatisConfiguration
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.junit.Test
 import org.springframework.core.annotation.AnnotationUtils
@@ -25,8 +24,6 @@ import kotlin.reflect.full.declaredFunctions
 //@RunWith(SpringRunner::class)
 //@SpringBootTest
 class MethodNameResolverTest {
-
-  val mapper = ObjectMapper().writerWithDefaultPrettyPrinter()
 
   @Test
   fun resolve() {
@@ -57,7 +54,7 @@ class MethodNameResolverTest {
   }
 
   private fun createTableInfo(modelClass: Class<*>): TableInfo {
-    val resource = modelClass.getName().replace('.', '/') + ".java (best guess)"
+    val resource = modelClass.name.replace('.', '/') + ".java (best guess)"
     TableInfoHelper.initTableInfo(
         MapperBuilderAssistant(MybatisConfiguration(), resource), modelClass
     )

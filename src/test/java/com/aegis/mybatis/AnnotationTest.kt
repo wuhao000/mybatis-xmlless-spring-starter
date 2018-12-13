@@ -1,6 +1,5 @@
 package com.aegis.mybatis
 
-import com.aegis.mybatis.bean.SecurityStrategy
 import org.junit.Test
 
 /**
@@ -14,11 +13,6 @@ class AnnotationTest {
 
   @Test
   fun test() {
-    SecurityStrategy::class.java.declaredFields.forEach {
-      println(it.name)
-      println(it.annotations.toList())
-      println(it.declaredAnnotations.toList())
-    }
   }
 
 }

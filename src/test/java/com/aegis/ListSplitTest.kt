@@ -9,8 +9,6 @@ class ListSplitTest {
 
   @Test
   fun splitByList() {
-    val els = listOf(3, 5)
-
   }
 
   @Test

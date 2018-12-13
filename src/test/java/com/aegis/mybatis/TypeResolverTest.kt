@@ -16,24 +16,6 @@ import java.lang.reflect.ParameterizedType
 class TypeResolverTest {
 
   @Test
-  fun console() {
-    val p = Runtime.getRuntime()
-        .exec("""echo -e "\033[30m黑色字\033[0m"""")
-    val status = p.waitFor()
-    val br = BufferedReader(InputStreamReader(p.inputStream))
-    val strbr = StringBuffer()
-    var line: String? = br.readLine()
-    while (line != null) {
-      strbr.append(line).append("\n")
-      line = br.readLine()
-    }
-    println(strbr)
-
-    Runtime.getRuntime()
-        .exec("""sh ls"""")
-  }
-
-  @Test
   fun getType() {
     TypeResolverTest::class.java.methods.forEach {
       if (it.name == "t") {

@@ -170,7 +170,7 @@ UPDATE
   }
 
   private fun buildSelectSql(): BuildSqlResult {
-    val buildColsResult = ColumnsResolver.resolve(mappings, properties(), tableName())
+    val buildColsResult = ColumnsResolver.resolve(mappings, properties())
     val whereSqlResult = resolveWhere()
     val order = resolveOrder()
     val limit = resolveLimit()

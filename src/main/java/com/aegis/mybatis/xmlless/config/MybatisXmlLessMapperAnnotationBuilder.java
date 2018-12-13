@@ -142,6 +142,7 @@ public class MybatisXmlLessMapperAnnotationBuilder extends MapperAnnotationBuild
       parseCacheRef();
       Method[] methods = type.getMethods();
       // TODO 注入 CURD 动态 SQL (应该在注解之前注入)
+      // 吴昊： 仅仅注释掉了判断
 //      if (BaseMapper.class.isAssignableFrom(type)) {
       GlobalConfigUtils.getSqlInjector(configuration).inspectInject(assistant, type);
 //      }

@@ -1,0 +1,9 @@
+{
+  "properties": [
+    {
+      "name": "mybatis.aegis.table-name-prefix",
+      "type": "java.lang.String",
+      "description": "Description for mybatis.aegis.table-name-prefix."
+    }
+  ]
+}

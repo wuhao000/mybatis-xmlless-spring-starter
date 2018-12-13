@@ -40,7 +40,7 @@ class XmlLessPageMapperProxy<T>(private val sqlSession: SqlSession,
   : PageMapperProxy<T>(sqlSession, mapperInterface, methodCache) {
 
   companion object {
-    private val serialVersionUID = -6424540398559729838L
+    private const val serialVersionUID = -6424540398559729838L
   }
 
   @Throws(Throwable::class)

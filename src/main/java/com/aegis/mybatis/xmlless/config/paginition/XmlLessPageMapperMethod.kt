@@ -20,16 +20,17 @@ import java.lang.reflect.Method
  * @since 0.0.4
  */
 class XmlLessPageMapperMethod(mapperInterface: Class<*>,
-                              val requestMethod: Method,
+                              requestMethod: Method,
                               config: Configuration) :
     PageMapperMethod(mapperInterface, requestMethod, config) {
 
-  val command = PageMapperMethod.SqlCommand(config, mapperInterface, requestMethod)
-  val method = PageMapperMethod.MethodSignature(config, mapperInterface, requestMethod)
+  private val command = PageMapperMethod.SqlCommand(config, mapperInterface, requestMethod)
+  private val method = PageMapperMethod.MethodSignature(config, mapperInterface, requestMethod)
 
   init {
   }
 
+  @Suppress("UNCHECKED_CAST")
   override fun execute(sqlSession: SqlSession, args: Array<out Any>?): Any? {
     var result: Any? = null
     if (command.type == SqlCommandType.SELECT && args != null
