@@ -1,1 +1,0 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.aegis.mybatis.xmlless.config.MyBatisXmlLessAutoConfiguration
