@@ -24,7 +24,7 @@ class StudentDAOTest {
 
   @Test
   fun count() {
-    assert(studentDAO.count() > 20)
+    assert(studentDAO.count() > 0)
   }
 
   @Test

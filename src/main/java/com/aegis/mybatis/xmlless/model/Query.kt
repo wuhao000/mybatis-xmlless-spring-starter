@@ -72,8 +72,7 @@ SELECT
   %s
 FROM
   %s %s
-%s
-%s %s
+%s %s %s
 </script>"""
     /**  count语句模板 */
     private const val SELECT_COUNT = """<script>
@@ -275,8 +274,8 @@ UPDATE
   }
 
   private fun resolveOrder(): BuildSqlResult {
-    if (this.sorts.isNotEmpty()) {
-      return BuildSqlResult("""
+    when {
+      this.sorts.isNotEmpty() -> return BuildSqlResult("""
       <trim suffixOverrides="ORDER BY">
       ORDER BY
       <trim suffixOverrides=",">
@@ -288,13 +287,13 @@ UPDATE
 </trim>
 </trim>
 """)
-    } else {
-      return BuildSqlResult("""
+      extraSortScript != null -> return BuildSqlResult("""
       <trim suffixOverrides="ORDER BY">
       ORDER BY
       $extraSortScript
 </trim>
 """)
+      else                    -> return BuildSqlResult("")
     }
   }
 

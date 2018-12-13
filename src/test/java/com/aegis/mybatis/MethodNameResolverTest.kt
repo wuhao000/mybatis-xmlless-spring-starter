@@ -32,7 +32,7 @@ class MethodNameResolverTest {
     val tableInfo = createTableInfo(modelClass)
     val queries = ResolvedQueries(mapperClass)
     mapperClass.kotlin.declaredFunctions
-        .filter { it.name.startsWith("findAllPage") }
+        .filter { it.name.startsWith("findById") }
         .forEach {
           val query = QueryResolver.resolve(it, tableInfo, modelClass, mapperClass)
           query.query
