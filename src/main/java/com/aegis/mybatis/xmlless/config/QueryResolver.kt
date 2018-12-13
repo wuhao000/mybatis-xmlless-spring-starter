@@ -47,12 +47,8 @@ object QueryResolver {
           this.isUseActualParamName = true
         }, function.javaMethod
     ).names
-    val resolvedNameAnno = function.findAnnotation<ResolvedName>()
-    val resolvedName = if (resolvedNameAnno != null) {
-      resolvedNameAnno.name
-    } else {
-      function.name
-    }
+    val resolvedNameAnnotation = function.findAnnotation<ResolvedName>()
+    val resolvedName = resolvedNameAnnotation?.name ?: function.name
     val resolveSortsResult = resolveSorts(resolvedName)
     val resolveTypeResult = resolveType(resolveSortsResult.remainName)
     if (resolveTypeResult.type == null) {
@@ -69,7 +65,7 @@ object QueryResolver {
         function,
         mappings,
         null,
-        resolvedNameAnno
+        resolvedNameAnnotation
     )
     function.valueParameters.forEachIndexed { index, param ->
       val paramName = paramNames[index]
@@ -281,7 +277,7 @@ enum class Operations(private val operator: String) {
       return names().map { it.toWords() }
     }
 
-    fun names(): List<String> {
+    private fun names(): List<String> {
       return Operations.values().map { it.name }
     }
 

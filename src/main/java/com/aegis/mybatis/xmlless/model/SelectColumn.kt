@@ -7,10 +7,10 @@ package com.aegis.mybatis.xmlless.model
 data class SelectColumn(val table: String, val column: String, val alias: String? = null) {
 
   fun toSql(): String {
-    if (alias != null) {
-      return String.format("%s.%s AS %s", table, column, alias)
+    return if (alias != null) {
+      String.format("%s.%s AS %s", table, column, alias)
     } else {
-      return String.format("%s.%s", table, column)
+      String.format("%s.%s", table, column)
     }
   }
 

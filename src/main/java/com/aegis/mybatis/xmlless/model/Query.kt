@@ -55,6 +55,7 @@ DELETE FROM
   %s
 %s
 </script>"""
+    /**  inser语句模板 */
     private const val INSERT = """<script>
 INSERT INTO
   %s(%s)
@@ -106,7 +107,7 @@ UPDATE
 </where>"""
   }
 
-  fun resolveFrom(limitInSubQuery: Boolean, whereSqlResult: BuildSqlResult, limit: BuildSqlResult): BuildSqlResult {
+  private fun resolveFrom(limitInSubQuery: Boolean, whereSqlResult: BuildSqlResult, limit: BuildSqlResult): BuildSqlResult {
     val defaultFrom = BuildSqlResult(mappings.fromDeclaration())
     return when {
       limitInSubQuery -> buildSql(SUB_QUERY, BuildSqlResult(tableName()), whereSqlResult, limit, defaultFrom)
@@ -152,19 +153,19 @@ UPDATE
 
   private fun buildInsertSql(): BuildSqlResult {
     val columnsString = mappings.insertFields()
-    if (function.name.endsWith("All")) {
+    return if (function.name.endsWith("All")) {
       val valueString = mappings.insertProperties("item.")
-      return BuildSqlResult(String.format(INSERT, mappings.tableInfo.tableName, columnsString, valueString))
+      BuildSqlResult(String.format(INSERT, mappings.tableInfo.tableName, columnsString, valueString))
     } else if (this.properties.isEmpty()
         && this.conditions.isEmpty()) {
       val valueString = mappings.insertProperties()
-      return BuildSqlResult("""INSERT INTO
+      BuildSqlResult("""INSERT INTO
       |   ${mappings.tableInfo.tableName}($columnsString)
       | VALUE
       |   ($valueString)
     """.trimMargin())
     } else {
-      return BuildSqlResult(null, "无法解析${this.function}")
+      BuildSqlResult(null, "无法解析${this.function}")
     }
   }
 
@@ -329,12 +330,12 @@ UPDATE
 
   private fun resolveUpdateWhere(): BuildSqlResult {
     val result = resolveWhere()
-    if (result.sql != null && result.sql.isBlank()) {
-      return BuildSqlResult(String.format("""
+    return if (result.sql != null && result.sql.isBlank()) {
+      BuildSqlResult(String.format("""
         WHERE %s = #{%s}
       """, mappings.tableInfo.keyColumn, mappings.tableInfo.keyProperty))
     } else {
-      return result
+      result
     }
   }
 

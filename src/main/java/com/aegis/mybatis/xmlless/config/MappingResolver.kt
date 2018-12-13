@@ -38,13 +38,13 @@ fun TableInfo.fieldInfoMap(modelClass: Class<*>): MutableMap<String, TableFieldI
 
 /**
  * 指定的两个注解不能同时出现在同一个field上
- * @param anno1
- * @param anno2
+ * @param annotation1
+ * @param annotation2
  */
-private fun Field.annotationIncompatible(anno1: Class<out Annotation>, anno2: Class<out Annotation>) {
-  if (AnnotationUtils.findAnnotation(this, anno1) != null && AnnotationUtils.findAnnotation(this, anno2) != null) {
+private fun Field.annotationIncompatible(annotation1: Class<out Annotation>, annotation2: Class<out Annotation>) {
+  if (AnnotationUtils.findAnnotation(this, annotation1) != null && AnnotationUtils.findAnnotation(this, annotation2) != null) {
     throw IllegalStateException(
-        "Annotation $anno1 and $anno2 cannot be both present on field $this"
+        "Annotation $annotation1 and $annotation2 cannot be both present on field $this"
     )
   }
 }
@@ -86,7 +86,7 @@ object MappingResolver {
     FIXED_CLASSES.add(modelClass)
   }
 
-  fun getMappingCache(modelClass: Class<*>): FieldMappings? {
+  private fun getMappingCache(modelClass: Class<*>): FieldMappings? {
     return MAPPING_CACHE[modelClass.name]
   }
 

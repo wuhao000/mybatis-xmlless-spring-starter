@@ -13,6 +13,7 @@ import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
  * @author 吴昊
  * @since 0.0.1
  */
+@Suppress("ArrayInDataClass")
 data class FieldMappings(val mappings: List<FieldMapping>,
                          val tableInfo: TableInfo,
                          var modelClass: Class<*>,
@@ -171,7 +172,7 @@ data class FieldMappings(val mappings: List<FieldMapping>,
     return mappings.filter { !it.selectIgnore && it.joinInfo != null }
         .distinctBy { it.joinInfo!!.joinTable() }
         .joinToString(" ") { fieldMapping ->
-          val col = mappings.firstOrNull() { it.property == fieldMapping.joinInfo?.joinProperty }?.column
+          val col = mappings.firstOrNull { it.property == fieldMapping.joinInfo?.joinProperty }?.column
               ?: throw IllegalStateException("Cannot resolve join property ${fieldMapping.joinInfo?.joinProperty}")
           """
 	${fieldMapping.joinInfo!!.type.name.toUpperCase()} JOIN

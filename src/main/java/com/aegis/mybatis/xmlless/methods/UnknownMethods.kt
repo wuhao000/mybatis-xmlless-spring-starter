@@ -29,10 +29,6 @@ class UnknownMethods : BaseMethod() {
     private val log: Logger = LoggerFactory.getLogger(UnknownMethods::class.java)
   }
 
-  override fun getId(): String {
-    return "unknown"
-  }
-
   override fun innerInject(mapperClass: Class<*>, modelClass: Class<*>, tableInfo: TableInfo): MappedStatement {
     val statementNames = this.configuration.mappedStatementNames
     val unmappedFunctions = mapperClass.kotlin.declaredFunctions.filter {
@@ -103,10 +99,6 @@ class UnknownMethods : BaseMethod() {
         languageDriver.createSqlSource(configuration, "select 1", modelClass),
         modelClass, tableInfo
     )
-  }
-
-  override fun requireKeyColumn(): Boolean {
-    return false
   }
 
 }

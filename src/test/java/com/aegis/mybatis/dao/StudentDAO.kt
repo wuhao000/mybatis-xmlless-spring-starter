@@ -71,7 +71,6 @@ interface StudentDAO : XmlLessMapper<Student> {
   /**
    *
    * @param page
-   * @param queryWrapper
    * @return
    */
   @ResolvedName("findAll")

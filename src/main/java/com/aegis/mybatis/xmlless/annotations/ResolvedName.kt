@@ -18,5 +18,4 @@ package com.aegis.mybatis.xmlless.annotations
 annotation class ResolvedName(val name: String,
                               val values: Array<ValueAssign> = [],
                               val whereAppend: String = "",
-                              val joinAppend: String = "") {
-}
+                              val joinAppend: String = "")

@@ -3,9 +3,14 @@ package com.aegis
 import com.aegis.kotlin.split
 import org.junit.Test
 
+/**
+ * 列表分割测试类
+ * @author 吴昊
+ * @since 0.0.3
+ */
 class ListSplitTest {
 
-  val list = listOf(3, 5, 2, 4, 3, 5, 1, 3, 5, 6, 2, 4, 3,5)
+  private val list = listOf(3, 5, 2, 4, 3, 5, 1, 3, 5, 6, 2, 4, 3,5)
 
   @Test
   fun splitByList() {
@@ -18,7 +23,7 @@ class ListSplitTest {
     var copyList = list.toList()
     while (copyList.indexOf(element) >= 0) {
       copyList.subList(0, copyList.indexOf(element)).apply {
-        if (this.size > 0) {
+        if (this.isNotEmpty()) {
           result.add(this)
         }
       }

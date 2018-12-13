@@ -13,7 +13,7 @@ import com.aegis.mybatis.xmlless.enums.JoinType
  */
 class JoinInfo(val selectColumns: List<String>,
                private val joinTable: String,
-               val joinTableAlias: String?,
+               private val joinTableAlias: String?,
                val type: JoinType,
                val joinProperty: String,
                val targetColumn: String,

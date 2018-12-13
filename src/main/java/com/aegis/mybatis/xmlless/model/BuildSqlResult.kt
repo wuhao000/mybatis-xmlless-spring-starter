@@ -22,7 +22,7 @@ data class BuildSqlResult(val sql: String?, val reasons: List<String> = listOf()
     return !valid()
   }
 
-  fun valid(): Boolean {
+  private fun valid(): Boolean {
     return sql != null && reasons.isEmpty()
   }
 
