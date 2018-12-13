@@ -38,7 +38,8 @@ data class Query(
     /**  数据对象的与数据库的映射管理 */
     val mappings: FieldMappings,
     var limitation: Limitation? = null,
-    val resolvedNameAnnotation: ResolvedName?
+    val resolvedNameAnnotation: ResolvedName?,
+    val mapperClass: Class<*>
 ) {
 
   /**  方法指定忽略的字段 */
@@ -107,15 +108,6 @@ UPDATE
 </where>"""
   }
 
-  private fun resolveFrom(limitInSubQuery: Boolean, whereSqlResult: BuildSqlResult, limit: BuildSqlResult): BuildSqlResult {
-    val defaultFrom = BuildSqlResult(mappings.fromDeclaration())
-    return when {
-      limitInSubQuery -> buildSql(SUB_QUERY, BuildSqlResult(tableName()), whereSqlResult, limit, defaultFrom)
-      includeJoins()  -> defaultFrom
-      else            -> BuildSqlResult(tableName())
-    }
-  }
-
   fun toCountSql(): BuildSqlResult {
     return buildCountSql()
   }
@@ -169,7 +161,11 @@ UPDATE
     }
   }
 
+  /**
+   * 构建select查询语句
+   */
   private fun buildSelectSql(): BuildSqlResult {
+    // 构建select的列
     val buildColsResult = ColumnsResolver.resolve(mappings, properties())
     val whereSqlResult = resolveWhere()
     val order = resolveOrder()
@@ -232,6 +228,20 @@ UPDATE
     return selectedProperties ?: properties
   }
 
+  private fun resolveFrom(limitInSubQuery: Boolean, whereSqlResult: BuildSqlResult, limit: BuildSqlResult): BuildSqlResult {
+    val defaultFrom = BuildSqlResult(mappings.fromDeclaration())
+    return when {
+      limitInSubQuery -> buildSql(SUB_QUERY, BuildSqlResult(tableName()), whereSqlResult, limit, defaultFrom)
+      includeJoins()  -> defaultFrom
+      else            -> BuildSqlResult(tableName())
+    }
+  }
+
+  /**
+   * 对查询条件进行分组，类似findByNameOrDescriptionLikeKeywords的表达式，
+   * 由于name未指明条件类型，自动将name和description归并为一组，并且设置条件类型和description一样为like
+   * 同组条件如果超过一个在构建查询语句时添加括号
+   */
   private fun resolveGroups(): List<List<Condition>> {
     val result = arrayListOf<ArrayList<Condition>>()
     var tmp = arrayListOf<Condition>()

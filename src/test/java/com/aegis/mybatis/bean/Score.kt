@@ -6,4 +6,8 @@ package com.aegis.mybatis.bean
  * @author 吴昊
  * @since 0.0.5
  */
-data class Score(var score: Int, var studentId: String, var subjectId: Int)
+ class Score {
+  var score: Int = 0
+  var studentId: String = ""
+  var subjectId: Int = 0
+}

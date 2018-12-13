@@ -24,9 +24,12 @@ import kotlin.reflect.full.declaredFunctions
 class UnknownMethods : BaseMethod() {
 
   companion object {
-
     const val COUNT_STATEMENT_SUFFIX = "CountAll"
+    private val LOG: Logger = LoggerFactory.getLogger(UnknownMethods::class.java)
     private val log: Logger = LoggerFactory.getLogger(UnknownMethods::class.java)
+    private val possibleErrors = listOf(
+        "未在级联属性@ModifyIgnore注解将其标记为不需要插入或更新的字段"
+    )
   }
 
   override fun innerInject(mapperClass: Class<*>, modelClass: Class<*>, tableInfo: TableInfo): MappedStatement {
@@ -41,54 +44,67 @@ class UnknownMethods : BaseMethod() {
       if (resolvedQuery.query != null) {
         val sql = resolvedQuery.sql
         if (sql != null) {
-          val sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass)
-          when (resolvedQuery.type()) {
-            in listOf(QueryType.Select,
-                QueryType.Exists,
-                QueryType.Count) -> {
-              val returnType = resolvedQuery.returnType
-              val resultMap = resolvedQuery.resultMap
-              if (returnType == modelClass && resultMap == null) {
-                addSelectMappedStatement(
-                    mapperClass,
-                    function.name,
-                    sqlSource,
-                    returnType, tableInfo
-                )
-              } else {
-                addMappedStatement(mapperClass, function.name,
-                    sqlSource, SqlCommandType.SELECT, null,
-                    resultMap, returnType,
-                    NoKeyGenerator(), null, null)
+          try {
+            val sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass)
+            when (resolvedQuery.type()) {
+              in listOf(QueryType.Select,
+                  QueryType.Exists,
+                  QueryType.Count) -> {
+                val returnType = resolvedQuery.returnType
+                var resultMap = resolvedQuery.resultMap
+                if (resultMap == null) {
+                  resolvedQuery.resolveResultMap(this.configuration).let {
+                    resultMap = it.id
+                    this.configuration.addResultMap(it)
+                  }
+                }
+                if (returnType == modelClass || resultMap == null) {
+                  addSelectMappedStatement(
+                      mapperClass,
+                      function.name,
+                      sqlSource,
+                      returnType, tableInfo
+                  )
+                } else {
+                  addMappedStatement(mapperClass, function.name,
+                      sqlSource, SqlCommandType.SELECT, null,
+                      resultMap, returnType,
+                      NoKeyGenerator(), null, null)
+                }
+                if (resolvedQuery.type() == QueryType.Select) {
+                  addSelectMappedStatement(
+                      mapperClass,
+                      function.name + COUNT_STATEMENT_SUFFIX,
+                      languageDriver.createSqlSource(configuration, resolvedQuery.countSql(), modelClass),
+                      Long::class.java,
+                      tableInfo
+                  )
+                }
               }
-              if (resolvedQuery.type() == QueryType.Select) {
-                addSelectMappedStatement(
-                    mapperClass,
-                    function.name + COUNT_STATEMENT_SUFFIX,
-                    languageDriver.createSqlSource(configuration, resolvedQuery.countSql(), modelClass),
-                    Long::class.java,
-                    tableInfo
+              QueryType.Delete     -> {
+                addDeleteMappedStatement(
+                    mapperClass, function.name, sqlSource
                 )
               }
+              QueryType.Insert     -> {
+                addInsertMappedStatement(
+                    mapperClass, modelClass, function.name, sqlSource, NoKeyGenerator(),
+                    tableInfo.keyProperty, tableInfo.keyColumn
+                )
+              }
+              QueryType.Update     -> {
+                addUpdateMappedStatement(mapperClass, modelClass, function.name, sqlSource)
+              }
+              null                 -> {
+              }
+              else                 -> {
+              }
             }
-            QueryType.Delete     -> {
-              addDeleteMappedStatement(
-                  mapperClass, function.name, sqlSource
-              )
-            }
-            QueryType.Insert     -> {
-              addInsertMappedStatement(
-                  mapperClass, modelClass, function.name, sqlSource, NoKeyGenerator(),
-                  tableInfo.keyProperty, tableInfo.keyColumn
-              )
-            }
-            QueryType.Update     -> {
-              addUpdateMappedStatement(mapperClass, modelClass, function.name, sqlSource)
-            }
-            null                 -> {
-            }
-            else                 -> {
-            }
+          } catch (ex: Exception) {
+            LOG.error("""出错了 >>>>>>>>
+              可能存在下列情形之一：
+              ${possibleErrors.joinToString { String.format("\n\t\t-\t%s\n", it) }}
+              """.trimIndent(), ex)
           }
         }
       }

@@ -18,6 +18,8 @@ class JoinInfo(val selectColumns: List<String>,
                val joinProperty: String,
                val targetColumn: String,
                val joinPropertyType: JoinPropertyType) {
+  var associationPrefix: String? = null
+  var javaType: Class<*>? = null
 
   fun joinTable(): String {
     return joinTableAlias ?: joinTable

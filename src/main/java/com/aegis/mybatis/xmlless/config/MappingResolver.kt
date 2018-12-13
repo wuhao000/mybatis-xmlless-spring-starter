@@ -86,10 +86,6 @@ object MappingResolver {
     FIXED_CLASSES.add(modelClass)
   }
 
-  private fun getMappingCache(modelClass: Class<*>): FieldMappings? {
-    return MAPPING_CACHE[modelClass.name]
-  }
-
   fun resolve(modelClass: Class<*>, tableInfo: TableInfo): FieldMappings {
     if (getMappingCache(modelClass) != null) {
       return getMappingCache(modelClass)!!
@@ -126,6 +122,10 @@ object MappingResolver {
     return TableInfoHelper.getAllFields(modelClass)
   }
 
+  private fun getMappingCache(modelClass: Class<*>): FieldMappings? {
+    return MAPPING_CACHE[modelClass.name]
+  }
+
   private fun resolveJoin(field: Field): JoinInfo? {
     val joinProperty = field.getDeclaredAnnotation(JoinProperty::class.java)
     val joinObject = field.getDeclaredAnnotation(JoinObject::class.java)
@@ -148,7 +148,11 @@ object MappingResolver {
         JoinInfo(resolveJoinColumns(joinObject, field),
             targetTableName.name,
             targetTableName.alias,
-            it.joinType, it.joinProperty, it.targetColumn, JoinPropertyType.Object)
+            it.joinType, it.joinProperty, it.targetColumn, JoinPropertyType.Object
+        ).apply {
+          associationPrefix = joinObject.associationPrefix
+          javaType = field.type
+        }
       }
       else                 -> null
     }
@@ -160,7 +164,13 @@ object MappingResolver {
 
   private fun resolveJoinColumns(join: JoinObject, field: Field): List<String> {
     return if (join.selectColumns.isNotEmpty()) {
-      join.selectColumns.toList()
+      join.selectColumns.toList().map {
+        if (it.toUpperCase().contains(" AS ") || join.associationPrefix.isBlank()) {
+          it
+        } else {
+          it + " AS " + join.associationPrefix + it
+        }
+      }
     } else {
       TableInfoHelper.getAllFields(field.type).filter {
         !it.isAnnotationPresent(SelectIgnore::class.java)

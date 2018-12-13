@@ -65,7 +65,8 @@ object QueryResolver {
         function,
         mappings,
         null,
-        resolvedNameAnnotation
+        resolvedNameAnnotation,
+        mapperClass
     )
     function.valueParameters.forEachIndexed { index, param ->
       val paramName = paramNames[index]

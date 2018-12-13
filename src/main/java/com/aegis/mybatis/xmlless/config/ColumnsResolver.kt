@@ -11,6 +11,9 @@ object ColumnsResolver {
 
   private val LOG = LoggerFactory.getLogger(ColumnsResolver::class.java)
 
+  /**
+   * 构建查询的列
+   */
   fun resolve(mappings: FieldMappings, properties: List<String>): BuildSqlResult {
     if (LOG.isDebugEnabled) {
       LOG.debug("Available properties for class ${mappings.modelClass}: ${mappings.mappings.map { it.property }}")
