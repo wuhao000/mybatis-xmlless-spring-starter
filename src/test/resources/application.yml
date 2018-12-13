@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: test
+  datasource:
+    url: jdbc:mysql://localhost:3306/test?characterEncoding=utf-8&allowMultiQueries=true&useSSL=false
+    username: root
+    password: root
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: "true"
+  mapper-locations: mapper/*.xml
+mybatis-plus:
+  global-config:
+    db-config:
+      table-prefix: t_
+      table-underline: true
+  mapper-locations: ${mybatis.mapper-locations}
+logging:
+  config: classpath:logback.xml
