@@ -21,6 +21,30 @@ __本项目依赖于mybatis及mybatis-plus, 并使引用了mybatis-plus中的一
 - 支持spring data的Pageable和Page对象，基本可以和jpa做到无缝切换
 - 支持部分jpa注解：@Table、@Transient、@Id，作用于持久化对象
 
+## 使用方法
+
+第一步： 添加maven仓库
+```
+<distributionManagement>
+    <repository>
+      <id>nexus</id>
+      <url>http://nexus.aegis-info.com/repository/maven-releases/</url>
+    </repository>
+</distributionManagement>
+```
+
+第二步：
+
+在pom中引用依赖
+
+```
+<dependency>
+    <groupId>org.mybatis.spring.boot</groupId>
+    <artifactId>mybatis-spring-boot-starter</artifactId>
+    <version>${mybatis-spring-boot-starter.version}</version>
+</dependency>
+```
+
 ## 配置说明
 
 本项目的引入使用无需任何配置（当然mybatis的配置是必要的）即可使用
