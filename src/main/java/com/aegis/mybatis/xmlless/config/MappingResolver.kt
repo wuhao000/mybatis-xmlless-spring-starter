@@ -121,7 +121,8 @@ object MappingResolver {
           fieldInfo.column ?: field.name.toUnderlineCase().toLowerCase(),
           field.getDeclaredAnnotation(Handler::class.java)?.value?.java,
           fieldInfo,
-          transient != null || AnnotationUtils.findAnnotation(field, InsertIgnore::class.java) != null,
+          transient != null || AnnotationUtils.findAnnotation(field, InsertIgnore::class.java) != null
+              || AnnotationUtils.findAnnotation(field, GeneratedValue::class.java) != null,
           transient != null || AnnotationUtils.findAnnotation(field, UpdateIgnore::class.java) != null,
           transient != null || AnnotationUtils.findAnnotation(field, SelectIgnore::class.java) != null,
           resolveJoin(field)
