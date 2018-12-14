@@ -27,6 +27,7 @@ class UserDAOTest : BaseTest() {
     )
     dao.save(user)
     assert(user.id!! > 0)
+    println(dao.findSimpleUserById(user.id!!))
     dao.deleteById(user.id!!)
   }
 
@@ -49,4 +50,10 @@ class UserDAOTest : BaseTest() {
     dao.deleteById(user2.id!!)
   }
 
+  @Test
+  fun findAllNames(){
+    val names = dao.findAllNames()
+    println(names)
+    assert(names.size == dao.count())
+  }
 }
