@@ -36,8 +36,8 @@ class XmlLessPageMapperMethod(mapperInterface: Class<*>,
     if (command.type == SqlCommandType.SELECT && args != null
         && Page::class.java.isAssignableFrom(method.returnType)) {
       val list = executeForMany<Any>(sqlSession, args) as List<Any>
-      result = if (IPage::class.java.isAssignableFrom(args[0].javaClass)) {
-        val pageArg = (args[0] as IPage<*>)
+      val pageArg = findIPageArg(args) as IPage<*>?
+      result = if (pageArg != null) {
         PageImpl(list, PageRequest.of((pageArg.current - 1).toInt(), pageArg.size.toInt()), pageArg.total)
       } else {
         val pageableArg = args.firstOrNull { it is Pageable } as Pageable?
@@ -71,6 +71,12 @@ class XmlLessPageMapperMethod(mapperInterface: Class<*>,
     val param = method.convertArgsToSqlCommandParam(args)
     val commandName = command.name + UnknownMethods.COUNT_STATEMENT_SUFFIX
     return sqlSession.selectOne<Long>(commandName, param)
+  }
+
+  private fun findIPageArg(args: Array<out Any>): Any? {
+    return args.firstOrNull {
+      IPage::class.java.isAssignableFrom(it.javaClass)
+    }
   }
 
 }
