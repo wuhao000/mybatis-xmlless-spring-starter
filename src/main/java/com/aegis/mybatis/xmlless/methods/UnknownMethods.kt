@@ -4,9 +4,11 @@ import com.aegis.mybatis.xmlless.config.QueryResolver
 import com.aegis.mybatis.xmlless.model.QueryType
 import com.aegis.mybatis.xmlless.model.ResolvedQueries
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
+import com.baomidou.mybatisplus.annotation.IdType
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.StringPool
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
+import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator
 import org.apache.ibatis.executor.keygen.NoKeyGenerator
 import org.apache.ibatis.mapping.MappedStatement
 import org.apache.ibatis.mapping.SqlCommandType
@@ -80,8 +82,14 @@ class UnknownMethods : BaseMethod() {
               addDeleteMappedStatement(mapperClass, function.name, sqlSource)
             }
             QueryType.Insert     -> {
+              val keyGenerator = if (tableInfo.idType == IdType.AUTO) {
+                Jdbc3KeyGenerator.INSTANCE
+              } else {
+                NoKeyGenerator.INSTANCE
+              }
               addInsertMappedStatement(
-                  mapperClass, modelClass, function.name, sqlSource, NoKeyGenerator(),
+                  mapperClass, modelClass, function.name, sqlSource,
+                  keyGenerator,
                   tableInfo.keyProperty, tableInfo.keyColumn
               )
             }

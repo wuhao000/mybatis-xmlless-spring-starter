@@ -1,18 +1,21 @@
 package com.aegis.mybatis.xmlless.config
 
-import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.annotations.*
 import com.aegis.mybatis.xmlless.enums.JoinPropertyType
+import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.model.FieldMapping
 import com.aegis.mybatis.xmlless.model.FieldMappings
 import com.aegis.mybatis.xmlless.model.JoinInfo
 import com.aegis.mybatis.xmlless.model.TableName
+import com.baomidou.mybatisplus.annotation.IdType
+import com.baomidou.mybatisplus.annotation.TableId
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
 import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
 import org.springframework.core.annotation.AnnotationUtils
 import java.lang.reflect.Field
+import javax.persistence.GeneratedValue
 import javax.persistence.Id
 import javax.persistence.Table
 import javax.persistence.Transient
@@ -27,7 +30,7 @@ fun TableInfo.fieldInfoMap(modelClass: Class<*>): MutableMap<String, TableFieldI
     it.property
   }.toMutableMap()
   if (!fieldInfoMap.containsKey(this.keyProperty)) {
-    MappingResolver.resolvedFields(modelClass).firstOrNull { it.name == this.keyProperty }?.apply {
+    MappingResolver.resolveFields(modelClass).firstOrNull { it.name == this.keyProperty }?.apply {
       fieldInfoMap[this@fieldInfoMap.keyProperty] = TableFieldInfo(
           GlobalConfigUtils.defaults().dbConfig, this@fieldInfoMap, this
       )
@@ -75,15 +78,28 @@ object MappingResolver {
         }
       }
     }
-    if (tableInfo.keyColumn == null || tableInfo.keyProperty == null) {
-      val keyField = modelClass.declaredFields.firstOrNull {
-        it.isAnnotationPresent(Id::class.java) || it.name == "id"
+    val keyField = if (tableInfo.keyColumn == null || tableInfo.keyProperty == null) {
+      resolveFields(modelClass).firstOrNull {
+        it.isAnnotationPresent(Id::class.java) || it.isAnnotationPresent(TableId::class.java)
       }
-      val keyColumn = keyField?.name?.toUnderlineCase()?.toLowerCase()
-      tableInfo.keyProperty = keyField?.name
-      tableInfo.keyColumn = keyColumn
+    } else {
+      resolveFields(modelClass).firstOrNull { it.name == tableInfo.keyProperty }
+    }
+    if (keyField != null) {
+      if (keyField.isAnnotationPresent(GeneratedValue::class.java)) {
+        tableInfo.idType = IdType.AUTO
+      }
+      if (tableInfo.keyColumn == null || tableInfo.keyProperty == null) {
+        val keyColumn = keyField.name?.toUnderlineCase()?.toLowerCase()
+        tableInfo.keyProperty = keyField.name
+        tableInfo.keyColumn = keyColumn
+      }
     }
     FIXED_CLASSES.add(modelClass)
+  }
+
+  fun getMappingCache(modelClass: Class<*>): FieldMappings? {
+    return MAPPING_CACHE[modelClass.name]
   }
 
   fun resolve(modelClass: Class<*>, tableInfo: TableInfo): FieldMappings {
@@ -92,7 +108,7 @@ object MappingResolver {
     }
     fixTableInfo(modelClass, tableInfo)
     val fieldInfoMap = tableInfo.fieldInfoMap(modelClass)
-    val fields = resolvedFields(modelClass).filter {
+    val fields = resolveFields(modelClass).filter {
       it.name in fieldInfoMap
     }
     val mapping = FieldMappings(fields.map { field ->
@@ -118,12 +134,8 @@ object MappingResolver {
     return mapping
   }
 
-  fun resolvedFields(modelClass: Class<*>): List<Field> {
+  fun resolveFields(modelClass: Class<*>): List<Field> {
     return TableInfoHelper.getAllFields(modelClass)
-  }
-
-  fun getMappingCache(modelClass: Class<*>): FieldMappings? {
-    return MAPPING_CACHE[modelClass.name]
   }
 
   private fun resolveJoin(field: Field): JoinInfo? {

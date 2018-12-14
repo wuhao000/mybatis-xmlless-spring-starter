@@ -1,21 +1,8 @@
 package com.aegis.mybatis.bean
 
+import com.aegis.mybatis.xmlless.annotations.InsertIgnore
 import com.baomidou.mybatisplus.annotation.TableField
-import com.baomidou.mybatisplus.annotation.TableLogic
-import javax.persistence.Entity
-import javax.persistence.Id
-import javax.persistence.Table
-import javax.persistence.Transient
-
-
-@Suppress("ALL")
-object QUser {
-
-  const val age = "age"
-  const val id = "id"
-  const val name = "name"
-
-}
+import javax.persistence.*
 
 /**
  *
@@ -23,15 +10,16 @@ object QUser {
  * @since 0.0.1
  */
 @Entity
-@Table(schema = "os")
+@Table(schema = "test")
 data class User(
     @Id
-    var id: Int? = null,
+    @TableField()
+    @InsertIgnore
+    @GeneratedValue
+    var id: Long? = null,
     @TableField()
     var name: String? = null,
-
     var age: Int? = null,
-    @TableLogic
     var deleted: Boolean = false) {
 
   /**

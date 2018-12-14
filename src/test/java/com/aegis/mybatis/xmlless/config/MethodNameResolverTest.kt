@@ -1,9 +1,9 @@
-package com.aegis.mybatis
+package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.bean.Student
-import com.aegis.mybatis.dao.StudentDAO
+import com.aegis.mybatis.bean.User
+import com.aegis.mybatis.dao.UserDAO
 import com.aegis.mybatis.xmlless.annotations.UpdateIgnore
-import com.aegis.mybatis.xmlless.config.QueryResolver
 import com.aegis.mybatis.xmlless.model.ResolvedQueries
 import com.baomidou.mybatisplus.core.MybatisConfiguration
 import com.baomidou.mybatisplus.core.metadata.TableInfo
@@ -27,12 +27,12 @@ class MethodNameResolverTest {
 
   @Test
   fun resolve() {
-    val modelClass = Student::class.java
-    val mapperClass = StudentDAO::class.java
+    val modelClass = User::class.java
+    val mapperClass = UserDAO::class.java
     val tableInfo = createTableInfo(modelClass)
     val queries = ResolvedQueries(mapperClass)
     mapperClass.kotlin.declaredFunctions
-        .filter { it.name.startsWith("update") }
+        .filter { it.name.startsWith("save") }
         .forEach {
           val query = QueryResolver.resolve(it, tableInfo, modelClass, mapperClass)
           query.query

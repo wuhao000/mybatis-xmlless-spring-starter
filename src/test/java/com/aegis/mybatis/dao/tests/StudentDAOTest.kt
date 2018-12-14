@@ -1,23 +1,18 @@
-package com.aegis.mybatis
+package com.aegis.mybatis.dao.tests
 
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.StudentDAO
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
-import org.springframework.test.context.junit4.SpringRunner
 
 /**
  *
  * @author 吴昊
  * @since 0.0.1
  */
-@RunWith(SpringRunner::class)
-@SpringBootTest
-class StudentDAOTest {
+class StudentDAOTest : BaseTest() {
 
   val id = "061251170"
   @Autowired

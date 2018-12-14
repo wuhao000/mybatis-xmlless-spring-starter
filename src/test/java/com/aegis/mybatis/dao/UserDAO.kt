@@ -1,7 +1,7 @@
 package com.aegis.mybatis.dao
 
 import com.aegis.mybatis.bean.User
-import com.baomidou.mybatisplus.core.mapper.BaseMapper
+import com.aegis.mybatis.xmlless.config.XmlLessMapper
 import org.apache.ibatis.annotations.Mapper
 
 /**
@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper
  * @since 0.0.1
  */
 @Mapper
-interface MyUserDAO : BaseMapper<User> {
+interface UserDAO : XmlLessMapper<User> {
 
   /**
    *

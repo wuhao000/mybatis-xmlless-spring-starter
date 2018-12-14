@@ -1,4 +1,4 @@
-package com.aegis.mybatis
+package com.aegis.mybatis.xmlless.config
 
 import org.junit.Test
 import java.lang.reflect.ParameterizedType

@@ -14,7 +14,7 @@ class MappingResolverTest {
 
   @Test
   fun resolvedFields() {
-    val fields = MappingResolver.resolvedFields(Student::class.java)
+    val fields = MappingResolver.resolveFields(Student::class.java)
     fields.forEach {
       println(it.name)
     }
