@@ -1,8 +1,8 @@
 package com.aegis.mybatis.xmlless.model
 
-import com.aegis.mybatis.xmlless.methods.BaseMethod.Companion.HANDLER_PREFIX
-import com.aegis.mybatis.xmlless.methods.BaseMethod.Companion.PROPERTY_PREFIX
-import com.aegis.mybatis.xmlless.methods.BaseMethod.Companion.PROPERTY_SUFFIX
+import com.aegis.mybatis.xmlless.methods.UnknownMethods.Companion.HANDLER_PREFIX
+import com.aegis.mybatis.xmlless.methods.UnknownMethods.Companion.PROPERTY_PREFIX
+import com.aegis.mybatis.xmlless.methods.UnknownMethods.Companion.PROPERTY_SUFFIX
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import org.apache.ibatis.type.TypeHandler
 

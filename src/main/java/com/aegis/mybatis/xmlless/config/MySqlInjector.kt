@@ -1,10 +1,8 @@
 package com.aegis.mybatis.xmlless.config
 
-import com.aegis.mybatis.xmlless.methods.QueryPage
 import com.aegis.mybatis.xmlless.methods.UnknownMethods
 import com.baomidou.mybatisplus.core.injector.AbstractMethod
 import com.baomidou.mybatisplus.core.injector.AbstractSqlInjector
-import com.baomidou.mybatisplus.core.injector.methods.*
 import org.springframework.stereotype.Component
 
 
@@ -21,17 +19,6 @@ class MySqlInjector : AbstractSqlInjector() {
 
   override fun getMethodList(): List<AbstractMethod> {
     return listOf(
-        DeleteByMap(),
-        DeleteBatchByIds(),
-        SelectBatchByIds(),
-        SelectByMap(),
-        SelectOne(),
-        SelectCount(),
-        SelectMaps(),
-        SelectMapsPage(),
-        SelectObjs(),
-        SelectList(),
-        QueryPage(),
         UnknownMethods()
     )
   }

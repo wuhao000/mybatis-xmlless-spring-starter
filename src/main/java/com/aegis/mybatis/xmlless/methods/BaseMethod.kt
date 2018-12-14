@@ -14,12 +14,6 @@ import org.apache.ibatis.mapping.MappedStatement
  */
 abstract class BaseMethod : AbstractLogicMethod() {
 
-  companion object {
-    const val HANDLER_PREFIX = "typeHandler="
-    const val PROPERTY_PREFIX = "#{"
-    const val PROPERTY_SUFFIX = "}"
-  }
-
   final override fun injectMappedStatement(mapperClass: Class<*>, modelClass: Class<*>, tableInfo: TableInfo):
       MappedStatement? {
     MappingResolver.fixTableInfo(modelClass, tableInfo)
