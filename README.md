@@ -24,12 +24,12 @@ __本项目依赖于mybatis及mybatis-plus, 并使引用了mybatis-plus中的一
 ## 使用方法
 
 第一步： 添加maven仓库
-```
+```xml
 <distributionManagement>
-    <repository>
-      <id>nexus</id>
-      <url>http://nexus.aegis-info.com/repository/maven-releases/</url>
-    </repository>
+  <repository>
+    <id>nexus</id>
+    <url>http://nexus.aegis-info.com/repository/maven-releases/</url>
+  </repository>
 </distributionManagement>
 ```
 
@@ -37,11 +37,11 @@ __本项目依赖于mybatis及mybatis-plus, 并使引用了mybatis-plus中的一
 
 在pom中引用依赖
 
-```
+```xml
 <dependency>
-    <groupId>org.mybatis.spring.boot</groupId>
-    <artifactId>mybatis-spring-boot-starter</artifactId>
-    <version>${mybatis-spring-boot-starter.version}</version>
+  <groupId>com.aegis</groupId>
+  <artifactId>aegis-starter-mybatis</artifactId>
+  <version>${mybatis-starter.version}</version>
 </dependency>
 ```
 
@@ -219,4 +219,5 @@ associationPrefix 为防止列名称冲突，给关联表的属性别名添加�
 selectColumns 关联表中需要查询的列集合
 
 - 注：如果关联的是对象集合，在kotlin中必须声明为可变的集合
+
 
