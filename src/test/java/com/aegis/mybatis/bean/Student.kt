@@ -1,9 +1,35 @@
 package com.aegis.mybatis.bean
 
+import com.aegis.mybatis.xmlless.annotations.Handler
 import com.aegis.mybatis.xmlless.annotations.JoinObject
 import com.aegis.mybatis.xmlless.annotations.ModifyIgnore
 import com.baomidou.mybatisplus.annotation.TableField
+import org.apache.ibatis.type.BaseTypeHandler
+import org.apache.ibatis.type.JdbcType
+import java.sql.CallableStatement
+import java.sql.PreparedStatement
+import java.sql.ResultSet
 import javax.persistence.Id
+
+class StringTypeHandler : BaseTypeHandler<String>() {
+
+  override fun getNullableResult(rs: ResultSet, columnName: String?): String? {
+    return rs.getString(columnName)
+  }
+
+  override fun getNullableResult(rs: ResultSet, columnIndex: Int): String? {
+    return rs.getString(columnIndex)
+  }
+
+  override fun getNullableResult(cs: CallableStatement, columnIndex: Int): String? {
+    return cs.getString(columnIndex)
+  }
+
+  override fun setNonNullParameter(ps: PreparedStatement, i: Int, parameter: String?, jdbcType: JdbcType?) {
+    ps.setString(i, parameter)
+  }
+
+}
 
 /**
  *
@@ -17,6 +43,7 @@ class Student() {
   @Id
   var id: String = ""
   var name: String = ""
+  @Handler(StringTypeHandler::class)
   var phoneNumber: String = ""
   @JoinObject(
       targetTable = "t_score",

@@ -4,7 +4,10 @@ import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.config.ColumnsResolver
 import com.aegis.mybatis.xmlless.config.Operations
+import com.baomidou.mybatisplus.annotation.FieldFill
+import com.baomidou.mybatisplus.annotation.FieldStrategy
 import com.baomidou.mybatisplus.core.toolkit.StringPool
+import com.baomidou.mybatisplus.core.toolkit.StringUtils
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
 import org.springframework.data.domain.Sort
 import kotlin.reflect.KFunction
@@ -56,7 +59,7 @@ DELETE FROM
   %s
 %s
 </script>"""
-    /**  inser语句模板 */
+    /**  insert 语句模板 */
     private const val INSERT = """<script>
 INSERT INTO
   %s(%s)
@@ -204,6 +207,44 @@ UPDATE
         resolveUpdateWhere())
   }
 
+  private fun convertIf(sqlScript: String, property: String, mapping: FieldMapping): String {
+    if (mapping.tableFieldInfo.fieldStrategy == FieldStrategy.IGNORED) {
+      return sqlScript
+    }
+    return if (mapping.tableFieldInfo.fieldStrategy == FieldStrategy.NOT_EMPTY && mapping.tableFieldInfo.isCharSequence) {
+      SqlScriptUtils.convertIf(sqlScript, String.format("%s != null and %s != ''", property, property),
+          false)
+    } else {
+      SqlScriptUtils.convertIf(sqlScript, String.format("%s != null", property), false)
+    }
+  }
+
+  /**
+   * 获取 set sql 片段
+   *
+   * @param prefix 前缀
+   * @return sql 脚本片段
+   */
+  private fun getSqlSet(prefix: String?, mapping: FieldMapping): String {
+    val newPrefix = prefix ?: StringPool.EMPTY
+    // 默认: column=
+    var sqlSet = mapping.tableFieldInfo.column + StringPool.EQUALS
+
+    sqlSet += if (StringUtils.isNotEmpty(mapping.tableFieldInfo.update)) {
+      String.format(mapping.tableFieldInfo.update, mapping.tableFieldInfo.column)
+    } else {
+      SqlScriptUtils.safeParam(newPrefix + mapping.getPropertyExpression(null, false))
+    }
+    sqlSet += StringPool.COMMA
+    return if (mapping.tableFieldInfo.fieldFill == FieldFill.UPDATE
+        || mapping.tableFieldInfo.fieldFill == FieldFill.INSERT_UPDATE) {
+      // 不进行 if 包裹
+      sqlSet
+    } else {
+      convertIf(sqlSet, newPrefix + mapping.tableFieldInfo.property, mapping)
+    }
+  }
+
   private fun hasCollectionJoinProperty(): Boolean {
     return if (this.properties().isNotEmpty()) {
       this.mappings.mappings.filter { it.property in this.properties() }
@@ -314,7 +355,7 @@ UPDATE
         it.joinInfo == null && !it.updateIgnore
             && it.property != mappings.tableInfo.keyProperty
       }.joinToString(StringPool.NEWLINE) {
-        it.tableFieldInfo.getSqlSet(null)
+        getSqlSet(null, it)
       })
 
       return BuildSqlResult(sqlScript)
@@ -325,7 +366,7 @@ UPDATE
         BuildSqlResult(null, "无法解析待更新属性：$property, 方法：$function")
       } else {
         BuildSqlResult(
-            mapping.tableFieldInfo.getSqlSet(null)
+            getSqlSet(null, mapping)
         )
       }
     }

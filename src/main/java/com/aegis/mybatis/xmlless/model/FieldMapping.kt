@@ -24,12 +24,22 @@ data class FieldMapping(
     val selectIgnore: Boolean,
     val joinInfo: JoinInfo?) {
 
-  fun getPropertyExpression(prefix: String? = null): String {
-    return PROPERTY_PREFIX + (prefix ?: "") + property + (if (typeHandler != null) {
+  companion object {
+    const val UNWRAPPED_EXPRESSION = """%s%s%s"""
+    const val WRAPPED_EXPRESSION = """$PROPERTY_PREFIX%s%s%s$PROPERTY_SUFFIX"""
+  }
+
+  fun getPropertyExpression(prefix: String? = null, wrap: Boolean = true): String {
+    val template = if (wrap) {
+      WRAPPED_EXPRESSION
+    } else {
+      UNWRAPPED_EXPRESSION
+    }
+    return String.format(template, prefix ?: "", property, if (typeHandler != null) {
       ", $HANDLER_PREFIX" + typeHandler.name
     } else {
       ""
-    }) + PROPERTY_SUFFIX
+    })
   }
 
   fun getUpdateExpression(): String {

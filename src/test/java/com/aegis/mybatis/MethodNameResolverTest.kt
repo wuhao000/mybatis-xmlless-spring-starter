@@ -32,7 +32,7 @@ class MethodNameResolverTest {
     val tableInfo = createTableInfo(modelClass)
     val queries = ResolvedQueries(mapperClass)
     mapperClass.kotlin.declaredFunctions
-        .filter { it.name.startsWith("findById") }
+        .filter { it.name.startsWith("update") }
         .forEach {
           val query = QueryResolver.resolve(it, tableInfo, modelClass, mapperClass)
           query.query

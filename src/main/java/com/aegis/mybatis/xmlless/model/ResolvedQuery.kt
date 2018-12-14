@@ -78,6 +78,7 @@ data class ResolvedQuery(
             builder.javaType(mapping.tableFieldInfo.propertyType)
             builder.column(mapping.column)
           }
+          builder.typeHandler(mapping.typeHandler?.newInstance())
           builder.build()
         } ?: listOf(), true).resolve()
     if (!builderAssistant.configuration.hasResultMap(resultMap.id)) {
