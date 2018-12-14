@@ -1,8 +1,8 @@
 ## 介绍
 
-**如果你对于写mapper文件非常厌恶，那么这个项目非常适合你** 
+__如果你对于写mapper文件非常厌恶，那么这个项目非常适合你__ 
 
-** 本项目依赖于mybatis及mybatis-plus, 并使引用了mybatis-plus中的一些代码 **
+__本项目依赖于mybatis及mybatis-plus, 并使引用了mybatis-plus中的一些代码__
 
 本项目是为了减少mybatis中xml配置诞生的
 
@@ -25,13 +25,13 @@
 
 本项目的引入使用无需任何配置（当然mybatis的配置是必要的）即可使用
 
-@Mapper注解的DAO接口是否需要sql推断是**可选**的，且mapper的xml文件的配置是具有更高优先级的，如果一个方法在xml中存在配置，则sql推断自动失效
+@Mapper注解的DAO接口是否需要sql推断是__可选__的，且mapper的xml文件的配置是具有更高优先级的，如果一个方法在xml中存在配置，则sql推断自动失效
 
 本插件的使用可以是渐进式的，一开始在项目中使用本插件对原项目没有任何影响，可以先尝试删除一些方法的xml配置，让其使用sql推断，如果能够正常工作，则可继续去除xml，直到xml达到最简化
 
 ## 启用sql推断
 
-让@Mapper注解的DAO接口继承 **XmlLessMapper** 接口即可实现DAO的sql推断
+让@Mapper注解的DAO接口继承 __XmlLessMapper__ 接口即可实现DAO的sql推断
 
 XmlLessMapper接口接收一个泛型参数，即该DAO要操作的对象，所有的sql推断都是基于该对象的
 
@@ -41,9 +41,9 @@ XmlLessMapper接口没有任何默认的方法，不会影响原有代码
 
 ## 功能增强说明
 
-表名称支持jpa注解**@Table**，原mybatis-plus的@TableName注解仍然有效，但@Table注解的优先级更高
+表名称支持jpa注解__@Table__，原mybatis-plus的@TableName注解仍然有效，但@Table注解的优先级更高
 
-主键属性支持jpa注解**@Id**
+主键属性支持jpa注解__@Id__
 
 ## sql推断说明
 
