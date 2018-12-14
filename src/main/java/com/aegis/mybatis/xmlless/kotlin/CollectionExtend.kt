@@ -1,4 +1,4 @@
-package com.aegis.kotlin
+package com.aegis.mybatis.xmlless.kotlin
 
 
 /**

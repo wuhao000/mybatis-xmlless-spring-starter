@@ -7,7 +7,7 @@
  */
 @file:Suppress("unused")
 
-package com.aegis.kotlin
+package com.aegis.mybatis.xmlless.kotlin
 
 import java.util.*
 

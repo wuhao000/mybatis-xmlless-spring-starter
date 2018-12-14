@@ -1,7 +1,7 @@
 package com.aegis.mybatis.xmlless.model
 
-import com.aegis.kotlin.toCamelCase
-import com.aegis.kotlin.toUnderlineCase
+import com.aegis.mybatis.xmlless.kotlin.toCamelCase
+import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.enums.JoinPropertyType
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo

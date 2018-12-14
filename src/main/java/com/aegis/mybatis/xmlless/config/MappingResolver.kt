@@ -1,6 +1,6 @@
 package com.aegis.mybatis.xmlless.config
 
-import com.aegis.kotlin.toUnderlineCase
+import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.annotations.*
 import com.aegis.mybatis.xmlless.enums.JoinPropertyType
 import com.aegis.mybatis.xmlless.model.FieldMapping

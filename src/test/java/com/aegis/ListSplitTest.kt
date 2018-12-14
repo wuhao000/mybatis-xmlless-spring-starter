@@ -1,6 +1,6 @@
 package com.aegis
 
-import com.aegis.kotlin.split
+import com.aegis.mybatis.xmlless.kotlin.split
 import org.junit.Test
 
 /**

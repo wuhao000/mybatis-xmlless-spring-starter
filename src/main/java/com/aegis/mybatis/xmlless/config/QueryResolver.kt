@@ -1,8 +1,8 @@
 package com.aegis.mybatis.xmlless.config
 
-import com.aegis.kotlin.split
-import com.aegis.kotlin.toCamelCase
-import com.aegis.kotlin.toWords
+import com.aegis.mybatis.xmlless.kotlin.split
+import com.aegis.mybatis.xmlless.kotlin.toCamelCase
+import com.aegis.mybatis.xmlless.kotlin.toWords
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.model.*
 import com.baomidou.mybatisplus.core.metadata.IPage
