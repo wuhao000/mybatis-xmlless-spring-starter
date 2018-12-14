@@ -16,7 +16,7 @@ data class User(
     @TableField()
     @InsertIgnore
     @GeneratedValue
-    var id: Long? = null,
+    var id: Int? = null,
     @TableField()
     var name: String? = null,
     var age: Int? = null,

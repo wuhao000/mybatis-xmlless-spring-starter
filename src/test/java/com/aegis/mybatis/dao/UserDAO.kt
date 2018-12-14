@@ -15,6 +15,12 @@ interface UserDAO : XmlLessMapper<User> {
   /**
    *
    * @param id
+   */
+  fun deleteById(id: Int)
+
+  /**
+   *
+   * @param id
    * @return
    */
   fun findById(id: Int): User?
@@ -24,6 +30,12 @@ interface UserDAO : XmlLessMapper<User> {
    * @param user
    */
   fun save(user: User)
+
+  /**
+   *
+   * @param user
+   */
+  fun saveAll(user: List<User>)
 
   /**
    *

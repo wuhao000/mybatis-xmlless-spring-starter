@@ -26,7 +26,27 @@ class UserDAOTest : BaseTest() {
         deleted = false
     )
     dao.save(user)
-    println(user.id)
+    assert(user.id!! > 0)
+    dao.deleteById(user.id!!)
+  }
+
+  @Test
+  fun saveAll() {
+    val user1 = User(
+        name = "test",
+        age = 12,
+        deleted = false
+    )
+    val user2 = User(
+        name = "w",
+        age = 12,
+        deleted = false
+    )
+    dao.saveAll(listOf(user1, user2))
+    assert(user1.id!! > 0)
+    assert(user2.id!! > 0)
+    dao.deleteById(user1.id!!)
+    dao.deleteById(user2.id!!)
   }
 
 }

@@ -29,3 +29,12 @@ CREATE TABLE t_subject
     UNIQUE (name)
 );
 
+CREATE TABLE t_user
+(
+  id      INT AUTO_INCREMENT
+    PRIMARY KEY,
+  name    VARCHAR(40) NOT NULL,
+  age     INT         NOT NULL,
+  deleted TINYINT(1)  NOT NULL
+);
+
