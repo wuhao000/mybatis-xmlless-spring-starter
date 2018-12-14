@@ -31,7 +31,7 @@ class XmlLessPageMapperMethod(mapperInterface: Class<*>,
   }
 
   @Suppress("UNCHECKED_CAST")
-  override fun execute(sqlSession: SqlSession, args: Array<out Any>?): Any? {
+  override fun execute(sqlSession: SqlSession, args: Array<out Any?>?): Any? {
     var result: Any? = null
     if (command.type == SqlCommandType.SELECT && args != null
         && Page::class.java.isAssignableFrom(method.returnType)) {
@@ -55,7 +55,7 @@ class XmlLessPageMapperMethod(mapperInterface: Class<*>,
     return result
   }
 
-  private fun <E> executeForMany(sqlSession: SqlSession, args: Array<out Any>?): Any {
+  private fun <E> executeForMany(sqlSession: SqlSession, args: Array<out Any?>?): Any {
     val result: List<E>
     val param = method.convertArgsToSqlCommandParam(args)
     result = if (method.hasRowBounds()) {
@@ -67,14 +67,14 @@ class XmlLessPageMapperMethod(mapperInterface: Class<*>,
     return result
   }
 
-  private fun executeForTotal(sqlSession: SqlSession, args: Array<out Any>?): Long {
+  private fun executeForTotal(sqlSession: SqlSession, args: Array<out Any?>?): Long {
     val param = method.convertArgsToSqlCommandParam(args)
     val commandName = command.name + UnknownMethods.COUNT_STATEMENT_SUFFIX
     return sqlSession.selectOne<Long>(commandName, param)
   }
 
-  private fun findIPageArg(args: Array<out Any>): Any? {
-    return args.firstOrNull {
+  private fun findIPageArg(args: Array<out Any?>): Any? {
+    return args.filterNotNull().firstOrNull {
       IPage::class.java.isAssignableFrom(it.javaClass)
     }
   }
