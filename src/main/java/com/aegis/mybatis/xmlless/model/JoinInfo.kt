@@ -3,6 +3,8 @@ package com.aegis.mybatis.xmlless.model
 import com.aegis.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.enums.JoinPropertyType
 import com.aegis.mybatis.xmlless.enums.JoinType
+import java.lang.reflect.ParameterizedType
+import java.lang.reflect.Type
 
 /**
  *
@@ -18,8 +20,9 @@ class JoinInfo(val selectColumns: List<String>,
                val joinProperty: String,
                val targetColumn: String,
                val joinPropertyType: JoinPropertyType) {
+
   var associationPrefix: String? = null
-  var javaType: Class<*>? = null
+  var javaType: Type? = null
 
   fun joinTable(): String {
     return joinTableAlias ?: joinTable
@@ -30,6 +33,24 @@ class JoinInfo(val selectColumns: List<String>,
       "$joinTable AS $joinTableAlias"
     } else {
       joinTable
+    }
+  }
+
+  fun rawType(): Class<*>? {
+    val type = javaType
+    return when (type) {
+      is Class<*>          -> type
+      is ParameterizedType -> type.rawType as Class<*>
+      else                 -> null
+    }
+  }
+
+  fun realType(): Class<*>? {
+    val type = javaType
+    return when (type) {
+      is Class<*>          -> type
+      is ParameterizedType -> type.actualTypeArguments[0] as Class<*>
+      else                 -> null
     }
   }
 

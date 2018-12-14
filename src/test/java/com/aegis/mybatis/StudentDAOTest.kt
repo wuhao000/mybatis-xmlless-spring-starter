@@ -7,6 +7,7 @@ import org.junit.runner.RunWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.test.context.junit4.SpringRunner
 
 /**
@@ -41,6 +42,22 @@ class StudentDAOTest {
   }
 
   @Test
+  fun deleteByName() {
+    val id = "testDeleteByName"
+    val name = "nameOfTestDeleteByName"
+    studentDAO.save(
+        Student(
+            id,
+            name,
+            "18005184916", 1
+        )
+    )
+    assert(studentDAO.existsByName(name))
+    studentDAO.deleteByName(name)
+    assert(!studentDAO.existsByName(name))
+  }
+
+  @Test
   fun existsByClientId() {
     val id = "1234"
     assert(!studentDAO.existsById(id))
@@ -48,20 +65,42 @@ class StudentDAOTest {
 
   @Test
   fun findAll() {
-    assert(studentDAO.findAll().isNotEmpty())
+    val list = studentDAO.findAll()
+    val spec = list.first { it.id == id }
+    assert(spec.scores != null && spec.scores!!.isNotEmpty())
+    assert(list.isNotEmpty())
   }
 
   @Test
   fun findById() {
-    println(studentDAO.findById(id))
+    val student = studentDAO.findById(id)
+    println(student?.scores)
     assert(studentDAO.findById(id) != null)
   }
 
   @Test
   fun findPage() {
-    val page = studentDAO.findAllPageable(
-        PageRequest.of(0, 20))
-    println(page.content.first().name.compareTo(page.content.last().name))
+    studentDAO.findAllPageable(
+        PageRequest.of(0, 20)).apply {
+      this.content.map {
+        it.name + " / ${it.id}"
+      }.forEach { println(it) }
+      println(this.content.first().name.compareTo(this.content.last().name))
+    }
+    studentDAO.findAllPageable(
+        PageRequest.of(0, 20, Sort(Sort.Direction.DESC, "name"))).apply {
+      this.content.map {
+        it.name + " / ${it.id}"
+      }.forEach { println(it) }
+      println(this.content.first().name.compareTo(this.content.last().name))
+    }
+    studentDAO.findAllPageable(
+        PageRequest.of(0, 20, Sort("name"))).apply {
+      this.content.map {
+        it.name + " / ${it.id}"
+      }.forEach { println(it) }
+      println(this.content.first().name.compareTo(this.content.last().name))
+    }
   }
 
   @Test
@@ -90,7 +129,7 @@ class StudentDAOTest {
     )
     assert(studentDAO.existsById(id1))
     assert(studentDAO.existsById(id2))
-    studentDAO.deleteAllByIds(listOf("saveAll1", "saveAll2"))
+    studentDAO.deleteByIds(listOf("saveAll1", "saveAll2"))
     assert(!studentDAO.existsById(id1))
     assert(!studentDAO.existsById(id2))
   }
@@ -113,6 +152,24 @@ class StudentDAOTest {
             )
         ) == 1
     )
+  }
+
+  @Test
+  fun updateNameById() {
+    val id = "testUpdateNameById"
+    val oldName = "oldName"
+    val newName = "newName"
+    studentDAO.save(
+        Student(
+            id,
+            oldName,
+            "18005184916", 1
+        )
+    )
+    assert(studentDAO.findById(id)?.name == oldName)
+    assert(studentDAO.updateNameById(newName, id) == 1)
+    assert(studentDAO.findById(id)?.name == newName)
+    studentDAO.deleteById(id)
   }
 
 }

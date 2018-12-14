@@ -122,7 +122,7 @@ object MappingResolver {
     return TableInfoHelper.getAllFields(modelClass)
   }
 
-  private fun getMappingCache(modelClass: Class<*>): FieldMappings? {
+  fun getMappingCache(modelClass: Class<*>): FieldMappings? {
     return MAPPING_CACHE[modelClass.name]
   }
 
@@ -151,7 +151,7 @@ object MappingResolver {
             it.joinType, it.joinProperty, it.targetColumn, JoinPropertyType.Object
         ).apply {
           associationPrefix = joinObject.associationPrefix
-          javaType = field.type
+          javaType = field.genericType
         }
       }
       else                 -> null

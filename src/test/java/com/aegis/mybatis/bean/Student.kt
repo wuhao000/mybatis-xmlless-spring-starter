@@ -10,7 +10,6 @@ import javax.persistence.Id
  * @author 吴昊
  * @since 0.0.4
  */
-//@TableName(resultMap = "student")
 class Student() {
 
   @TableField("sex")
@@ -27,7 +26,7 @@ class Student() {
       selectColumns = ["score", "subject_id"]
   )
   @ModifyIgnore
-  var scores: List<Score> = listOf()
+  var scores: MutableList<Score>? = null
 
   constructor(id: String, name: String, phoneNumber: String, gender: Int)
       : this() {

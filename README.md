@@ -11,6 +11,15 @@
 > 文档中的示例sql均为简化的sql，目的在于表达，并不是最终生成的sql
 > 文档中的示例代码均为kotlin代码
 
+## 主要特性
+
+- 支持根据DAO的方法名称自动推断添加、查询、修改、删除、统计、是否存在等数据库操作
+- 支持多种形式的表达,如findById,queryById,selectById是等价的，deleteById与removeById是等价的
+- 支持根据对象结构自动解析resultMap（支持级联的对象），不再需要在xml文件中配置resultMap
+- 支持join的推断，复杂的sql也能自动推断
+- 支持分页操作
+- 支持spring data的Pageable和Page对象，基本可以和jpa做到无缝切换
+- 支持部分jpa注解：@Table、@Transient、@Id，作用于持久化对象
 
 ## 配置说明
 
@@ -161,4 +170,29 @@ WHERE
 
 支持批量插入
 
+
+## join的支持
+
+### join 一个对象
+
+在持久化对象中可以关联另外一个对象，这个对象对应数据库中的另外一张表，那么在查询的时候如果需要级联查询可以这样配置：
+
+在关联的对象（支持单个对象或对象集合，即一对一或一对多的关系都可以支持）属性上添加注解：
+```
+ @JoinObject(
+      targetTable = "t_score",
+      targetColumn = "student_id",
+      joinProperty = "id",
+      associationPrefix = "score_",
+      selectColumns = ["score", "subject_id"]
+  )
+```
+注解中的属性作用如下：
+targetTable 需要join的表
+targetColumn join的表中用于关联的列名称
+joinProperty 当前对象中用于关联的属性名称（注意是对象属性名称而不是列名称）
+associationPrefix 为防止列名称冲突，给关联表的属性别名添加固定前缀
+selectColumns 关联表中需要查询的列集合
+
+- 注：如果关联的是对象集合，在kotlin中必须声明为可变的集合
 

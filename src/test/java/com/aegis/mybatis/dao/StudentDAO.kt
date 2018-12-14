@@ -25,18 +25,6 @@ interface StudentDAO : XmlLessMapper<Student> {
   fun count(): Int
 
   /**
-   * 删除全部
-   */
-  fun deleteAll()
-
-  /**
-   *
-   * @param list
-   */
-  @ResolvedName("deleteByIdInIds")
-  fun deleteAllByIds(@Param("ids") list: List<String>)
-
-  /**
    *
    * @param id
    */
@@ -47,7 +35,7 @@ interface StudentDAO : XmlLessMapper<Student> {
    * @param ids
    */
   @ResolvedName("deleteByIdInIds")
-  fun deleteByIds(ids: List<String>)
+  fun deleteByIds(@Param("ids") ids: List<String>)
 
   /**
    *
@@ -61,6 +49,13 @@ interface StudentDAO : XmlLessMapper<Student> {
    * @return
    */
   fun existsById(id: String): Boolean
+
+  /**
+   *
+   * @param name
+   * @return
+   */
+  fun existsByName(name: String): Boolean
 
   /**
    *
