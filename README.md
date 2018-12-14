@@ -17,9 +17,10 @@ __本项目依赖于mybatis及mybatis-plus, 并使引用了mybatis-plus中的一
 - 支持多种形式的表达,如findById,queryById,selectById是等价的，deleteById与removeById是等价的
 - 支持根据对象结构自动解析resultMap（支持级联的对象），不再需要在xml文件中配置resultMap
 - 支持join的推断，复杂的sql也能自动推断
-- 支持分页操作
+- 支持分页操作，支持spring data的Pageable对象分页和排序
 - 支持spring data的Pageable和Page对象，基本可以和jpa做到无缝切换
-- 支持部分jpa注解：@Table、@Transient、@Id，作用于持久化对象
+- 支持部分jpa注解：@Table、@Transient、@Id、@GeneratedValue，作用于持久化对象
+- 支持自增主键回填，需要在主键属性上添加jpa注解@GeneratedValue
 
 ## 使用方法
 
@@ -219,5 +220,6 @@ associationPrefix 为防止列名称冲突，给关联表的属性别名添加�
 selectColumns 关联表中需要查询的列集合
 
 - 注：如果关联的是对象集合，在kotlin中必须声明为可变的集合
+
 
 
