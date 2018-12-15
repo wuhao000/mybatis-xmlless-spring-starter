@@ -1,5 +1,6 @@
-package com.aegis.mybatis.xmlless.config
+package com.aegis.mybatis.xmlless.resolver
 
+import com.aegis.mybatis.xmlless.config.fieldInfoMap
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.model.FieldMappings
 import org.slf4j.LoggerFactory

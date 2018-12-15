@@ -1,8 +1,9 @@
 @file:Suppress("MemberVisibilityCanBePrivate")
 
-package com.aegis.mybatis.xmlless.config
+package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
+import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.constant.PAGEABLE_SORT
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.split
@@ -12,7 +13,6 @@ import com.aegis.mybatis.xmlless.model.Limitation
 import com.aegis.mybatis.xmlless.model.Query
 import com.aegis.mybatis.xmlless.model.QueryType
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
-import com.aegis.mybatis.xmlless.resolver.ConditionResolver
 import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT

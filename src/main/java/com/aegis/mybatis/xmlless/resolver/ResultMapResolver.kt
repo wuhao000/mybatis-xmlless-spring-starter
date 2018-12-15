@@ -33,7 +33,7 @@ object ResultMapResolver {
             buildByMapping(id, builderAssistant, mapping, mappings.tableInfo)
           } ?: listOf(), true).resolve()
     } else {
-      ResultMapResolver(builderAssistant, id, returnType, null, null, listOf(), true).resolve()
+      ResultMapResolver(builderAssistant, id, returnType ?: modelClass, null, null, listOf(), true).resolve()
     }
     if (!builderAssistant.configuration.hasResultMap(resultMap.id)) {
       builderAssistant.configuration.addResultMap(resultMap)

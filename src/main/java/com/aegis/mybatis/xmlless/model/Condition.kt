@@ -1,7 +1,7 @@
 package com.aegis.mybatis.xmlless.model
 
 import com.aegis.mybatis.xmlless.annotations.ValueAssign
-import com.aegis.mybatis.xmlless.constant.Operations
+import com.aegis.mybatis.xmlless.enums.Operations
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
 import kotlin.reflect.KParameter
 import kotlin.reflect.jvm.jvmErasure

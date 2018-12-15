@@ -2,9 +2,9 @@ package com.aegis.mybatis.xmlless.model
 
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
-import com.aegis.mybatis.xmlless.config.ColumnsResolver
+import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.constant.*
-import com.aegis.mybatis.xmlless.constant.Operations
+import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.baomidou.mybatisplus.annotation.FieldFill
 import com.baomidou.mybatisplus.annotation.FieldStrategy

@@ -1,11 +1,11 @@
 package com.aegis.mybatis.xmlless.methods
 
 import com.aegis.mybatis.xmlless.config.MappingResolver
-import com.aegis.mybatis.xmlless.config.QueryResolver
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.model.QueryType
 import com.aegis.mybatis.xmlless.model.ResolvedQueries
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
+import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.aegis.mybatis.xmlless.resolver.ResultMapResolver
 import com.baomidou.mybatisplus.annotation.IdType
 import com.baomidou.mybatisplus.core.metadata.TableInfo

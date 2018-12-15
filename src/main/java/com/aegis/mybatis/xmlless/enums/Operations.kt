@@ -1,5 +1,7 @@
-package com.aegis.mybatis.xmlless.constant
+package com.aegis.mybatis.xmlless.enums
 
+import com.aegis.mybatis.xmlless.constant.IN_TEMPLATE
+import com.aegis.mybatis.xmlless.constant.NOT_NULL_OR_IS_NULL
 import com.aegis.mybatis.xmlless.kotlin.toWords
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods
 

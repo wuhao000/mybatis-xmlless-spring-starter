@@ -46,7 +46,7 @@ class Student() {
 
   @TableField("sex")
   var gender: Int = 1
-  var graduated: Boolean? = false
+  var graduated: Boolean = false
   @Id
   var id: String = ""
   var name: String = ""

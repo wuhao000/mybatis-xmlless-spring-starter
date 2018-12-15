@@ -3,6 +3,7 @@ package com.aegis.mybatis.xmlless.config
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.StudentDAO
 import com.aegis.mybatis.xmlless.annotations.UpdateIgnore
+import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.baomidou.mybatisplus.core.MybatisConfiguration
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper

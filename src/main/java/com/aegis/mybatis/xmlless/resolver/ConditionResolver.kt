@@ -1,7 +1,7 @@
 package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
-import com.aegis.mybatis.xmlless.constant.Operations
+import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.kotlin.split
 import com.aegis.mybatis.xmlless.kotlin.toCamelCase
 import com.aegis.mybatis.xmlless.model.Condition
