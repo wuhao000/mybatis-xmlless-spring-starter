@@ -157,8 +157,8 @@ data class FieldMappings(val mappings: List<FieldMapping>,
     // Score对象中有一个属性subjectId，那么subjectId可以匹配到关联对象的subjectId属性上
     val matchedJoinInfos = mappings.filter {
       it.joinInfo != null && it.joinInfo.joinPropertyType == Object
-    }.filter {
-      it.joinInfo?.getJoinTableInfo()?.fieldList?.firstOrNull { it.property == property } != null
+    }.filter { mapping ->
+      mapping.joinInfo?.getJoinTableInfo()?.fieldList?.firstOrNull { it.property == property } != null
     }.map { it.joinInfo!! }
     return when {
       matchedJoinInfos.size > 1  -> throw BuildSQLException("在${matchedJoinInfos
@@ -192,8 +192,9 @@ data class FieldMappings(val mappings: List<FieldMapping>,
         .mapNotNull { it.joinInfo }
         .distinctBy { it.joinTable() }
         .joinToString(" ") { joinInfo ->
-          val col = mappings.firstOrNull { it.property == joinInfo.joinProperty }?.column
-              ?: throw IllegalStateException("Cannot resolve join property ${joinInfo.joinProperty}")
+          val joinProperty = joinInfo.getJoinProperty(tableInfo)
+          val col = mappings.firstOrNull { it.property == joinProperty }?.column
+              ?: throw BuildSQLException("无法解析join属性$joinProperty")
           String.format(
               JOIN, joinInfo.type.name,
               joinInfo.joinTableDeclaration(),

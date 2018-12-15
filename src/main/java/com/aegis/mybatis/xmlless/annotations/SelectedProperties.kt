@@ -7,6 +7,7 @@ package com.aegis.mybatis.xmlless.annotations
  *
  * @author 吴昊
  * @since 0.0.3
+ * @param properties 需要获取的对象属性名称
  */
 @Target(allowedTargets = [
   AnnotationTarget.FUNCTION,

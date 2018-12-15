@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package com.aegis.mybatis.dao
 
 import com.aegis.mybatis.bean.User
@@ -14,6 +16,12 @@ import org.apache.ibatis.annotations.Mapper
  */
 @Mapper
 interface UserDAO : XmlLessMapper<User> {
+
+  /**
+   *
+   * @return
+   */
+  fun count(): Int
 
   /**
    *
@@ -60,7 +68,5 @@ interface UserDAO : XmlLessMapper<User> {
    * @param user
    */
   fun update(user: User)
-
-  fun count(): Int
 
 }

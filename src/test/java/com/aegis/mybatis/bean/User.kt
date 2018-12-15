@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package com.aegis.mybatis.bean
 
 import com.aegis.mybatis.xmlless.annotations.InsertIgnore
@@ -9,6 +11,7 @@ import javax.persistence.*
  * @author 吴昊
  * @since 0.0.1
  */
+@Suppress("unused")
 @Entity
 @Table(schema = "test")
 data class User(
@@ -29,3 +32,14 @@ data class User(
   var count: Int = 0
 
 }
+
+@Suppress("ALL")
+object QUser {
+  const val id = "id"
+  const val name = "name"
+  const val age = "age"
+  const val deleted = "deleted"
+}
+
+@Suppress("ALL")
+val quser = QUser

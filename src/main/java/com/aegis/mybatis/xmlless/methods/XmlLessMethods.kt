@@ -2,6 +2,7 @@ package com.aegis.mybatis.xmlless.methods
 
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.config.QueryResolver
+import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.model.QueryType
 import com.aegis.mybatis.xmlless.model.ResolvedQueries
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
@@ -27,15 +28,14 @@ import kotlin.reflect.full.declaredFunctions
  * @author 吴昊
  * @since 0.0.1
  */
-class UnknownMethods : AbstractLogicMethod() {
+class XmlLessMethods : AbstractLogicMethod() {
 
   companion object {
     const val COUNT_STATEMENT_SUFFIX = "CountAllSuffix"
     const val HANDLER_PREFIX = "typeHandler="
     const val PROPERTY_PREFIX = "#{"
     const val PROPERTY_SUFFIX = "}"
-    private val LOG: Logger = LoggerFactory.getLogger(UnknownMethods::class.java)
-    private val log: Logger = LoggerFactory.getLogger(UnknownMethods::class.java)
+    private val LOG: Logger = LoggerFactory.getLogger(XmlLessMethods::class.java)
     private val possibleErrors = listOf(
         "未在级联属性@ModifyIgnore注解将其标记为不需要插入或更新的字段"
     )
@@ -63,10 +63,7 @@ class UnknownMethods : AbstractLogicMethod() {
             in listOf(QueryType.Select,
                 QueryType.Exists,
                 QueryType.Count) -> {
-              val returnType = resolvedQuery.returnType
-              if (returnType == null) {
-                throw IllegalStateException("无法解析方法${function}的返回类型")
-              }
+              val returnType = resolvedQuery.returnType ?: throw BuildSQLException("无法解析方法${function}的返回类型")
               var resultMap = resolvedQuery.resultMap
               if (resultMap == null && resolvedQuery.type() == QueryType.Select) {
                 // 如果没有指定resultMap，则自动生成resultMap

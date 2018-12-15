@@ -1,8 +1,8 @@
 package com.aegis.mybatis.xmlless.model
 
-import com.aegis.mybatis.xmlless.methods.UnknownMethods.Companion.HANDLER_PREFIX
-import com.aegis.mybatis.xmlless.methods.UnknownMethods.Companion.PROPERTY_PREFIX
-import com.aegis.mybatis.xmlless.methods.UnknownMethods.Companion.PROPERTY_SUFFIX
+import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.HANDLER_PREFIX
+import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.PROPERTY_PREFIX
+import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.PROPERTY_SUFFIX
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import org.apache.ibatis.type.TypeHandler
 
@@ -24,29 +24,17 @@ data class FieldMapping(
     val selectIgnore: Boolean,
     val joinInfo: JoinInfo?) {
 
-  companion object {
-    const val UNWRAPPED_EXPRESSION = """%s%s%s"""
-    const val WRAPPED_EXPRESSION = """$PROPERTY_PREFIX%s%s%s$PROPERTY_SUFFIX"""
-  }
-
   fun getPropertyExpression(prefix: String? = null, wrap: Boolean = true): String {
     val template = if (wrap) {
-      WRAPPED_EXPRESSION
+      """$PROPERTY_PREFIX%s%s%s$PROPERTY_SUFFIX"""
     } else {
-      UNWRAPPED_EXPRESSION
+      """%s%s%s"""
     }
     return String.format(template, prefix ?: "", property, if (typeHandler != null) {
       ", $HANDLER_PREFIX" + typeHandler.name
     } else {
       ""
     })
-  }
-
-  fun getUpdateExpression(): String {
-    if (tableFieldInfo.update.isNullOrBlank()) {
-      return getPropertyExpression()
-    }
-    return tableFieldInfo.update
   }
 
 }

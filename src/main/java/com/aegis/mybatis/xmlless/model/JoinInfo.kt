@@ -2,6 +2,7 @@ package com.aegis.mybatis.xmlless.model
 
 import com.aegis.mybatis.xmlless.enums.JoinPropertyType
 import com.aegis.mybatis.xmlless.enums.JoinType
+import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.resolver.TypeResolver
 import com.baomidou.mybatisplus.core.metadata.TableInfo
@@ -20,12 +21,19 @@ class JoinInfo(val selectColumns: List<String>,
                private val joinTable: String,
                private val joinTableAlias: String?,
                val type: JoinType,
-               val joinProperty: String,
+               private val joinProperty: String,
                val targetColumn: String,
                val joinPropertyType: JoinPropertyType) {
 
   var associationPrefix: String? = null
   var javaType: Type? = null
+
+  fun getJoinProperty(tableInfo: TableInfo): String {
+    return when {
+      joinProperty.isEmpty() -> tableInfo.keyProperty ?: throw BuildSQLException("无法解析${tableInfo.clazz}的主键属性")
+      else                   -> joinProperty
+    }
+  }
 
   fun getJoinTableInfo(): TableInfo? {
     val type = realType()

@@ -29,9 +29,9 @@ object ColumnsResolver {
     }
     return when {
       // 指定属性进行查询
-      properties.isNotEmpty() -> properties.map {
+      properties.isNotEmpty() -> properties.joinToString(", ") {
         mappings.resolveColumnByPropertyName(it, true)
-      }.joinToString(", ")
+      }
       // 查询全部属性
       else                    -> mappings.selectFields()
     }

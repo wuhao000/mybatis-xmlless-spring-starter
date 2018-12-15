@@ -11,6 +11,11 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 import javax.persistence.Id
 
+/**
+ * for test
+ * @author 吴昊
+ * @since 0.0.6
+ */
 class StringTypeHandler : BaseTypeHandler<String>() {
 
   override fun getNullableResult(rs: ResultSet, columnName: String?): String? {
@@ -36,6 +41,7 @@ class StringTypeHandler : BaseTypeHandler<String>() {
  * @author 吴昊
  * @since 0.0.4
  */
+@Suppress("MemberVisibilityCanBePrivate")
 class Student() {
 
   @TableField("sex")

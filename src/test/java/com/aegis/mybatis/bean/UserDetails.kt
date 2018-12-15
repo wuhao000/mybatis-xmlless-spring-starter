@@ -7,4 +7,5 @@ package com.aegis.mybatis.bean
  * @author 吴昊
  * @since 0.0.1-SNAPSHOT
  */
+@Suppress("unused")
 class UserDetails

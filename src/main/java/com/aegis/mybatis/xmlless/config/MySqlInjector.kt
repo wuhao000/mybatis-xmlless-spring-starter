@@ -1,6 +1,6 @@
 package com.aegis.mybatis.xmlless.config
 
-import com.aegis.mybatis.xmlless.methods.UnknownMethods
+import com.aegis.mybatis.xmlless.methods.XmlLessMethods
 import com.baomidou.mybatisplus.core.injector.AbstractMethod
 import com.baomidou.mybatisplus.core.injector.AbstractSqlInjector
 import org.springframework.stereotype.Component
@@ -19,7 +19,7 @@ class MySqlInjector : AbstractSqlInjector() {
 
   override fun getMethodList(): List<AbstractMethod> {
     return listOf(
-        UnknownMethods()
+        XmlLessMethods()
     )
   }
 

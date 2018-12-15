@@ -1,7 +1,7 @@
 package com.aegis.mybatis.xmlless.constant
 
 import com.aegis.mybatis.xmlless.kotlin.toWords
-import com.aegis.mybatis.xmlless.methods.UnknownMethods
+import com.aegis.mybatis.xmlless.methods.XmlLessMethods
 
 /**
  * 数据库支持的操作符
@@ -45,7 +45,7 @@ enum class Operations(val operator: String) {
   fun getTemplate(value: Boolean = false): String {
     val valueHolder = when {
       value -> "%s"
-      else  -> "${UnknownMethods.PROPERTY_PREFIX}%s${UnknownMethods.PROPERTY_SUFFIX}"
+      else  -> "${XmlLessMethods.PROPERTY_PREFIX}%s${XmlLessMethods.PROPERTY_SUFFIX}"
     }
     return when (this) {
       Like                          -> "%s %s CONCAT('%%', $valueHolder,'%%')"

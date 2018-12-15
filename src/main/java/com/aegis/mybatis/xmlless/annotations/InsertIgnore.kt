@@ -4,7 +4,7 @@ import java.lang.annotation.Inherited
 
 
 /**
- * 忽略规则
+ * 用在持久化类的属性上，表示该属性不参与insert操作
  * @author 吴昊
  * @since 0.0.1
  */

@@ -8,7 +8,6 @@ package com.aegis.mybatis.xmlless.constant
  * @author 吴昊
  * @since 0.0.8
  */
-
 /**  insert 语句模板 */
 const val BATCH_INSERT = """<script>
 INSERT INTO
@@ -19,16 +18,20 @@ VALUES
   </foreach>
 </script>
 """
+
 /**  删除语句模板 */
 const val DELETE = """<script>
 DELETE FROM
   %s
 %s
 </script>"""
+
+/**  单条数据插入语句模板 */
 const val INSERT = """INSERT INTO
   %s(%s)
 VALUE
   (%s)"""
+
 /**  join表达式模板 */
 const val JOIN = """
   %S JOIN
@@ -36,14 +39,17 @@ const val JOIN = """
   ON
     %s.%s = %s.%s
 """
+
 /**  limit 语句模板 */
 const val LIMIT = "LIMIT #{%s}, #{%s}"
+
 /**  Pageable参数中的排序 */
 const val PAGEABLE_SORT = """<if test="%s.sort.isSorted">
   <foreach collection="%s.sort.get().toArray()" item="item" separator=",">
     ${'$'}{item.property} <if test="item.isAscending">ASC</if><if test="item.isDescending">DESC</if>
   </foreach>
 </if>"""
+
 /**  查询语句模板 */
 const val SELECT = """<script>
 SELECT
@@ -52,6 +58,7 @@ FROM
   %s %s
 %s %s %s
 </script>"""
+
 /**  count语句模板 */
 const val SELECT_COUNT = """<script>
 SELECT
@@ -60,6 +67,7 @@ FROM
   %s
 %s
 </script>"""
+
 /**  子查询构建模板 */
 const val SUB_QUERY = """(SELECT
   *
@@ -67,6 +75,7 @@ FROM
   %s
 %s
 %s) AS %s"""
+
 /**  更新语句模板 */
 const val UPDATE = """<script>
 UPDATE
@@ -74,6 +83,7 @@ UPDATE
   %s
 %s
 </script>"""
+
 /**  where条件模板 */
 const val WHERE = """<where>
   <trim suffixOverrides=" AND">

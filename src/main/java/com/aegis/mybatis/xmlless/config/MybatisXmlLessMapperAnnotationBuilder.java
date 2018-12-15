@@ -161,7 +161,7 @@ public class MybatisXmlLessMapperAnnotationBuilder extends MapperAnnotationBuild
   }
 
 
-  void parseStatement(Method method) {
+  private void parseStatement(Method method) {
     Class<?> parameterTypeClass = getParameterType(method);
     LanguageDriver languageDriver = getLanguageDriver(method);
     SqlSource sqlSource = getSqlSourceFromAnnotations(method, parameterTypeClass, languageDriver);
@@ -675,7 +675,7 @@ public class MybatisXmlLessMapperAnnotationBuilder extends MapperAnnotationBuild
 
   private void parsePendingMethods() {
     Collection<MethodResolver> incompleteMethods = configuration.getIncompleteMethods();
-    synchronized (incompleteMethods) {
+    synchronized (configuration.getIncompleteMethods()) {
       Iterator<MethodResolver> iter = incompleteMethods.iterator();
       while (iter.hasNext()) {
         try {

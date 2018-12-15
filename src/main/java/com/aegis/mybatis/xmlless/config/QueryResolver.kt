@@ -1,3 +1,5 @@
+@file:Suppress("MemberVisibilityCanBePrivate")
+
 package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
@@ -37,6 +39,7 @@ object QueryResolver {
 
   private val QUERY_CACHE = hashMapOf<String, ResolvedQuery>()
 
+  @Suppress("unused")
   fun getQueryCache(key: String): ResolvedQuery? {
     return QUERY_CACHE[key]
   }

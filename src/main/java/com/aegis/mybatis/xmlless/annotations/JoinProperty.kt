@@ -3,24 +3,20 @@ package com.aegis.mybatis.xmlless.annotations
 import com.aegis.mybatis.xmlless.enums.JoinType
 
 /**
- * 多表连接信息
+ * 用在持久化类的属性上，表示持久化类的属性是一个关联属性
+ * @param selectColumn 关联属性对应的连接表中的字段
+ * @param targetTable 连接的表名称
+ * @param joinType 连接的类型
+ * @param joinProperty 当前对象用于连接的属性名称（非表字段名称），如果为空则默认为主键
+ * @param targetColumn 连接表用于连接的表字段名称
  */
 @Target(allowedTargets = [
   AnnotationTarget.FIELD
 ])
 annotation class JoinProperty(
-    /**  链接表需要查询的字段 */
     val selectColumn: String,
-    /**  连接的表名称 */
-    val targetTable: String = "",
+    val targetTable: String,
     val joinType: JoinType = JoinType.Left,
-    /**  当前对象用于连接的属性名称（非表字段名称） */
     val joinProperty: String = "",
-    /**
-     * 是否使用主键连接，为true时，当joinColumn为空，使用主表的主键，当targetColumn为空，使用连接表的主键
-     * 为false时，joinColumn和targetColumn必须不为空
-     */
-//    val joinOnKeyColumn: Boolean = true,
-    /**  连接表用于连接的字段 */
-    val targetColumn: String = ""
+    val targetColumn: String
 )

@@ -1,6 +1,6 @@
 package com.aegis.mybatis.xmlless.config.paginition
 
-import com.aegis.mybatis.xmlless.methods.UnknownMethods
+import com.aegis.mybatis.xmlless.methods.XmlLessMethods
 import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.override.PageMapperMethod
 import org.apache.ibatis.mapping.SqlCommandType
@@ -69,7 +69,7 @@ class XmlLessPageMapperMethod(mapperInterface: Class<*>,
 
   private fun executeForTotal(sqlSession: SqlSession, args: Array<out Any?>?): Long {
     val param = method.convertArgsToSqlCommandParam(args)
-    val commandName = command.name + UnknownMethods.COUNT_STATEMENT_SUFFIX
+    val commandName = command.name + XmlLessMethods.COUNT_STATEMENT_SUFFIX
     return sqlSession.selectOne<Long>(commandName, param)
   }
 

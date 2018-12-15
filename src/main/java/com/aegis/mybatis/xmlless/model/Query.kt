@@ -275,13 +275,12 @@ data class Query(
 
   private fun resolveUpdateProperties(): String {
     if (this.properties.isEmpty()) {
-      val sqlScript = wrapSetScript(this.mappings.mappings.filter {
+      return wrapSetScript(mappings.mappings.filter {
         it.joinInfo == null && !it.updateIgnore
             && it.property != mappings.tableInfo.keyProperty
       }.joinToString(StringPool.NEWLINE) {
         getSqlSet(null, it)
       })
-      return sqlScript
     }
     val builders = this.properties.map { property ->
       val mapping = this.mappings.mappings.firstOrNull { it.property == property }

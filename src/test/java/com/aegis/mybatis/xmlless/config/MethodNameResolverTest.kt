@@ -3,7 +3,6 @@ package com.aegis.mybatis.xmlless.config
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.StudentDAO
 import com.aegis.mybatis.xmlless.annotations.UpdateIgnore
-import com.aegis.mybatis.xmlless.model.ResolvedQueries
 import com.baomidou.mybatisplus.core.MybatisConfiguration
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
@@ -25,10 +24,9 @@ import kotlin.reflect.full.declaredFunctions
 //@SpringBootTest
 class MethodNameResolverTest {
 
-  val mapperClass = StudentDAO::class.java
-  val queries = ResolvedQueries(mapperClass)
-  val modelClass = Student::class.java
-  lateinit var tableInfo: TableInfo
+  private val mapperClass = StudentDAO::class.java
+  private val modelClass = Student::class.java
+  private lateinit var tableInfo: TableInfo
 
   @Before
   fun init() {
