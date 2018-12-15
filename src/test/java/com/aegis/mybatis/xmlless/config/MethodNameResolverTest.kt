@@ -56,6 +56,12 @@ class MethodNameResolverTest {
   }
 
   @Test
+  fun resolvePartlyUpdate() {
+    val query = createQueryForMethod("updatePartly")
+    println(query)
+  }
+
+  @Test
   fun resolveSpecValue() {
     mapperClass.kotlin.declaredFunctions
         .first { it.name == "findByGraduatedEqTrue" }.also {
@@ -63,6 +69,14 @@ class MethodNameResolverTest {
           println(query.toString())
           assert(query.toString().contains("graduated = TRUE"))
         }
+  }
+
+  private fun createQueryForMethod(name: String): Any {
+    return mapperClass.kotlin.declaredFunctions
+        .filter { it.name == name }
+        .map {
+          QueryResolver.resolve(it, tableInfo, modelClass, mapperClass)
+        }.first()
   }
 
   private fun createTableInfo(modelClass: Class<*>): TableInfo {

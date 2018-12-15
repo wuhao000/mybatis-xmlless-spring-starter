@@ -3,6 +3,7 @@
 package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
+import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.constant.PAGEABLE_SORT
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
@@ -68,7 +69,7 @@ object QueryResolver {
       val resolvedName = resolvedNameAnnotation?.name ?: function.name
       val resolveSortsResult = resolveSorts(resolvedName)
       val resolveTypeResult = resolveType(resolveSortsResult.remainName)
-      val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords)
+      val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords, function)
       val conditions = ConditionResolver.resolveConditions(resolvePropertiesResult.conditionWords, function, paramNames)
       val query = Query(
           resolveTypeResult.type,
@@ -98,9 +99,9 @@ object QueryResolver {
     }
   }
 
-  fun resolveProperties(remainWords: List<String>): ResolvePropertiesResult {
+  fun resolveProperties(remainWords: List<String>, function: KFunction<*>): ResolvePropertiesResult {
     val byIndex = remainWords.indexOf("By")
-    val properties: List<String> = if (byIndex == 0) {
+    var properties: List<String> = if (byIndex == 0) {
       listOf()
     } else {
       val propertiesWords = if (byIndex > 0) {
@@ -116,6 +117,9 @@ object QueryResolver {
       remainWords.subList(byIndex + 1, remainWords.size)
     } else {
       listOf()
+    }
+    if (function.findAnnotation<SelectedProperties>() != null) {
+      properties = function.findAnnotation<SelectedProperties>()!!.properties.toList()
     }
     return ResolvePropertiesResult(properties, conditionWords)
   }

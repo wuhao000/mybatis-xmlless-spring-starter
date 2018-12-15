@@ -1,6 +1,6 @@
 package com.aegis.mybatis.xmlless.annotations
 
-import com.aegis.mybatis.xmlless.enums.JoinType
+import javax.persistence.criteria.JoinType
 
 
 /**
@@ -14,7 +14,7 @@ annotation class JoinObject(
     val selectColumns: Array<String> = [],
     /**  连接的表名称 */
     val targetTable: String = "",
-    val joinType: JoinType = JoinType.Left,
+    val joinType: JoinType = JoinType.LEFT,
     /**  当前对象用于连接的属性名称（非表字段名称），如果为空则默认为主键 */
     val joinProperty: String = "",
     /**  连接表用于连接的字段 */

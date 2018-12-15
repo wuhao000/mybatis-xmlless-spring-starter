@@ -1,7 +1,6 @@
 package com.aegis.mybatis.xmlless.model
 
 import com.aegis.mybatis.xmlless.enums.JoinPropertyType
-import com.aegis.mybatis.xmlless.enums.JoinType
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.resolver.TypeResolver
@@ -9,6 +8,7 @@ import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
+import javax.persistence.criteria.JoinType
 
 /**
  *
