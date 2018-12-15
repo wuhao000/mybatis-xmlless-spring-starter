@@ -1,12 +1,5 @@
 package com.aegis.mybatis.xmlless.model
 
-import com.aegis.mybatis.xmlless.config.MappingResolver
-import com.aegis.mybatis.xmlless.enums.JoinPropertyType
-import com.baomidou.mybatisplus.core.metadata.TableInfo
-import org.apache.ibatis.builder.MapperBuilderAssistant
-import org.apache.ibatis.builder.ResultMapResolver
-import org.apache.ibatis.mapping.ResultFlag
-import org.apache.ibatis.mapping.ResultMapping
 import kotlin.reflect.KFunction
 
 
@@ -24,80 +17,40 @@ data class ResolvedQuery(
     val returnType: Class<*>?,
     /** 待解析的方法 */
     val function: KFunction<*>,
-    var unresolvedReasons: MutableList<String> = arrayListOf()) {
+    var unresolvedReason: String? = null) {
 
   /**  sql语句 */
-  var sql: String?
-
-  init {
-    val sqlResult = query?.toSql()
-    sql = sqlResult?.sql
-    unresolvedReasons.addAll(sqlResult?.reasons?.toMutableList() ?: listOf())
-  }
+  var sql: String? = query?.toSql()
 
   fun countSql(): String? {
-    return query?.toCountSql()?.sql
+    return query?.toCountSql()
   }
 
-  fun isValid(): Boolean {
-    return query != null && unresolvedReasons.isEmpty()
-  }
-
-  fun resolveResultMap(id: String, builderAssistant: MapperBuilderAssistant,
-                       modelClass: Class<*>,
-                       mappings: FieldMappings?): String {
-    if (builderAssistant.configuration.hasResultMap(id)) {
-      return id
-    }
-    val resultMap = if (returnType == modelClass) {
-      ResultMapResolver(builderAssistant, id,
-          modelClass, null, null,
-          mappings?.mappings?.map { mapping ->
-            buildByMapping(id, builderAssistant, mapping, mappings.tableInfo)
-          } ?: listOf(), true).resolve()
+  override fun toString(): String {
+    val sb = StringBuilder()
+    sb.append("\t ${if (isValid()) {
+      "已解析"
     } else {
-      ResultMapResolver(builderAssistant, id, modelClass, null, null, listOf(), true).resolve()
+      "未成功解析"
+    }} 方法:\t$function\n")
+    if (isValid()) {
+      val prefix = "\t\t- "
+      sb.append(prefix).append("类型: ${type()}\n")
+      sb.append(prefix).append("SQL: \n${sql!!.trim().lines().joinToString("\n") { "\t".repeat(5) + it }}\n")
+      sb.append(prefix).append("返回: $returnType")
+    } else {
+      sb.append("\t\t - $unresolvedReason")
     }
-    if (!builderAssistant.configuration.hasResultMap(resultMap.id)) {
-      builderAssistant.configuration.addResultMap(resultMap)
-    }
-    return id
+    sb.append("\n\n")
+    return sb.toString()
   }
 
   fun type(): QueryType? {
     return query?.type
   }
 
-  private fun buildByMapping(id: String, builderAssistant: MapperBuilderAssistant,
-                             mapping: FieldMapping, tableInfo: TableInfo): ResultMapping? {
-    val builder = ResultMapping.Builder(
-        builderAssistant.configuration,
-        mapping.property
-    )
-    if (mapping.property == tableInfo.keyProperty) {
-      builder.flags(listOf(ResultFlag.ID))
-    }
-    if (mapping.joinInfo != null) {
-      if (mapping.joinInfo.joinPropertyType == JoinPropertyType.SingleProperty) {
-        builder.javaType(mapping.tableFieldInfo.propertyType)
-        builder.column(mapping.joinInfo.selectColumns.first())
-      } else if (mapping.joinInfo.joinPropertyType == JoinPropertyType.Object) {
-        if (!mapping.joinInfo.associationPrefix.isNullOrBlank()) {
-          builder.columnPrefix(mapping.joinInfo.associationPrefix)
-        }
-        builder.javaType(mapping.joinInfo.rawType())
-        val mappedType = mapping.joinInfo.realType()!!
-        builder.nestedResultMapId(
-            resolveResultMap(id + "_" + mapping.property, builderAssistant,
-                mappedType, MappingResolver.getMappingCache(mappedType))
-        )
-      }
-    } else {
-      builder.javaType(mapping.tableFieldInfo.propertyType)
-      builder.column(mapping.column)
-    }
-    builder.typeHandler(mapping.typeHandler?.newInstance())
-    return builder.build()
+  private fun isValid(): Boolean {
+    return query != null && unresolvedReason == null
   }
 
 }

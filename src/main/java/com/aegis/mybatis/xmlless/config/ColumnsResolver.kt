@@ -1,6 +1,6 @@
 package com.aegis.mybatis.xmlless.config
 
-import com.aegis.mybatis.xmlless.model.BuildSqlResult
+import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.model.FieldMappings
 import org.slf4j.LoggerFactory
 
@@ -14,7 +14,7 @@ object ColumnsResolver {
   /**
    * 构建查询的列
    */
-  fun resolve(mappings: FieldMappings, properties: List<String>): BuildSqlResult {
+  fun resolve(mappings: FieldMappings, properties: List<String>): String {
     if (LOG.isDebugEnabled) {
       LOG.debug("Available properties for class ${mappings.modelClass}: ${mappings.mappings.map { it.property }}")
       LOG.debug("Fetch properties for class ${mappings.modelClass}: $properties")
@@ -24,18 +24,17 @@ object ColumnsResolver {
     )
     properties.forEach { property ->
       if (!property.contains(".") && property !in propertyMap) {
-        return BuildSqlResult(null, listOf("Cannot recognize property $property"))
+        throw BuildSQLException("无法解析属性$property")
       }
     }
-    return BuildSqlResult(
-        if (properties.isNotEmpty()) {
-          properties.map {
-            mappings.resolveColumnByPropertyName(it, true)
-          }.joinToString(", ") { it.sql!! }
-        } else {
-          mappings.selectFields()
-        }, listOf()
-    )
+    return when {
+      // 指定属性进行查询
+      properties.isNotEmpty() -> properties.map {
+        mappings.resolveColumnByPropertyName(it, true)
+      }.joinToString(", ")
+      // 查询全部属性
+      else                    -> mappings.selectFields()
+    }
   }
 
 }

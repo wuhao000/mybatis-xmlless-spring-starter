@@ -40,6 +40,7 @@ class Student() {
 
   @TableField("sex")
   var gender: Int = 1
+  var graduated: Boolean? = false
   @Id
   var id: String = ""
   var name: String = ""
@@ -63,4 +64,13 @@ class Student() {
     this.gender = gender
   }
 
+  override fun toString(): String {
+    return """Student(
+      | name=$name,
+      | phoneNumber=$phoneNumber,
+      | gender=$gender,
+      | graduated=$graduated,
+      | scores=$scores
+      |)""".trimMargin()
+  }
 }

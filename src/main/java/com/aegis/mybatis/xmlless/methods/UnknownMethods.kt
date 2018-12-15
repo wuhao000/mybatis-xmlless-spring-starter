@@ -5,6 +5,7 @@ import com.aegis.mybatis.xmlless.config.QueryResolver
 import com.aegis.mybatis.xmlless.model.QueryType
 import com.aegis.mybatis.xmlless.model.ResolvedQueries
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
+import com.aegis.mybatis.xmlless.resolver.ResultMapResolver
 import com.baomidou.mybatisplus.annotation.IdType
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.StringPool
@@ -29,7 +30,6 @@ import kotlin.reflect.full.declaredFunctions
 class UnknownMethods : AbstractLogicMethod() {
 
   companion object {
-
     const val COUNT_STATEMENT_SUFFIX = "CountAllSuffix"
     const val HANDLER_PREFIX = "typeHandler="
     const val PROPERTY_PREFIX = "#{"
@@ -43,7 +43,7 @@ class UnknownMethods : AbstractLogicMethod() {
 
   override fun injectMappedStatement(mapperClass: Class<*>, modelClass: Class<*>, tableInfo: TableInfo): MappedStatement {
     // 修正表信息，主要是针对一些JPA注解的支持以及本项目中自定义的一些注解的支持，
-    MappingResolver.fixTableInfo(modelClass, tableInfo)
+    MappingResolver.fixTableInfo(modelClass, tableInfo, builderAssistant)
     // 判断Mapper方法是否已经定义了sql声明，如果没有定义才进行注入，这样如果存在Mapper方法在xml文件中有定义则会优先使用，如果没有定义才会进行推断
     val statementNames = this.configuration.mappedStatementNames
     val unmappedFunctions = mapperClass.kotlin.declaredFunctions.filter {
@@ -64,12 +64,14 @@ class UnknownMethods : AbstractLogicMethod() {
                 QueryType.Exists,
                 QueryType.Count) -> {
               val returnType = resolvedQuery.returnType
+              if (returnType == null) {
+                throw IllegalStateException("无法解析方法${function}的返回类型")
+              }
               var resultMap = resolvedQuery.resultMap
               if (resultMap == null && resolvedQuery.type() == QueryType.Select) {
                 // 如果没有指定resultMap，则自动生成resultMap
-                val resultMapId = mapperClass.name + StringPool.DOT + function.name
-                resultMap = resolvedQuery.resolveResultMap(resultMapId, this.builderAssistant,
-                    modelClass, resolvedQuery.query.mappings)
+                resultMap = ResultMapResolver.resolveResultMap(mapperClass.name + StringPool.DOT + function.name, this.builderAssistant,
+                    modelClass, resolvedQuery.query.mappings, resolvedQuery.returnType)
               }
               // addSelectMappedStatement这个方法中会使用默认的resultMap，该resultMap映射的类型和modelClass一致，所以如果当前方法的返回值和modelClass
               // 不一致时，不能使用该方法，否则会产生类型转换错误

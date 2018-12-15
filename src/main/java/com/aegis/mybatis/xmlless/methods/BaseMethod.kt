@@ -16,7 +16,7 @@ abstract class BaseMethod : AbstractLogicMethod() {
 
   final override fun injectMappedStatement(mapperClass: Class<*>, modelClass: Class<*>, tableInfo: TableInfo):
       MappedStatement? {
-    MappingResolver.fixTableInfo(modelClass, tableInfo)
+    MappingResolver.fixTableInfo(modelClass, tableInfo, builderAssistant)
     return innerInject(mapperClass, modelClass, tableInfo)
   }
 

@@ -1,8 +1,11 @@
 package com.aegis.mybatis.xmlless.model
 
-import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.enums.JoinPropertyType
 import com.aegis.mybatis.xmlless.enums.JoinType
+import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
+import com.aegis.mybatis.xmlless.resolver.TypeResolver
+import com.baomidou.mybatisplus.core.metadata.TableInfo
+import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 
@@ -24,15 +27,22 @@ class JoinInfo(val selectColumns: List<String>,
   var associationPrefix: String? = null
   var javaType: Type? = null
 
+  fun getJoinTableInfo(): TableInfo? {
+    val type = realType()
+    return when {
+      type != null -> TableInfoHelper.getTableInfo(type)
+      else         -> null
+    }
+  }
+
   fun joinTable(): String {
     return joinTableAlias ?: joinTable
   }
 
   fun joinTableDeclaration(): String {
-    return if (joinTableAlias != null) {
-      "$joinTable AS $joinTableAlias"
-    } else {
-      joinTable
+    return when {
+      joinTableAlias != null -> "$joinTable AS $joinTableAlias"
+      else                   -> joinTable
     }
   }
 
@@ -46,12 +56,7 @@ class JoinInfo(val selectColumns: List<String>,
   }
 
   fun realType(): Class<*>? {
-    val type = javaType
-    return when (type) {
-      is Class<*>          -> type
-      is ParameterizedType -> type.actualTypeArguments[0] as Class<*>
-      else                 -> null
-    }
+    return TypeResolver.resolveRealType(javaType)
   }
 
   fun resolveColumnProperty(property: String): Any? {

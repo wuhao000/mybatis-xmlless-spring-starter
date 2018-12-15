@@ -25,30 +25,16 @@ class ResolvedQueries(private val mapperClass: Class<*>,
 
   fun log() {
     val sb = StringBuilder()
-    sb.append("**********************************************")
-    sb.append("\n\tClass: $mapperClass\n")
+    sb.append("===================================================")
+    sb.append("\n\n\t类: $mapperClass\n")
     if (unmappedMethods.isNotEmpty()) {
-      sb.append("\n Unmapped methods:")
+      sb.append("\n 未映射的方法:")
       unmappedMethods.forEach {
         sb.append("\n" + "\t".repeat(3) + it.name)
       }
     }
     queries.sortedBy { it.query == null }.forEach { resolvedQuery ->
-      sb.append("\t ${if (resolvedQuery.isValid()) {
-        "Resolved"
-      } else {
-        "Unresolved"
-      }} method:\t${resolvedQuery.function}\n")
-      if (resolvedQuery.isValid()) {
-        sb.append("\t\t- Type: ${resolvedQuery.type()}\n")
-        sb.append("\t\t- SQL: \n${resolvedQuery.sql!!.trim().lines().joinToString("\n") { "\t".repeat(5) + it }}\n")
-        sb.append("\t\t- Return: ${resolvedQuery.returnType}")
-      } else {
-        resolvedQuery.unresolvedReasons.forEach { unresolvedReason ->
-          sb.append("\t\t - $unresolvedReason")
-        }
-      }
-      sb.append("\n\n")
+      sb.append(resolvedQuery.toString())
     }
     sb.append("\n**********************************************")
     log.info("\n\n" + sb.toString() + "\n")

@@ -67,10 +67,35 @@ class StudentDAOTest : BaseTest() {
   }
 
   @Test
+  fun findByGraduatedEqTrue() {
+    val list = studentDAO.findByGraduatedEqTrue()
+    println(list)
+  }
+
+  @Test
   fun findById() {
     val student = studentDAO.findById(id)
     println(student?.scores)
     assert(studentDAO.findById(id) != null)
+  }
+
+  @Test
+  fun findByPhoneNumberLikeLeft() {
+    assert(studentDAO.findByPhoneNumberLikeLeft("180").isNotEmpty())
+    assert(studentDAO.findByPhoneNumberLikeLeft("4916").isEmpty())
+  }
+
+  @Test
+  fun findByPhoneNumberLikeRight() {
+    assert(studentDAO.findByPhoneNumberLikeRight("4916").isNotEmpty())
+    assert(studentDAO.findByPhoneNumberLikeRight("180").isEmpty())
+  }
+
+  @Test
+  fun findBySubjectId() {
+    val students = studentDAO.findBySubjectId(1)
+    println(students)
+    assert(students.isNotEmpty())
   }
 
   @Test

@@ -1,7 +1,7 @@
 package com.aegis.mybatis.xmlless.model
 
 import com.aegis.mybatis.xmlless.annotations.ValueAssign
-import com.aegis.mybatis.xmlless.config.Operations
+import com.aegis.mybatis.xmlless.constant.Operations
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
 import kotlin.reflect.KParameter
 import kotlin.reflect.jvm.jvmErasure
@@ -25,39 +25,36 @@ data class Condition(val property: String,
 </foreach>"""
   }
 
-  fun toSql(mappings: FieldMappings): BuildSqlResult {
+  fun toSql(mappings: FieldMappings): String {
     val sqlBuilder = toSqlWithoutTest(mappings)
-    if (sqlBuilder.sql == null) {
-      return sqlBuilder
-    }
-    return wrapWithTests(sqlBuilder.sql)
+    return wrapWithTests(sqlBuilder)
   }
 
-  fun toSqlWithoutTest(mappings: FieldMappings): BuildSqlResult {
+  fun toSqlWithoutTest(mappings: FieldMappings): String {
     val columnResult = mappings.resolveColumnByPropertyName(property)
-    if (columnResult.invalid()) {
-      return columnResult
+    val value = resolveValue()
+    return if (value != null) {
+      String.format(operator.getValueTemplate(),
+          columnResult, operator.operator, value) + " " + (append?.toUpperCase() ?: "")
+    } else {
+      String.format(operator.getTemplate(),
+          columnResult, operator.operator, scriptParam()) + " " + (append?.toUpperCase() ?: "")
     }
-    if (specificValue != null) {
-      val value = if (specificValue.stringValue.isNotBlank()) {
-        "'" + specificValue.stringValue + "'"
-      } else {
-        specificValue.numberValue
-      }
-      return BuildSqlResult(String.format(operator.getValueTemplate(),
-          columnResult.sql, value) + " " + (append?.toUpperCase() ?: ""))
-    }
-    val scriptParam = scriptParam()
-    return BuildSqlResult(String.format(operator.getTemplate(),
-        columnResult.sql, scriptParam) + " " + (append?.toUpperCase() ?: ""))
   }
 
-  fun wrapWithTests(sql: String): BuildSqlResult {
+  override fun toString(): String {
+    return String.format(
+        operator.getTemplate(),
+        property, operator.operator, scriptParam()
+    )
+  }
+
+  fun wrapWithTests(sql: String): String {
     val tests = getTests()
     if (tests.isNotEmpty()) {
-      return BuildSqlResult(SqlScriptUtils.convertIf(sql, tests.joinToString(" &amp;&amp; "), true))
+      return SqlScriptUtils.convertIf(sql, tests.joinToString(" &amp;&amp; "), true)
     }
-    return BuildSqlResult(sql)
+    return sql
   }
 
   private fun getTests(): ArrayList<String> {
@@ -77,6 +74,23 @@ data class Condition(val property: String,
 
   private fun realParam(): String {
     return paramName ?: property
+  }
+
+  private fun resolveValue(): String? {
+    if (specificValue != null) {
+      return if (specificValue.stringValue.isNotBlank()) {
+        "'" + specificValue.stringValue + "'"
+      } else {
+        specificValue.nonStringValue
+      }
+    } else if (paramName != null) {
+      if (paramName!!.matches("\\d+".toRegex())) {
+        return paramName
+      } else if (paramName == "true" || paramName == "true") {
+        return paramName!!.toUpperCase()
+      }
+    }
+    return null
   }
 
   private fun scriptParam(): String {

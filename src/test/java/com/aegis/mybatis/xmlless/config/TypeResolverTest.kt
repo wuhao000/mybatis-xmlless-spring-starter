@@ -17,7 +17,6 @@ class TypeResolverTest {
   fun getType() {
     TypeResolverTest::class.java.methods.forEach {
       if (it.name == "t") {
-        println(Collection::class.java.isAssignableFrom(it.returnType))
         val type = it.genericReturnType as ParameterizedType
         val typeArgument = type.actualTypeArguments[0]
         println(typeArgument.javaClass as Class<*>)

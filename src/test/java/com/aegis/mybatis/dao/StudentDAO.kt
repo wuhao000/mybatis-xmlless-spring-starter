@@ -82,9 +82,36 @@ interface StudentDAO : XmlLessMapper<Student> {
   /**
    *
    * @return
+   */
+  fun findByGraduatedEqTrue(): List<Student>
+
+  /**
+   *
+   * @return
    * @param id
    */
   fun findById(id: String): Student?
+
+  /**
+   *
+   * @param phoneNumber
+   * @return
+   */
+  fun findByPhoneNumberLikeLeft(phoneNumber: String): List<Student>
+
+  /**
+   *
+   * @param phoneNumber
+   * @return
+   */
+  fun findByPhoneNumberLikeRight(phoneNumber: String): List<Student>
+
+  /**
+   *
+   * @param subJectId
+   * @return
+   */
+  fun findBySubjectId(subJectId: Int): List<Student>
 
   /**
    *

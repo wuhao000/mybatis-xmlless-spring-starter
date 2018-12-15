@@ -41,6 +41,9 @@ fun <E> List<E>.split(els: List<E>): List<List<E>> {
       null
     }
   }
+  if (indices.isEmpty()) {
+    return listOf(this)
+  }
   return (indices.mapIndexed { index, start ->
     when (index) {
       0    -> this.subList(0, start)

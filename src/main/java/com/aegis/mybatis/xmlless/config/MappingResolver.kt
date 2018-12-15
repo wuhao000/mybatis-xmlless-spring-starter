@@ -7,12 +7,14 @@ import com.aegis.mybatis.xmlless.model.FieldMapping
 import com.aegis.mybatis.xmlless.model.FieldMappings
 import com.aegis.mybatis.xmlless.model.JoinInfo
 import com.aegis.mybatis.xmlless.model.TableName
+import com.aegis.mybatis.xmlless.resolver.TypeResolver
 import com.baomidou.mybatisplus.annotation.IdType
 import com.baomidou.mybatisplus.annotation.TableId
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
 import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
+import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.springframework.core.annotation.AnnotationUtils
 import java.lang.reflect.Field
 import javax.persistence.GeneratedValue
@@ -64,7 +66,7 @@ object MappingResolver {
   private val FIXED_CLASSES = hashSetOf<Class<*>>()
   private val MAPPING_CACHE = hashMapOf<String, FieldMappings>()
 
-  fun fixTableInfo(modelClass: Class<*>, tableInfo: TableInfo) {
+  fun fixTableInfo(modelClass: Class<*>, tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant? = null) {
     if (FIXED_CLASSES.contains(modelClass)) {
       return
     }
@@ -78,12 +80,21 @@ object MappingResolver {
         }
       }
     }
+    val allFields = resolveFields(modelClass)
     val keyField = if (tableInfo.keyColumn == null || tableInfo.keyProperty == null) {
-      resolveFields(modelClass).firstOrNull {
+      allFields.firstOrNull {
         it.isAnnotationPresent(Id::class.java) || it.isAnnotationPresent(TableId::class.java)
       }
     } else {
-      resolveFields(modelClass).firstOrNull { it.name == tableInfo.keyProperty }
+      allFields.firstOrNull { it.name == tableInfo.keyProperty }
+    }
+    if (builderAssistant != null) {
+      allFields.filter { it.isAnnotationPresent(JoinObject::class.java) }.forEach {
+        val fieldType = TypeResolver.resolveRealType(it.genericType)
+        if (fieldType != null) {
+          fixTableInfo(fieldType, TableInfoHelper.initTableInfo(builderAssistant, fieldType), builderAssistant)
+        }
+      }
     }
     if (keyField != null) {
       if (keyField.isAnnotationPresent(GeneratedValue::class.java)) {

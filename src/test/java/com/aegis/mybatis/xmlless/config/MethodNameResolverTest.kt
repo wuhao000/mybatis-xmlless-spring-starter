@@ -1,14 +1,14 @@
 package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.bean.Student
-import com.aegis.mybatis.bean.User
-import com.aegis.mybatis.dao.UserDAO
+import com.aegis.mybatis.dao.StudentDAO
 import com.aegis.mybatis.xmlless.annotations.UpdateIgnore
 import com.aegis.mybatis.xmlless.model.ResolvedQueries
 import com.baomidou.mybatisplus.core.MybatisConfiguration
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
 import org.apache.ibatis.builder.MapperBuilderAssistant
+import org.junit.Before
 import org.junit.Test
 import org.springframework.core.annotation.AnnotationUtils
 import kotlin.reflect.full.declaredFunctions
@@ -25,32 +25,45 @@ import kotlin.reflect.full.declaredFunctions
 //@SpringBootTest
 class MethodNameResolverTest {
 
+  val mapperClass = StudentDAO::class.java
+  val queries = ResolvedQueries(mapperClass)
+  val modelClass = Student::class.java
+  lateinit var tableInfo: TableInfo
+
+  @Before
+  fun init() {
+    tableInfo = createTableInfo(modelClass)
+  }
+
   @Test
   fun resolve() {
-    val modelClass = User::class.java
-    val mapperClass = UserDAO::class.java
-    val tableInfo = createTableInfo(modelClass)
-    val queries = ResolvedQueries(mapperClass)
     mapperClass.kotlin.declaredFunctions
-        .filter { it.name.startsWith("save") }
+        .filter { it.name.startsWith("findBySubjectId") }
         .forEach {
           val query = QueryResolver.resolve(it, tableInfo, modelClass, mapperClass)
-          query.query
-          queries.add(query)
+          println(query)
         }
-    queries.log()
   }
 
   @Test
   fun resolve2() {
     Student::class.java.declaredFields.forEach {
-
-      println(AnnotationUtils.findAnnotation(it,UpdateIgnore::class.java))
+      println(AnnotationUtils.findAnnotation(it, UpdateIgnore::class.java))
     }
   }
 
   @Test
   fun resolveFindAll() {
+  }
+
+  @Test
+  fun resolveSpecValue() {
+    mapperClass.kotlin.declaredFunctions
+        .first { it.name == "findByGraduatedEqTrue" }.also {
+          val query = QueryResolver.resolve(it, tableInfo, modelClass, mapperClass)
+          println(query.toString())
+          assert(query.toString().contains("graduated = TRUE"))
+        }
   }
 
   private fun createTableInfo(modelClass: Class<*>): TableInfo {
