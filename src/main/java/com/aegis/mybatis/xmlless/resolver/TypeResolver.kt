@@ -13,14 +13,11 @@ object TypeResolver {
   /**
    * 解析带单个泛型参数的类型的泛型类型，如果没有泛型则返回参数类型
    */
-  fun resolveRealType(type: Type?): Class<*>? {
-    if (type == null) {
-      return null
-    }
+  fun resolveRealType(type: Type): Class<*> {
     return when (type) {
       is Class<*>          -> type
       is ParameterizedType -> type.actualTypeArguments[0] as Class<*>
-      else                 -> null
+      else                 -> throw IllegalStateException("无法确定${type}的类型")
     }
   }
 

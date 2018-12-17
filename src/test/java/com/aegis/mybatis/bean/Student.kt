@@ -57,7 +57,7 @@ class Student() {
       targetColumn = "student_id",
       joinProperty = "id",
       associationPrefix = "score_",
-      selectColumns = ["score", "subject_id"]
+      selectProperties = ["score", "subjectId", "subject"]
   )
   @ModifyIgnore
   var scores: MutableList<Score>? = null
@@ -79,4 +79,5 @@ class Student() {
       | scores=$scores
       |)""".trimMargin()
   }
+
 }

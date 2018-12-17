@@ -1,12 +1,8 @@
 package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.xmlless.annotations.*
-import com.aegis.mybatis.xmlless.enums.JoinPropertyType
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
-import com.aegis.mybatis.xmlless.model.FieldMapping
-import com.aegis.mybatis.xmlless.model.FieldMappings
-import com.aegis.mybatis.xmlless.model.JoinInfo
-import com.aegis.mybatis.xmlless.model.TableName
+import com.aegis.mybatis.xmlless.model.*
 import com.aegis.mybatis.xmlless.resolver.TypeResolver
 import com.baomidou.mybatisplus.annotation.IdType
 import com.baomidou.mybatisplus.annotation.TableId
@@ -66,7 +62,8 @@ object MappingResolver {
   private val FIXED_CLASSES = hashSetOf<Class<*>>()
   private val MAPPING_CACHE = hashMapOf<String, FieldMappings>()
 
-  fun fixTableInfo(modelClass: Class<*>, tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant? = null) {
+  fun fixTableInfo(modelClass: Class<*>, tableInfo: TableInfo,
+                   builderAssistant: MapperBuilderAssistant) {
     if (FIXED_CLASSES.contains(modelClass)) {
       return
     }
@@ -88,12 +85,11 @@ object MappingResolver {
     } else {
       allFields.firstOrNull { it.name == tableInfo.keyProperty }
     }
-    if (builderAssistant != null) {
-      allFields.filter { it.isAnnotationPresent(JoinObject::class.java) }.forEach {
-        val fieldType = TypeResolver.resolveRealType(it.genericType)
-        if (fieldType != null) {
-          fixTableInfo(fieldType, TableInfoHelper.initTableInfo(builderAssistant, fieldType), builderAssistant)
-        }
+    allFields.filter { it.isAnnotationPresent(JoinObject::class.java) }.forEach {
+      val fieldType = TypeResolver.resolveRealType(it.genericType)
+      // 防止无限循环
+      if (fieldType != modelClass) {
+        fixTableInfo(fieldType, TableInfoHelper.initTableInfo(builderAssistant, fieldType), builderAssistant)
       }
     }
     if (keyField != null) {
@@ -109,15 +105,19 @@ object MappingResolver {
     FIXED_CLASSES.add(modelClass)
   }
 
+  fun getAllMappings(): List<FieldMappings> {
+    return MAPPING_CACHE.values.toList()
+  }
+
   fun getMappingCache(modelClass: Class<*>): FieldMappings? {
     return MAPPING_CACHE[modelClass.name]
   }
 
-  fun resolve(modelClass: Class<*>, tableInfo: TableInfo): FieldMappings {
+  fun resolve(modelClass: Class<*>, tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant): FieldMappings {
     if (getMappingCache(modelClass) != null) {
       return getMappingCache(modelClass)!!
     }
-    fixTableInfo(modelClass, tableInfo)
+    fixTableInfo(modelClass, tableInfo, builderAssistant)
     val fieldInfoMap = tableInfo.fieldInfoMap(modelClass)
     val fields = resolveFields(modelClass).filter {
       it.name in fieldInfoMap
@@ -128,6 +128,15 @@ object MappingResolver {
       field.annotationIncompatible(Transient::class.java, SelectIgnore::class.java)
       field.annotationIncompatible(Transient::class.java, UpdateIgnore::class.java)
       field.annotationIncompatible(Transient::class.java, InsertIgnore::class.java)
+      val joinInfo = resolveJoin(field)
+      if (joinInfo is ObjectJoinInfo) {
+        val joinClass = joinInfo.realType()
+        val joinTableInfo = TableInfoHelper.getTableInfo(joinInfo.realType())
+        // 防止无限循环
+        if (joinTableInfo != null && joinClass != modelClass) {
+          resolve(joinClass, joinTableInfo, builderAssistant)
+        }
+      }
       FieldMapping(field.name,
           fieldInfo.column ?: field.name.toUnderlineCase().toLowerCase(),
           field.getDeclaredAnnotation(Handler::class.java)?.value?.java,
@@ -136,7 +145,7 @@ object MappingResolver {
               || AnnotationUtils.findAnnotation(field, GeneratedValue::class.java) != null,
           transient != null || AnnotationUtils.findAnnotation(field, UpdateIgnore::class.java) != null,
           transient != null || AnnotationUtils.findAnnotation(field, SelectIgnore::class.java) != null,
-          resolveJoin(field)
+          joinInfo
       )
     }, tableInfo, modelClass)
     MAPPING_CACHE[modelClass.name] = mapping
@@ -156,52 +165,25 @@ object MappingResolver {
     return when {
       joinProperty != null -> joinProperty.let {
         val targetTableName = resolveNameAndAlias(it.targetTable)
-        JoinInfo(listOf(resolveJoinColumn(joinProperty)),
+        PropertyJoinInfo(joinProperty.selectColumn,
             targetTableName.name,
             targetTableName.alias,
             it.joinType,
             it.joinProperty,
             it.targetColumn,
-            JoinPropertyType.SingleProperty)
+            field)
       }
       joinObject != null   -> joinObject.let {
         val targetTableName = resolveNameAndAlias(it.targetTable)
-        JoinInfo(resolveJoinColumns(joinObject, field),
+        ObjectJoinInfo(joinObject.selectProperties.toList(),
             targetTableName.name,
             targetTableName.alias,
-            it.joinType, it.joinProperty, it.targetColumn, JoinPropertyType.Object
-        ).apply {
-          associationPrefix = joinObject.associationPrefix
-          javaType = field.genericType
-        }
+            it.joinType,
+            it.joinProperty, it.targetColumn,
+            joinObject.associationPrefix,
+            field.genericType)
       }
       else                 -> null
-    }
-  }
-
-  private fun resolveJoinColumn(join: JoinProperty): String {
-    return join.selectColumn
-  }
-
-  private fun resolveJoinColumns(join: JoinObject, field: Field): List<String> {
-    return if (join.selectColumns.isNotEmpty()) {
-      join.selectColumns.toList().map {
-        if (it.toUpperCase().contains(" AS ") || join.associationPrefix.isBlank()) {
-          it
-        } else {
-          it + " AS " + join.associationPrefix + it
-        }
-      }
-    } else {
-      TableInfoHelper.getAllFields(field.type).filter {
-        !it.isAnnotationPresent(SelectIgnore::class.java)
-            && !it.isAnnotationPresent(Transient::class.java)
-            && !it.isAnnotationPresent(JoinObject::class.java)
-            && !it.isAnnotationPresent(JoinProperty::class.java)
-      }.map {
-        val columnName = it.name.toUnderlineCase().toLowerCase()
-        columnName + " AS " + join.associationPrefix + columnName
-      }
     }
   }
 

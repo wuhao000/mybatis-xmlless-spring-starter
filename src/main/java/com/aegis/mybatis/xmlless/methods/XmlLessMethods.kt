@@ -6,10 +6,8 @@ import com.aegis.mybatis.xmlless.model.QueryType
 import com.aegis.mybatis.xmlless.model.ResolvedQueries
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
-import com.aegis.mybatis.xmlless.resolver.ResultMapResolver
 import com.baomidou.mybatisplus.annotation.IdType
 import com.baomidou.mybatisplus.core.metadata.TableInfo
-import com.baomidou.mybatisplus.core.toolkit.StringPool
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import com.baomidou.mybatisplus.extension.injector.AbstractLogicMethod
 import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator
@@ -52,7 +50,7 @@ class XmlLessMethods : AbstractLogicMethod() {
     // 解析未定义的方法，进行sql推断
     val resolvedQueries = ResolvedQueries(mapperClass, unmappedFunctions)
     unmappedFunctions.forEach { function ->
-      val resolvedQuery: ResolvedQuery = QueryResolver.resolve(function, tableInfo, modelClass, mapperClass)
+      val resolvedQuery: ResolvedQuery = QueryResolver.resolve(function, tableInfo, modelClass, mapperClass, builderAssistant)
       resolvedQueries.add(resolvedQuery)
       // query为null则表明推断失败，resolvedQuery中将包含推断失败的原因，会在后面进行统一输出，方便开发人员了解sql推断的具体结果和失败的具体原因
       if (resolvedQuery.query != null && resolvedQuery.sql != null) {
@@ -65,11 +63,6 @@ class XmlLessMethods : AbstractLogicMethod() {
                 QueryType.Count) -> {
               val returnType = resolvedQuery.returnType ?: throw BuildSQLException("无法解析方法${function}的返回类型")
               var resultMap = resolvedQuery.resultMap
-              if (resultMap == null && resolvedQuery.type == QueryType.Select) {
-                // 如果没有指定resultMap，则自动生成resultMap
-                resultMap = ResultMapResolver.resolveResultMap(mapperClass.name + StringPool.DOT + function.name, this.builderAssistant,
-                    modelClass, resolvedQuery.query.mappings, resolvedQuery.returnType)
-              }
               // addSelectMappedStatement这个方法中会使用默认的resultMap，该resultMap映射的类型和modelClass一致，所以如果当前方法的返回值和modelClass
               // 不一致时，不能使用该方法，否则会产生类型转换错误
               if (returnType == modelClass && resultMap == null) {

@@ -1,13 +1,8 @@
 package com.aegis.mybatis.xmlless.model
 
-import com.aegis.mybatis.xmlless.enums.JoinPropertyType
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
-import com.aegis.mybatis.xmlless.resolver.TypeResolver
 import com.baomidou.mybatisplus.core.metadata.TableInfo
-import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
-import java.lang.reflect.ParameterizedType
-import java.lang.reflect.Type
 import javax.persistence.criteria.JoinType
 
 /**
@@ -17,16 +12,11 @@ import javax.persistence.criteria.JoinType
  * @author 吴昊
  * @since 0.0.1
  */
-class JoinInfo(val selectColumns: List<String>,
-               private val joinTable: String,
-               private val joinTableAlias: String?,
-               val type: JoinType,
-               private val joinProperty: String,
-               val targetColumn: String,
-               val joinPropertyType: JoinPropertyType) {
-
-  var associationPrefix: String? = null
-  var javaType: Type? = null
+abstract class JoinInfo(private val joinTable: String,
+                        private val joinTableAlias: String?,
+                        val type: JoinType,
+                        private val joinProperty: String,
+                        val targetColumn: String) {
 
   /**
    * 返回用于关联表的属性名称
@@ -42,13 +32,7 @@ class JoinInfo(val selectColumns: List<String>,
   /**
    * 获取连接的表的表信息
    */
-  fun getJoinTableInfo(): TableInfo? {
-    val type = realType()
-    return when {
-      type != null -> TableInfoHelper.getTableInfo(type)
-      else         -> null
-    }
-  }
+  abstract fun getJoinTableInfo(): TableInfo?
 
   /**
    * 获取连接的表的别名
@@ -57,34 +41,22 @@ class JoinInfo(val selectColumns: List<String>,
     return joinTableAlias ?: joinTable
   }
 
-  fun joinTableDeclaration(): String {
+  fun joinTableDeclaration(): TableName {
+    val tableNameSplits = joinTable.split("\\s+")
     return when {
-      joinTableAlias != null -> "$joinTable AS $joinTableAlias"
-      else                   -> joinTable
+      tableNameSplits.size == 1                                             -> TableName(joinTable, joinTable)
+      tableNameSplits.size == 3 && tableNameSplits[1].toUpperCase() == "AS" -> TableName(tableNameSplits[0], tableNameSplits[1])
+      else                                                                  -> throw BuildSQLException("非法的数据库表名称$joinTable")
     }
-  }
-
-  /**
-   * 返回join属性的原始类型
-   */
-  fun rawType(): Class<*>? {
-    val type = javaType
-    return when (type) {
-      is Class<*>          -> type
-      is ParameterizedType -> type.rawType as Class<*>
-      else                 -> null
-    }
-  }
-
-  /**
-   * 返回join属性的类型，如果属性类型包含单个泛型参数，则返回泛型类型，反之则返回属性类型
-   */
-  fun realType(): Class<*>? {
-    return TypeResolver.resolveRealType(javaType)
   }
 
   fun resolveColumnProperty(property: String): Any? {
     return property.toUnderlineCase().toLowerCase()
   }
+
+  abstract fun selectFields(level: Int, prefix: String? = null): List<String>
+
+
+
 
 }

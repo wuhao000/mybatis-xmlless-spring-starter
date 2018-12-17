@@ -10,14 +10,13 @@ import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.split
 import com.aegis.mybatis.xmlless.kotlin.toCamelCase
 import com.aegis.mybatis.xmlless.kotlin.toWords
-import com.aegis.mybatis.xmlless.model.Limitation
-import com.aegis.mybatis.xmlless.model.Query
-import com.aegis.mybatis.xmlless.model.QueryType
-import com.aegis.mybatis.xmlless.model.ResolvedQuery
+import com.aegis.mybatis.xmlless.model.*
 import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.metadata.TableInfo
+import com.baomidou.mybatisplus.core.toolkit.StringPool
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import org.apache.ibatis.annotations.ResultMap
+import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.apache.ibatis.reflection.ParamNameResolver
 import org.apache.ibatis.session.Configuration
 import org.springframework.data.domain.Page
@@ -53,13 +52,14 @@ object QueryResolver {
     QUERY_CACHE[mapperClass.name + DOT + function.name] = query
   }
 
-  fun resolve(function: KFunction<*>, tableInfo: TableInfo, modelClass: Class<*>, mapperClass: Class<*>):
-      ResolvedQuery {
+  fun resolve(function: KFunction<*>, tableInfo: TableInfo,
+              modelClass: Class<*>, mapperClass: Class<*>,
+              builderAssistant: MapperBuilderAssistant): ResolvedQuery {
     if (getQueryCache(function, mapperClass) != null) {
       return getQueryCache(function, mapperClass)!!
     }
     try {
-      val mappings = MappingResolver.resolve(modelClass, tableInfo)
+      val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
       val paramNames = ParamNameResolver(
           Configuration().apply {
             this.isUseActualParamName = true
@@ -88,12 +88,18 @@ object QueryResolver {
           query.extraSortScript = String.format(PAGEABLE_SORT, paramName, paramName)
         }
       }
+      val returnType = resolveReturnType(function)
       val resolvedQuery = ResolvedQuery(
-          query, resolveResultMap(function), resolveReturnType(function), function
+          query, resolveResultMap(function, query.type,
+          mapperClass, query.mappings, returnType,
+          builderAssistant), returnType, function
       )
       putQueryCache(function, mapperClass, resolvedQuery)
       return resolvedQuery
     } catch (e: Exception) {
+      if (e !is BuildSQLException) {
+        e.printStackTrace()
+      }
       return ResolvedQuery(null, null, null, function, e.message)
     }
   }
@@ -127,8 +133,15 @@ object QueryResolver {
     return ResolvePropertiesResult(properties, conditionWords)
   }
 
-  fun resolveResultMap(function: KFunction<*>): String? {
-    return function.findAnnotation<ResultMap>()?.value?.firstOrNull()
+  fun resolveResultMap(function: KFunction<*>, type: QueryType,
+                       mapperClass: Class<*>, mappings: FieldMappings, returnType: Class<*>, builderAssistant: MapperBuilderAssistant): String? {
+    var resultMap = function.findAnnotation<ResultMap>()?.value?.firstOrNull()
+    if (resultMap == null && type == QueryType.Select) {
+      // 如果没有指定resultMap，则自动生成resultMap
+      resultMap = ResultMapResolver.resolveResultMap(mapperClass.name + StringPool.DOT + function.name,
+          builderAssistant, returnType, mappings)
+    }
+    return resultMap
   }
 
   fun resolveReturnType(function: KFunction<*>): Class<*> {

@@ -11,7 +11,7 @@ import javax.persistence.criteria.JoinType
 ])
 annotation class JoinObject(
     /**  链接表需要查询的字段 */
-    val selectColumns: Array<String> = [],
+    val selectProperties: Array<String> = [],
     /**  连接的表名称 */
     val targetTable: String = "",
     val joinType: JoinType = JoinType.LEFT,

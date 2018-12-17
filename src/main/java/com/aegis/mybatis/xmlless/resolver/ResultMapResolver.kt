@@ -1,9 +1,10 @@
 package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.xmlless.config.MappingResolver
-import com.aegis.mybatis.xmlless.enums.JoinPropertyType
 import com.aegis.mybatis.xmlless.model.FieldMapping
 import com.aegis.mybatis.xmlless.model.FieldMappings
+import com.aegis.mybatis.xmlless.model.ObjectJoinInfo
+import com.aegis.mybatis.xmlless.model.PropertyJoinInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.apache.ibatis.builder.ResultMapResolver
@@ -21,28 +22,24 @@ object ResultMapResolver {
 
   fun resolveResultMap(id: String, builderAssistant: MapperBuilderAssistant,
                        modelClass: Class<*>,
-                       mappings: FieldMappings?,
-                       returnType: Class<*>?): String {
-    if (builderAssistant.configuration.hasResultMap(id)) {
-      return id
+                       mappings: FieldMappings?): String {
+    val copyId = id.replace(".", "_")
+    if (builderAssistant.configuration.hasResultMap(copyId)) {
+      return copyId
     }
-    val resultMap = if (returnType == modelClass) {
-      ResultMapResolver(builderAssistant, id,
-          modelClass, null, null,
-          mappings?.mappings?.map { mapping ->
-            buildByMapping(id, builderAssistant, mapping, mappings.tableInfo)
-          } ?: listOf(), true).resolve()
-    } else {
-      ResultMapResolver(builderAssistant, id, returnType ?: modelClass, null, null, listOf(), true).resolve()
-    }
+    val resultMap = ResultMapResolver(builderAssistant, copyId,
+        modelClass, null, null,
+        mappings?.mappings?.map { mapping ->
+          buildByMapping(copyId, builderAssistant, mapping, mappings.tableInfo, modelClass)
+        } ?: listOf(), true).resolve()
     if (!builderAssistant.configuration.hasResultMap(resultMap.id)) {
       builderAssistant.configuration.addResultMap(resultMap)
     }
-    return id
+    return copyId
   }
 
   private fun buildByMapping(id: String, builderAssistant: MapperBuilderAssistant,
-                             mapping: FieldMapping, tableInfo: TableInfo): ResultMapping? {
+                             mapping: FieldMapping, tableInfo: TableInfo, modelClass: Class<*>): ResultMapping? {
     val builder = ResultMapping.Builder(
         builderAssistant.configuration,
         mapping.property
@@ -51,18 +48,23 @@ object ResultMapResolver {
       builder.flags(listOf(ResultFlag.ID))
     }
     if (mapping.joinInfo != null) {
-      if (mapping.joinInfo.joinPropertyType == JoinPropertyType.SingleProperty) {
+      val joinInfo = mapping.joinInfo
+      if (joinInfo is PropertyJoinInfo) {
         builder.javaType(mapping.tableFieldInfo.propertyType)
-        builder.column(mapping.joinInfo.selectColumns.first())
-      } else if (mapping.joinInfo.joinPropertyType == JoinPropertyType.Object) {
-        if (!mapping.joinInfo.associationPrefix.isNullOrBlank()) {
-          builder.columnPrefix(mapping.joinInfo.associationPrefix)
+        builder.column(joinInfo.propertyColumn)
+      } else if (joinInfo is ObjectJoinInfo) {
+        if (!joinInfo.associationPrefix.isNullOrBlank()) {
+          builder.columnPrefix(joinInfo.associationPrefix)
         }
-        builder.javaType(mapping.joinInfo.rawType())
-        val mappedType = mapping.joinInfo.realType()!!
+        builder.javaType(joinInfo.rawType())
+        val mappedType = joinInfo.realType()!!
         builder.nestedResultMapId(
-            resolveResultMap(id + "_" + mapping.property, builderAssistant,
-                mappedType, MappingResolver.getMappingCache(mappedType), null)
+            when (mappedType) {
+              modelClass -> id
+              else       -> resolveResultMap(id + "_" + mapping.property, builderAssistant,
+                  mappedType, MappingResolver.getMappingCache(mappedType)
+              )
+            }
         )
       }
     } else {

@@ -122,16 +122,15 @@ class StudentDAOTest : BaseTest() {
   @Test
   fun findById() {
     if (!studentDAO.existsById(id)) {
-      studentDAO.save(
-          Student(
-              id,
-              "wuhao",
-              "18005184916", 1
-          )
-      )
+      studentDAO.save(Student(
+          id, "wuhao", "18005184916", 1
+      ))
     }
     val student = studentDAO.findById(id)
-    println(student?.scores)
+    student?.scores?.forEach {
+      println(it.subject)
+      println(it.subject?.name + "/" + it.score)
+    }
     assert(studentDAO.findById(id) != null)
   }
 

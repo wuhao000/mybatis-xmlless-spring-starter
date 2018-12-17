@@ -28,14 +28,15 @@ object ColumnsResolver {
         throw BuildSQLException("无法解析属性$property")
       }
     }
-    return when {
+    val list = when {
       // 指定属性进行查询
-      properties.isNotEmpty() -> properties.joinToString(", ") {
-        mappings.resolveColumnByPropertyName(it, true)
+      properties.isNotEmpty() -> properties.map {
+        mappings.resolveColumnByPropertyName(it)
       }
       // 查询全部属性
       else                    -> mappings.selectFields()
     }
+    return list.joinToString(", ")
   }
 
 }
