@@ -2,7 +2,6 @@ package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.model.FieldMapping
-import com.aegis.mybatis.xmlless.model.FieldMappings
 import com.aegis.mybatis.xmlless.model.ObjectJoinInfo
 import com.aegis.mybatis.xmlless.model.PropertyJoinInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
@@ -21,12 +20,15 @@ import org.apache.ibatis.mapping.ResultMapping
 object ResultMapResolver {
 
   fun resolveResultMap(id: String, builderAssistant: MapperBuilderAssistant,
-                       modelClass: Class<*>,
-                       mappings: FieldMappings?): String {
+                       modelClass: Class<*>): String? {
+    if (modelClass.name.startsWith("java.lang") || modelClass.isEnum) {
+      return null
+    }
     val copyId = id.replace(".", "_")
     if (builderAssistant.configuration.hasResultMap(copyId)) {
       return copyId
     }
+    val mappings = MappingResolver.getMappingCache(modelClass)
     val resultMap = ResultMapResolver(builderAssistant, copyId,
         modelClass, null, null,
         mappings?.mappings?.map { mapping ->
@@ -57,15 +59,13 @@ object ResultMapResolver {
           builder.columnPrefix(joinInfo.associationPrefix)
         }
         builder.javaType(joinInfo.rawType())
-        val mappedType = joinInfo.realType()!!
-        builder.nestedResultMapId(
-            when (mappedType) {
-              modelClass -> id
-              else       -> resolveResultMap(id + "_" + mapping.property, builderAssistant,
-                  mappedType, MappingResolver.getMappingCache(mappedType)
-              )
-            }
-        )
+        val mappedType = joinInfo.realType()
+        builder.nestedResultMapId(when (mappedType) {
+          modelClass -> id
+          else       -> resolveResultMap(id + "_" + mapping.property, builderAssistant,
+              mappedType
+          )
+        })
       }
     } else {
       builder.javaType(mapping.tableFieldInfo.propertyType)

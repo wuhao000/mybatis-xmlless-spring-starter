@@ -42,12 +42,7 @@ abstract class JoinInfo(private val joinTable: String,
   }
 
   fun joinTableDeclaration(): TableName {
-    val tableNameSplits = joinTable.split("\\s+")
-    return when {
-      tableNameSplits.size == 1                                             -> TableName(joinTable, joinTable)
-      tableNameSplits.size == 3 && tableNameSplits[1].toUpperCase() == "AS" -> TableName(tableNameSplits[0], tableNameSplits[1])
-      else                                                                  -> throw BuildSQLException("非法的数据库表名称$joinTable")
-    }
+    return TableName(joinTable, joinTableAlias ?: joinTable)
   }
 
   fun resolveColumnProperty(property: String): Any? {
@@ -55,8 +50,5 @@ abstract class JoinInfo(private val joinTable: String,
   }
 
   abstract fun selectFields(level: Int, prefix: String? = null): List<String>
-
-
-
 
 }

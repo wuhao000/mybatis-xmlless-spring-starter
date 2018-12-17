@@ -135,11 +135,11 @@ object QueryResolver {
 
   fun resolveResultMap(function: KFunction<*>, type: QueryType,
                        mapperClass: Class<*>, mappings: FieldMappings, returnType: Class<*>, builderAssistant: MapperBuilderAssistant): String? {
-    var resultMap = function.findAnnotation<ResultMap>()?.value?.firstOrNull()
+    val resultMap = function.findAnnotation<ResultMap>()?.value?.firstOrNull()
     if (resultMap == null && type == QueryType.Select) {
       // 如果没有指定resultMap，则自动生成resultMap
-      resultMap = ResultMapResolver.resolveResultMap(mapperClass.name + StringPool.DOT + function.name,
-          builderAssistant, returnType, mappings)
+      return ResultMapResolver.resolveResultMap(mapperClass.name + StringPool.DOT + function.name,
+          builderAssistant, returnType)
     }
     return resultMap
   }

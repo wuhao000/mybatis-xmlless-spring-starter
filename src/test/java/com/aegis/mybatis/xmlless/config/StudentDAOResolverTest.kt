@@ -4,16 +4,9 @@ import com.aegis.mybatis.bean.Score
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.StudentDAO
 import com.aegis.mybatis.xmlless.annotations.UpdateIgnore
-import com.aegis.mybatis.xmlless.model.ResolvedQuery
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
-import com.baomidou.mybatisplus.core.config.GlobalConfig
-import com.baomidou.mybatisplus.core.metadata.TableInfo
-import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
 import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
-import org.apache.ibatis.builder.MapperBuilderAssistant
-import org.apache.ibatis.session.Configuration
-import org.junit.Before
 import org.junit.Test
 import org.springframework.core.annotation.AnnotationUtils
 import kotlin.reflect.full.declaredFunctions
@@ -26,38 +19,9 @@ import kotlin.reflect.full.declaredFunctions
  * @author 吴昊
  * @since 0.0.1
  */
-//@RunWith(SpringRunner::class)
-//@SpringBootTest
-class MethodNameResolverTest {
-
-  private val configuration = Configuration().apply {
-    this.isMapUnderscoreToCamelCase = true
-  }
-  private val currentNameSpace = "np"
-  private val mapperClass = StudentDAO::class.java
-  private val modelClass = Student::class.java
-  private val resource = modelClass.name.replace('.', '/') + ".java (best guess)"
-  private val builderAssistant = MapperBuilderAssistant(configuration, resource).apply {
-    currentNamespace = currentNameSpace
-  }
-  private lateinit var queries: List<ResolvedQuery>
-  private lateinit var tableInfo: TableInfo
-
-  @Before
-  fun init() {
-    GlobalConfigUtils.setGlobalConfig(
-        configuration,
-        GlobalConfig().setDbConfig(GlobalConfig.DbConfig().apply {
-          this.tablePrefix = "t_"
-        })
-    )
-    tableInfo = createTableInfo(modelClass)
-    queries = mapperClass.kotlin.declaredFunctions
-        .filter { it.name.startsWith("findById") }
-        .map {
-          QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
-        }
-  }
+class StudentDAOResolverTest : BaseResolverTest(
+    Student::class.java, StudentDAO::class.java, "findById"
+) {
 
   @Test
   fun mappingResolve() {
@@ -70,17 +34,8 @@ class MethodNameResolverTest {
     }
   }
 
-
-  @Test
-  fun resolveColumns(){
-    val mappings = MappingResolver.getMappingCache(Student::class.java)
-    val cols = ColumnsResolver.resolve(mappings!!, listOf())
-    println(cols)
-  }
-
   @Test
   fun resolve() {
-
     queries.forEach {
       println(it)
     }
@@ -96,6 +51,13 @@ class MethodNameResolverTest {
     Student::class.java.declaredFields.forEach {
       println(AnnotationUtils.findAnnotation(it, UpdateIgnore::class.java))
     }
+  }
+
+  @Test
+  fun resolveColumns() {
+    val mappings = MappingResolver.getMappingCache(Student::class.java)
+    val cols = ColumnsResolver.resolve(mappings!!, listOf())
+    println(cols)
   }
 
   @Test
@@ -144,13 +106,6 @@ class MethodNameResolverTest {
         .map {
           QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
         }.first()
-  }
-
-  private fun createTableInfo(modelClass: Class<*>): TableInfo {
-    TableInfoHelper.initTableInfo(
-        builderAssistant, modelClass
-    )
-    return TableInfoHelper.getTableInfo(modelClass)
   }
 
 }

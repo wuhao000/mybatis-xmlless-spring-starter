@@ -61,12 +61,14 @@ class ObjectJoinInfo(
     val list = wrappedColumns(prefix).map {
       joinTable() + '.' + it
     }
-    val realType = this.realType()
-    val mappings = MappingResolver.getMappingCache(realType)
-    if (mappings != null) {
-      return mappings.mappings.filter {
-        it.joinInfo != null && it.joinInfo is ObjectJoinInfo
-      }.map { it.joinInfo!!.selectFields(level + 1, associationPrefix) }.flatten() + list
+    if (hasJoinedProperty()) {
+      val realType = this.realType()
+      val mappings = MappingResolver.getMappingCache(realType)
+      if (mappings != null) {
+        return mappings.mappings.filter {
+          it.joinInfo != null && it.joinInfo is ObjectJoinInfo
+        }.map { it.joinInfo!!.selectFields(level + 1, associationPrefix) }.flatten() + list
+      }
     }
     return list
   }
@@ -83,6 +85,13 @@ class ObjectJoinInfo(
     val realType = this.realType()
     val mappings = MappingResolver.getMappingCache(realType)
     return mappings?.selectJoins(level + 1, selectProperties.toList()) ?: ""
+  }
+
+  private fun hasJoinedProperty(): Boolean {
+    val mappings = MappingResolver.getMappingCache(realType()) ?: throw BuildSQLException("无法正确解析join信息：$this")
+    return selectProperties.mapNotNull { property ->
+      mappings.mappings.firstOrNull { it.property == property }
+    }.filter { it.joinInfo != null }.isNotEmpty()
   }
 
   private fun resolveJoinColumns(): List<String> {
