@@ -28,6 +28,10 @@ class JoinInfo(val selectColumns: List<String>,
   var associationPrefix: String? = null
   var javaType: Type? = null
 
+  /**
+   * 返回用于关联表的属性名称
+   * 如果属性为空，则默认使用主键属性
+   */
   fun getJoinProperty(tableInfo: TableInfo): String {
     return when {
       joinProperty.isEmpty() -> tableInfo.keyProperty ?: throw BuildSQLException("无法解析${tableInfo.clazz}的主键属性")
@@ -35,6 +39,9 @@ class JoinInfo(val selectColumns: List<String>,
     }
   }
 
+  /**
+   * 获取连接的表的表信息
+   */
   fun getJoinTableInfo(): TableInfo? {
     val type = realType()
     return when {
@@ -43,6 +50,9 @@ class JoinInfo(val selectColumns: List<String>,
     }
   }
 
+  /**
+   * 获取连接的表的别名
+   */
   fun joinTable(): String {
     return joinTableAlias ?: joinTable
   }
@@ -54,6 +64,9 @@ class JoinInfo(val selectColumns: List<String>,
     }
   }
 
+  /**
+   * 返回join属性的原始类型
+   */
   fun rawType(): Class<*>? {
     val type = javaType
     return when (type) {
@@ -63,6 +76,9 @@ class JoinInfo(val selectColumns: List<String>,
     }
   }
 
+  /**
+   * 返回join属性的类型，如果属性类型包含单个泛型参数，则返回泛型类型，反之则返回属性类型
+   */
   fun realType(): Class<*>? {
     return TypeResolver.resolveRealType(javaType)
   }

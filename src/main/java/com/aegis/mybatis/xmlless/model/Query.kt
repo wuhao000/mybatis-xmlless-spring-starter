@@ -1,18 +1,16 @@
 package com.aegis.mybatis.xmlless.model
 
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
-import com.aegis.mybatis.xmlless.annotations.SelectedProperties
-import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.constant.*
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
+import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.baomidou.mybatisplus.annotation.FieldFill
 import com.baomidou.mybatisplus.annotation.FieldStrategy
 import com.baomidou.mybatisplus.core.toolkit.StringPool
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
 import org.springframework.data.domain.Sort
 import kotlin.reflect.KFunction
-import kotlin.reflect.full.findAnnotation
 
 /**
  * 当结尾以指定字符串结束时，返回去掉结尾指定字符串的新字符串，否则返回当前字符串
@@ -33,28 +31,30 @@ private fun String.trim(end: String): String {
  * @since 0.0.1
  */
 data class Query(
+    /**  sql类型 */
     val type: QueryType,
+    /**  更细或者查询的属性列表 */
     private val properties: List<String> = listOf(),
+    /**  查询条件信息 */
     val conditions: List<Condition> = listOf(),
+    /**  排序信息 */
     val sorts: List<Sort.Order> = listOf(),
     /** 待解析的方法 */
     val function: KFunction<*>,
     /**  数据对象的与数据库的映射管理 */
     val mappings: FieldMappings,
+    /**  limit信息 */
     var limitation: Limitation? = null,
-    val resolvedNameAnnotation: ResolvedName?,
-    val mapperClass: Class<*>
+    val resolvedNameAnnotation: ResolvedName?
 ) {
 
   /**  方法指定忽略的字段 */
 //  val ignoredProperties: List<String>? = function.findAnnotation<IgnoredProperties>()?.properties?.toList()
 
   var extraSortScript: String? = null
-  /**  方法指定查询的字段 */
-  private val selectedProperties: List<String>? = function.findAnnotation<SelectedProperties>()?.properties?.toList()
 
-  fun toCountSql(): String {
-    return buildCountSql()
+  fun buildCountSql(): String {
+    return String.format(SELECT_COUNT, tableName(), resolveWhere())
   }
 
   fun toSql(): String {
@@ -74,10 +74,6 @@ data class Query(
       QueryType.Count  -> buildCountSql()
       QueryType.Exists -> buildExistsSql()
     }
-  }
-
-  private fun buildCountSql(): String {
-    return String.format(SELECT_COUNT, tableName(), resolveWhere())
   }
 
   private fun buildDeleteSql(): String {
@@ -108,7 +104,7 @@ data class Query(
    */
   private fun buildSelectSql(): String {
     // 构建select的列
-    val buildColsResult = ColumnsResolver.resolve(mappings, properties())
+    val buildColsResult = ColumnsResolver.resolve(mappings, properties)
     val whereSqlResult = resolveWhere()
     val order = resolveOrder()
     val limit = resolveLimit()
@@ -172,8 +168,8 @@ data class Query(
 
   private fun hasCollectionJoinProperty(): Boolean {
     return when {
-      this.properties().isNotEmpty() -> this.mappings.mappings.filter { it.property in this.properties() }
-      else                           -> this.mappings.mappings
+      this.properties.isNotEmpty() -> this.mappings.mappings.filter { it.property in this.properties }
+      else                         -> this.mappings.mappings
     }.filter {
       it.joinInfo != null
     }.any {
@@ -182,15 +178,11 @@ data class Query(
   }
 
   private fun includeJoins(): Boolean {
-    return properties().isEmpty() || properties().any { !it.startsWith(mappings.tableInfo.tableName) }
+    return properties.isEmpty() || properties.any { !it.startsWith(mappings.tableInfo.tableName) }
   }
 
   private fun limitInSubQuery(): Boolean {
     return hasCollectionJoinProperty() && limitation != null
-  }
-
-  private fun properties(): List<String> {
-    return selectedProperties ?: properties
   }
 
   private fun resolveFrom(limitInSubQuery: Boolean, whereSqlResult: String, limit: String): String {

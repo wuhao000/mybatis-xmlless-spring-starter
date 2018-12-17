@@ -79,8 +79,7 @@ object QueryResolver {
           function,
           mappings,
           null,
-          resolvedNameAnnotation,
-          mapperClass
+          resolvedNameAnnotation
       )
       function.valueParameters.forEachIndexed { index, param ->
         val paramName = paramNames[index]
@@ -99,6 +98,9 @@ object QueryResolver {
     }
   }
 
+  /**
+   * 解析要查询或者更新的字段
+   */
   fun resolveProperties(remainWords: List<String>, function: KFunction<*>): ResolvePropertiesResult {
     val byIndex = remainWords.indexOf("By")
     var properties: List<String> = if (byIndex == 0) {
@@ -118,6 +120,7 @@ object QueryResolver {
     } else {
       listOf()
     }
+    // 如果方法指定了要查询或者更新的属性，从方法名称解析的字段无效
     if (function.findAnnotation<SelectedProperties>() != null) {
       properties = function.findAnnotation<SelectedProperties>()!!.properties.toList()
     }

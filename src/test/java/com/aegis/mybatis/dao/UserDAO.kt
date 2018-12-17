@@ -45,6 +45,13 @@ interface UserDAO : XmlLessMapper<User> {
 
   /**
    *
+   * @param idNumber
+   * @return
+   */
+  fun findByIdNumber(idNumber: String): List<User>
+
+  /**
+   *
    * @param id
    * @return
    */

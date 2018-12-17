@@ -59,13 +59,13 @@ class XmlLessMethods : AbstractLogicMethod() {
         val sql = resolvedQuery.sql
         try {
           val sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass)
-          when (resolvedQuery.type()) {
+          when (resolvedQuery.type) {
             in listOf(QueryType.Select,
                 QueryType.Exists,
                 QueryType.Count) -> {
               val returnType = resolvedQuery.returnType ?: throw BuildSQLException("无法解析方法${function}的返回类型")
               var resultMap = resolvedQuery.resultMap
-              if (resultMap == null && resolvedQuery.type() == QueryType.Select) {
+              if (resultMap == null && resolvedQuery.type == QueryType.Select) {
                 // 如果没有指定resultMap，则自动生成resultMap
                 resultMap = ResultMapResolver.resolveResultMap(mapperClass.name + StringPool.DOT + function.name, this.builderAssistant,
                     modelClass, resolvedQuery.query.mappings, resolvedQuery.returnType)
@@ -80,9 +80,9 @@ class XmlLessMethods : AbstractLogicMethod() {
                     NoKeyGenerator(), null, null)
               }
               // 为select查询自动生成count的statement，用于分页时查询总数
-              if (resolvedQuery.type() == QueryType.Select) {
+              if (resolvedQuery.type == QueryType.Select) {
                 addSelectMappedStatement(mapperClass, function.name + COUNT_STATEMENT_SUFFIX,
-                    languageDriver.createSqlSource(configuration, resolvedQuery.countSql(), modelClass),
+                    languageDriver.createSqlSource(configuration, resolvedQuery.query.buildCountSql(), modelClass),
                     Long::class.java, tableInfo
                 )
               }

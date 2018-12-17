@@ -18,9 +18,7 @@ import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 @Suppress("ArrayInDataClass")
 data class FieldMappings(val mappings: List<FieldMapping>,
                          val tableInfo: TableInfo,
-                         var modelClass: Class<*>,
-                         var defaultSelectedProperties: Array<String>?,
-                         var defaultIgnoredProperties: Array<String>?) {
+                         var modelClass: Class<*>) {
 
   /**
    * 获取from后的表名称及join信息的语句
@@ -54,7 +52,7 @@ data class FieldMappings(val mappings: List<FieldMapping>,
    * 根据属性名称获取数据库表的列名称，返回的列名称包含表名称
    */
   fun resolveColumnByPropertyName(property: String, isSelectProperty: Boolean = false): String {
-    // 如果属性中存在.，则该属性表示一个关联对象的属性，例如student.subjectId
+    // 如果属性中存在.则该属性表示一个关联对象的属性，例如student.subjectId
     // 目前仅支持一层关联关系
     if (property.contains(".")) {
       val joinedPropertyWords = property.split(".")
@@ -64,7 +62,7 @@ data class FieldMappings(val mappings: List<FieldMapping>,
         val objectProperty = joinedPropertyWords[0]
         val joinProperty = joinedPropertyWords[1]
         mappings.firstOrNull {
-          it.joinInfo != null && it.joinInfo.joinPropertyType == Object
+          it.joinInfo?.joinPropertyType == Object
               && it.property == objectProperty
         }?.let {
           return SelectColumn(it.joinInfo!!.joinTable(), joinProperty.toUnderlineCase().toLowerCase())
@@ -74,41 +72,19 @@ data class FieldMappings(val mappings: List<FieldMapping>,
     }
     // 匹配持久化对象的属性查找列名
     val column = resolveFromFieldInfo(property)
-    if (column == null) {
-      // 从关联属性中匹配
-      val joinColumn = resolveFromPropertyJoinInfo(property)
-      if (joinColumn != null) {
-        return joinColumn
-      }
-    }
-    if (column == null) {
-      // 从关联对象中匹配
-      val joinColumn = resolveFromObjectJoinInfo(property)
-      if (joinColumn != null) {
-        return joinColumn
-      }
-    }
     if (column != null) {
       // 非关联表属性
-      val mapping = mappings.firstOrNull { it.column == column }
-          ?: throw IllegalStateException("无法解析属性类${modelClass.simpleName}的属性${property}对应的列名称")
-      val tableName = when {
-        mapping.joinInfo != null -> mapping.joinInfo.joinTable()
-        else                     -> tableInfo.tableName
+      if (mappings.none { it.joinInfo == null && it.column == column }) {
+        throw IllegalStateException("无法解析属性类${modelClass.simpleName}的属性${property}对应的列名称, 持久化类或关联对象中不存在此属性")
       }
-      val realColumn = when (mapping.joinInfo?.joinPropertyType) {
-        Object         ->
-          mapping.joinInfo.selectColumns.firstOrNull()
-              ?: throw BuildSQLException("无法解析属性类${modelClass.simpleName}的属性${property}对应的列名称")
-        SingleProperty -> mapping.joinInfo.selectColumns.first()
-        null           -> column
-      }
-      return when {
-        tableName != tableInfo.tableName && isSelectProperty -> String.format("%s.%s", tableName, realColumn, column)
-        else                                                 -> String.format("%s.%s", tableName, realColumn)
-      }
+      return String.format("%s.%s", tableInfo.tableName, column)
+    } else {
+      // 从关联属性中匹配
+      resolveFromPropertyJoinInfo(property)?.let { return it }
+      // 从关联对象中匹配
+      resolveFromObjectJoinInfo(property)?.let { return it }
     }
-    throw BuildSQLException("无法解析属性类${modelClass.simpleName}的属性${property}对应的列名称")
+    throw BuildSQLException("无法解析属性类${modelClass.simpleName}的属性${property}对应的列名称, 持久化类或关联对象中不存在此属性")
   }
 
   /**
@@ -116,12 +92,11 @@ data class FieldMappings(val mappings: List<FieldMapping>,
    */
   fun selectFields(): String {
     return mappings.filter { !it.selectIgnore }.map { mapping ->
-      if (mapping.joinInfo != null) {
-        mapping.joinInfo.selectColumns.joinToString(", ") {
+      when {
+        mapping.joinInfo != null -> mapping.joinInfo.selectColumns.joinToString(", ") {
           mapping.joinInfo.joinTable() + '.' + it
         }
-      } else {
-        tableInfo.tableName + "." + mapping.column
+        else                     -> tableInfo.tableName + "." + mapping.column
       }
     }.filter { !it.isBlank() }.joinToString(", ")
   }

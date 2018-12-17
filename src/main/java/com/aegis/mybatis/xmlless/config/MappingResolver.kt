@@ -138,10 +138,7 @@ object MappingResolver {
           transient != null || AnnotationUtils.findAnnotation(field, SelectIgnore::class.java) != null,
           resolveJoin(field)
       )
-    }, tableInfo, modelClass,
-        modelClass.getDeclaredAnnotation(SelectedProperties::class.java)?.properties,
-        modelClass.getDeclaredAnnotation(IgnoredProperties::class.java)?.properties
-    )
+    }, tableInfo, modelClass)
     MAPPING_CACHE[modelClass.name] = mapping
     return mapping
   }
