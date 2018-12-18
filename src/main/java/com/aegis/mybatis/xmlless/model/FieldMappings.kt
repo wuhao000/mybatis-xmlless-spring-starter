@@ -22,8 +22,8 @@ data class FieldMappings(val mappings: List<FieldMapping>,
    * 获取from后的表名称及join信息的语句
    * 例如： t_student LEFT JOIN t_score ON t_score.student_id = t_student.id
    */
-  fun fromDeclaration(): String {
-    return tableInfo.tableName + " " + selectJoins(1)
+  fun fromDeclaration(properties: List<String>): String {
+    return tableInfo.tableName + " " + selectJoins(1, properties)
   }
 
   /**
@@ -54,17 +54,17 @@ data class FieldMappings(val mappings: List<FieldMapping>,
     // 目前仅支持一层关联关系
     if (property.contains(".")) {
       val joinedPropertyWords = property.split(".")
-      if (joinedPropertyWords.size > 2) {
-        throw IllegalStateException("暂不支持多级连接属性：$property")
-      } else {
-        val objectProperty = joinedPropertyWords[0]
-        val joinProperty = joinedPropertyWords[1]
-        mappings.firstOrNull {
-          it.joinInfo is ObjectJoinInfo && it.property == objectProperty
-        }?.let {
-          return SelectColumn(it.joinInfo!!.joinTable.alias, joinProperty.toUnderlineCase().toLowerCase())
-              .toSql()
+      when {
+        joinedPropertyWords.size <= 2 -> {
+          val objectProperty = joinedPropertyWords[0]
+          val joinProperty = joinedPropertyWords[1]
+          mappings.firstOrNull {
+            it.joinInfo is ObjectJoinInfo && it.property == objectProperty
+          }?.let {
+            return SelectColumn(it.joinInfo!!.joinTable.alias, joinProperty.toUnderlineCase().toLowerCase()).toSql()
+          }
         }
+        else                          -> throw IllegalStateException("暂不支持多级连接属性：$property")
       }
     }
     // 匹配持久化对象的属性查找列名
@@ -139,10 +139,7 @@ data class FieldMappings(val mappings: List<FieldMapping>,
    * 从表信息中解析对象属性名称对应的数据库表的列名称
    */
   private fun resolveFromFieldInfo(property: String): String? {
-    return when (property) {
-      tableInfo.keyProperty -> tableInfo.keyColumn
-      else                  -> tableInfo.fieldList.firstOrNull { it.property == property }?.column
-    }
+    return mappings.firstOrNull { it.joinInfo==null && it.property == property }?.column
   }
 
   private fun resolveFromObjectJoinInfo(property: String): String? {

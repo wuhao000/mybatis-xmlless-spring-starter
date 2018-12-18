@@ -13,7 +13,9 @@ import kotlin.reflect.full.declaredFunctions
 
 open class BaseResolverTest(val modelClass: Class<*>,
                             val mapperClass: Class<*>,
-                            val method: String) {
+                            vararg methods: String) {
+
+  var methods: List<String> = methods.toList()
 
   protected val configuration = Configuration().apply {
     this.isMapUnderscoreToCamelCase = true
@@ -36,7 +38,7 @@ open class BaseResolverTest(val modelClass: Class<*>,
     )
     tableInfo = createTableInfo(modelClass)
     queries = mapperClass.kotlin.declaredFunctions
-        .filter { it.name == method }
+        .filter { it.name in methods }
         .map {
           QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
         }

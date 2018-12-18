@@ -6,10 +6,8 @@ import com.aegis.mybatis.xmlless.annotations.SelectIgnore
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
-import com.aegis.mybatis.xmlless.resolver.TypeResolver
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
-import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import javax.persistence.Transient
 import javax.persistence.criteria.JoinType
@@ -26,30 +24,11 @@ class ObjectJoinInfo(
     /**  关联表查询的列的别名前缀 */
     val associationPrefix: String? = null,
     /**  join的对象或者属性的类型 */
-    private val javaType: Type
-) : JoinInfo(joinTable, type, joinProperty, targetColumn) {
+    javaType: Type
+) : JoinInfo(joinTable, type, joinProperty, targetColumn,javaType) {
 
   override fun getJoinTableInfo(): TableInfo? {
     return TableInfoHelper.getTableInfo(realType())
-  }
-
-  /**
-   * 返回join属性的原始类型
-   */
-  fun rawType(): Class<*> {
-    val type = javaType
-    return when (type) {
-      is Class<*>          -> type
-      is ParameterizedType -> type.rawType as Class<*>
-      else                 -> throw BuildSQLException("无法识别的类型：$javaType")
-    }
-  }
-
-  /**
-   * 返回join属性的类型，如果属性类型包含单个泛型参数，则返回泛型类型，反之则返回属性类型
-   */
-  fun realType(): Class<*> {
-    return TypeResolver.resolveRealType(javaType)
   }
 
   override fun selectFields(level: Int, prefix: String?): List<String> {

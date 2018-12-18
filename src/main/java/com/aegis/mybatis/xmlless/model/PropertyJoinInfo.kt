@@ -1,6 +1,7 @@
 package com.aegis.mybatis.xmlless.model
 
 import com.baomidou.mybatisplus.core.metadata.TableInfo
+import java.lang.reflect.Type
 import javax.persistence.criteria.JoinType
 
 /**
@@ -11,8 +12,9 @@ class PropertyJoinInfo(val propertyColumn: ColumnName,
                        type: JoinType,
                        joinProperty: String,
                        targetColumn: String,
+                       javaType: Type,
                        val groupBy: String? = null) : JoinInfo(
-    joinTable, type, joinProperty, targetColumn) {
+    joinTable, type, joinProperty, targetColumn, javaType) {
 
   override fun getJoinTableInfo(): TableInfo? {
     return null

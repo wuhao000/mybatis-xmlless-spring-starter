@@ -1,6 +1,7 @@
 package com.aegis.mybatis.dao
 
 import com.aegis.mybatis.bean.Student
+import com.aegis.mybatis.xmlless.annotations.ParameterTest
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.config.XmlLessMapper
@@ -74,9 +75,9 @@ interface StudentDAO : XmlLessMapper<Student> {
    */
   @ResolvedName("findAllByNameEqAndSubjectIdEq")
   fun findAllPage(
-      name: String?,
+      @ParameterTest("name != null &amp;&amp; name.length() >= 2") name: String?,
       subjectId: Int?,
-      @Param("pageable") page: Pageable): Page<Student>
+       @Param("pageable") page: Pageable): Page<Student>
 
   /**
    *

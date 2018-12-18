@@ -129,6 +129,12 @@ data class Query(
         resolveUpdateWhere())
   }
 
+  private fun conditionTables(): List<String> {
+    return this.conditions.map {
+      it.toSqlWithoutTest(mappings).split(".")[0]
+    }
+  }
+
   private fun convertIf(sqlScript: String, property: String, mapping: FieldMapping): String {
     if (mapping.tableFieldInfo.fieldStrategy == FieldStrategy.IGNORED) {
       return sqlScript
@@ -180,6 +186,7 @@ data class Query(
 
   private fun includeJoins(): Boolean {
     return properties.isEmpty() || properties.any { !it.startsWith(mappings.tableInfo.tableName) }
+        || conditionTables().distinct().any { it != mappings.tableInfo.tableName }
   }
 
   private fun limitInSubQuery(): Boolean {
@@ -187,7 +194,7 @@ data class Query(
   }
 
   private fun resolveFrom(limitInSubQuery: Boolean, whereSqlResult: String, limit: String): String {
-    val defaultFrom = mappings.fromDeclaration()
+    val defaultFrom = mappings.fromDeclaration(properties)
     return when {
       limitInSubQuery -> String.format(SUB_QUERY, tableName(), whereSqlResult, limit, defaultFrom)
       includeJoins()  -> defaultFrom
@@ -196,7 +203,11 @@ data class Query(
   }
 
   private fun resolveGroupBy(mappings: FieldMappings): Any {
-    val groupProperties = mappings.mappings.mapNotNull { it.joinInfo }
+    val mappingList = when {
+      properties.isNotEmpty() -> mappings.mappings.filter { it.property in properties }
+      else                    -> mappings.mappings
+    }
+    val groupProperties = mappingList.mapNotNull { it.joinInfo }
         .filter { it is PropertyJoinInfo }
         .mapNotNull { (it as PropertyJoinInfo).groupBy }
     return when {
@@ -305,12 +316,13 @@ data class Query(
   private fun resolveWhere(): String {
     val groups = resolveGroups()
     val groupBuilders = groups.map {
-      toGroupSqlBuild(it)
+      toGroupSql(it)
     }
+    val whereAppend = resolvedNameAnnotation?.whereAppend
     return when {
-      conditions.isNotEmpty() -> String.format(WHERE, trimCondition(groupBuilders.joinToString("\n")
-          + "\n" + (resolvedNameAnnotation?.whereAppend ?: "")))
-      else                    -> ""
+      conditions.isNotEmpty() || (whereAppend != null && whereAppend.isNotBlank()) ->
+        String.format(WHERE, trimCondition(groupBuilders.joinToString("\n") + "\n" + (whereAppend ?: "")))
+      else                                                                         -> ""
     }
   }
 
@@ -318,14 +330,13 @@ data class Query(
     return mappings.tableInfo.tableName
   }
 
-  private fun toGroupSqlBuild(it: List<Condition>): String {
+  private fun toGroupSql(it: List<Condition>): String {
     val list = it.map { it.toSql(mappings) }
-    return if (it.size > 1) {
-      it.first().wrapWithTests(
+    return when {
+      it.size > 1 -> it.first().wrapWithTests(
           "(" + trimCondition(it.joinToString(" ") { it.toSqlWithoutTest(mappings) }) + ")"
       )
-    } else {
-      list.first()
+      else        -> list.first()
     }
   }
 

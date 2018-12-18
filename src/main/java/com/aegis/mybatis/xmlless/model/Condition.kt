@@ -1,9 +1,11 @@
 package com.aegis.mybatis.xmlless.model
 
+import com.aegis.mybatis.xmlless.annotations.ParameterTest
 import com.aegis.mybatis.xmlless.annotations.ValueAssign
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
 import kotlin.reflect.KParameter
+import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.jvm.jvmErasure
 
 /**
@@ -33,11 +35,10 @@ data class Condition(val property: String,
   fun toSqlWithoutTest(mappings: FieldMappings): String {
     val columnResult = mappings.resolveColumnByPropertyName(property)
     val value = resolveValue()
-    return if (value != null) {
-      String.format(operator.getValueTemplate(),
+    return when {
+      value != null -> String.format(operator.getValueTemplate(),
           columnResult, operator.operator, value) + " " + (append?.toUpperCase() ?: "")
-    } else {
-      String.format(operator.getTemplate(),
+      else          -> String.format(operator.getTemplate(),
           columnResult, operator.operator, scriptParam()) + " " + (append?.toUpperCase() ?: "")
     }
   }
@@ -51,13 +52,17 @@ data class Condition(val property: String,
 
   fun wrapWithTests(sql: String): String {
     val tests = getTests()
-    if (tests.isNotEmpty()) {
-      return SqlScriptUtils.convertIf(sql, tests.joinToString(" &amp;&amp; "), true)
+    if (tests.isNotBlank()) {
+      return SqlScriptUtils.convertIf(sql, tests, true)
     }
     return sql
   }
 
-  private fun getTests(): ArrayList<String> {
+  private fun getTests(): String {
+    val parameterTest = parameter?.findAnnotation<ParameterTest>()
+    if (parameterTest != null) {
+      return parameterTest.expression
+    }
     val tests = arrayListOf<String>()
     val realParam = realParam()
     if (parameter?.type != null && parameter!!.type.isMarkedNullable) {
@@ -69,7 +74,7 @@ data class Condition(val property: String,
         tests.add("$realParam.size() > 0")
       }
     }
-    return tests
+    return tests.joinToString(" &amp;&amp; ")
   }
 
   private fun realParam(): String {

@@ -36,7 +36,7 @@ object ColumnsResolver {
       // 查询全部属性
       else                    -> mappings.selectFields()
     }
-    return list.joinToString(", ")
+    return list.sorted().joinToString(", \n")
   }
 
 }

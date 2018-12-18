@@ -170,7 +170,8 @@ object MappingResolver {
             targetTableName,
             it.joinType,
             it.joinProperty,
-            it.targetColumn)
+            it.targetColumn,
+            field.genericType)
       }
       joinObject != null   -> joinObject.let {
         val targetTableName = TableName.resolve(it.targetTable, joinObject.associationPrefix)
@@ -188,6 +189,7 @@ object MappingResolver {
             count.joinType,
             count.joinProperty,
             count.targetColumn,
+            field.genericType,
             "${targetTableName.alias}.${count.countColumn}")
       }
       else                 -> null

@@ -31,7 +31,7 @@ object ResultMapResolver {
     val mappings = MappingResolver.getMappingCache(modelClass)
     val resultMap = ResultMapResolver(builderAssistant, copyId,
         modelClass, null, null,
-        mappings?.mappings?.map { mapping ->
+        mappings?.mappings?.mapNotNull { mapping ->
           buildByMapping(copyId, builderAssistant, mapping, mappings.tableInfo, modelClass)
         } ?: listOf(), true).resolve()
     if (!builderAssistant.configuration.hasResultMap(resultMap.id)) {
@@ -42,6 +42,9 @@ object ResultMapResolver {
 
   private fun buildByMapping(id: String, builderAssistant: MapperBuilderAssistant,
                              mapping: FieldMapping, tableInfo: TableInfo, modelClass: Class<*>): ResultMapping? {
+    if (mapping.selectIgnore) {
+      return null
+    }
     val builder = ResultMapping.Builder(
         builderAssistant.configuration,
         mapping.property
@@ -53,10 +56,10 @@ object ResultMapResolver {
       val joinInfo = mapping.joinInfo
       when (joinInfo) {
         is PropertyJoinInfo -> {
-          builder.javaType(mapping.tableFieldInfo.propertyType)
+          builder.javaType(joinInfo.realType())
           builder.column(joinInfo.propertyColumn.alias)
         }
-        is ObjectJoinInfo -> {
+        is ObjectJoinInfo   -> {
           if (!joinInfo.associationPrefix.isNullOrBlank()) {
             builder.columnPrefix(joinInfo.associationPrefix)
           }

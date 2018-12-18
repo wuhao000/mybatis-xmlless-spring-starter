@@ -52,9 +52,11 @@ class StudentDAOTest : BaseTest() {
   fun deleteByName() {
     val id = "testDeleteByName"
     val name = "nameOfTestDeleteByName"
-    studentDAO.save(
-        Student(id, name, "18005184918", 1)
-    )
+    if (!studentDAO.existsById(id)) {
+      studentDAO.save(
+          Student(id, name, "18005184918", 1)
+      )
+    }
     assert(studentDAO.existsByName(name))
     studentDAO.deleteByName(name)
     assert(!studentDAO.existsByName(name))
@@ -198,6 +200,12 @@ class StudentDAOTest : BaseTest() {
   fun saveAllAndDeleteAll() {
     val id1 = "saveAll1"
     val id2 = "saveAll2"
+    if (studentDAO.existsById(id1)) {
+      studentDAO.deleteById(id1)
+    }
+    if (studentDAO.existsById(id2)) {
+      studentDAO.deleteById(id2)
+    }
     studentDAO.saveAll(
         listOf(
             Student(id1,

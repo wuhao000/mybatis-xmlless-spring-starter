@@ -20,7 +20,7 @@ import kotlin.reflect.full.declaredFunctions
  * @since 0.0.1
  */
 class StudentDAOResolverTest : BaseResolverTest(
-    Student::class.java, StudentDAO::class.java, "findById"
+    Student::class.java, StudentDAO::class.java, "findById", "findAllPage"
 ) {
 
   @Test
@@ -53,6 +53,12 @@ class StudentDAOResolverTest : BaseResolverTest(
   }
 
   @Test
+  fun resolveFindAllPage(){
+    val query = createQueryForMethod("findAllPage")
+    println(query)
+  }
+
+  @Test
   fun resolvePartlyUpdate() {
     val query = createQueryForMethod("updatePartly")
     println(query)
@@ -71,11 +77,13 @@ class StudentDAOResolverTest : BaseResolverTest(
     val resultMappings = scoreMap.propertyResultMappings
     assert(resultMappings.any { it.column == "subject_id" })
     assert(resultMappings.any { it.property == "subject" })
+    val resultMap = builderAssistant.configuration.getResultMap(
+        "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById")
     val subjectMapping = resultMappings.first { it.property == "subject" }
-    resultMaps.forEach {
-      println(it.id)
+    val mappings = resultMap.propertyResultMappings
+    mappings.forEach {
+      println("${it.property}/${it.column}/${it.javaType}/${it.typeHandler?.javaClass}")
     }
-    println(resultMaps)
   }
 
   @Test
@@ -97,7 +105,7 @@ class StudentDAOResolverTest : BaseResolverTest(
         .map { it.tableName }
     val resultMaps = builderAssistant.configuration.resultMaps
     val resultMap = resultMaps.first {
-      it.id == currentNameSpace + "." + "com_aegis_mybatis_dao_StudentDAO_findById"
+      it.id == "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById"
     }
     resultMap.propertyResultMappings.forEach {
       println("${it.property}/${it.column}/${it.javaType}")
