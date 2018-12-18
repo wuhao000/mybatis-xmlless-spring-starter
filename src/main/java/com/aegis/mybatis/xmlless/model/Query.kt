@@ -194,7 +194,7 @@ data class Query(
   }
 
   private fun resolveFrom(limitInSubQuery: Boolean, whereSqlResult: String, limit: String): String {
-    val defaultFrom = mappings.fromDeclaration(properties)
+    val defaultFrom = mappings.fromDeclaration(properties, conditionTables())
     return when {
       limitInSubQuery -> String.format(SUB_QUERY, tableName(), whereSqlResult, limit, defaultFrom)
       includeJoins()  -> defaultFrom

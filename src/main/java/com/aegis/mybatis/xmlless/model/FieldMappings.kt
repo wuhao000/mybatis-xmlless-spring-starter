@@ -22,8 +22,8 @@ data class FieldMappings(val mappings: List<FieldMapping>,
    * 获取from后的表名称及join信息的语句
    * 例如： t_student LEFT JOIN t_score ON t_score.student_id = t_student.id
    */
-  fun fromDeclaration(properties: List<String>): String {
-    return tableInfo.tableName + " " + selectJoins(1, properties)
+  fun fromDeclaration(properties: List<String>, includedTableAlias: List<String>): String {
+    return tableInfo.tableName + " " + selectJoins(1, properties, includedTableAlias)
   }
 
   /**
@@ -99,13 +99,13 @@ data class FieldMappings(val mappings: List<FieldMapping>,
   /**
    * select查询中的join语句
    */
-  fun selectJoins(level: Int, selectedProperties: List<String>? = null): String {
+  fun selectJoins(level: Int, selectedProperties: List<String>? = null,
+                  includedTableAlias: List<String>? = null): String {
     return mappings.filter {
       !it.selectIgnore && it.joinInfo != null && (
-          if (selectedProperties != null && selectedProperties.isNotEmpty()) {
-            it.property in selectedProperties
-          } else {
-            true
+          when {
+            selectedProperties != null && selectedProperties.isNotEmpty() -> it.property in selectedProperties
+            else                                                          -> true
           })
     }.mapNotNull { it.joinInfo }
         .distinctBy { it.joinTable.alias }
@@ -139,7 +139,7 @@ data class FieldMappings(val mappings: List<FieldMapping>,
    * 从表信息中解析对象属性名称对应的数据库表的列名称
    */
   private fun resolveFromFieldInfo(property: String): String? {
-    return mappings.firstOrNull { it.joinInfo==null && it.property == property }?.column
+    return mappings.firstOrNull { it.joinInfo == null && it.property == property }?.column
   }
 
   private fun resolveFromObjectJoinInfo(property: String): String? {
