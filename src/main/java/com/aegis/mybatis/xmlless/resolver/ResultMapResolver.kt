@@ -51,21 +51,24 @@ object ResultMapResolver {
     }
     if (mapping.joinInfo != null) {
       val joinInfo = mapping.joinInfo
-      if (joinInfo is PropertyJoinInfo) {
-        builder.javaType(mapping.tableFieldInfo.propertyType)
-        builder.column(joinInfo.propertyColumn)
-      } else if (joinInfo is ObjectJoinInfo) {
-        if (!joinInfo.associationPrefix.isNullOrBlank()) {
-          builder.columnPrefix(joinInfo.associationPrefix)
+      when (joinInfo) {
+        is PropertyJoinInfo -> {
+          builder.javaType(mapping.tableFieldInfo.propertyType)
+          builder.column(joinInfo.propertyColumn.alias)
         }
-        builder.javaType(joinInfo.rawType())
-        val mappedType = joinInfo.realType()
-        builder.nestedResultMapId(when (mappedType) {
-          modelClass -> id
-          else       -> resolveResultMap(id + "_" + mapping.property, builderAssistant,
-              mappedType
-          )
-        })
+        is ObjectJoinInfo -> {
+          if (!joinInfo.associationPrefix.isNullOrBlank()) {
+            builder.columnPrefix(joinInfo.associationPrefix)
+          }
+          builder.javaType(joinInfo.rawType())
+          val mappedType = joinInfo.realType()
+          builder.nestedResultMapId(when (mappedType) {
+            modelClass -> id
+            else       -> resolveResultMap(id + "_" + mapping.property, builderAssistant,
+                mappedType
+            )
+          })
+        }
       }
     } else {
       builder.javaType(mapping.tableFieldInfo.propertyType)

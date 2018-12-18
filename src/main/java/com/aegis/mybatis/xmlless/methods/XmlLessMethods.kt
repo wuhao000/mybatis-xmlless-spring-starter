@@ -35,7 +35,8 @@ class XmlLessMethods : AbstractLogicMethod() {
     const val PROPERTY_SUFFIX = "}"
     private val LOG: Logger = LoggerFactory.getLogger(XmlLessMethods::class.java)
     private val possibleErrors = listOf(
-        "未在级联属性@ModifyIgnore注解将其标记为不需要插入或更新的字段"
+        "未在级联属性@ModifyIgnore注解将其标记为不需要插入或更新的字段",
+        "复杂对象未指定TypeHandler"
     )
   }
 
@@ -62,7 +63,7 @@ class XmlLessMethods : AbstractLogicMethod() {
                 QueryType.Exists,
                 QueryType.Count) -> {
               val returnType = resolvedQuery.returnType ?: throw BuildSQLException("无法解析方法${function}的返回类型")
-              var resultMap = resolvedQuery.resultMap
+              val resultMap = resolvedQuery.resultMap
               // addSelectMappedStatement这个方法中会使用默认的resultMap，该resultMap映射的类型和modelClass一致，所以如果当前方法的返回值和modelClass
               // 不一致时，不能使用该方法，否则会产生类型转换错误
               if (returnType == modelClass && resultMap == null) {
@@ -101,10 +102,13 @@ class XmlLessMethods : AbstractLogicMethod() {
             }
           }
         } catch (ex: Exception) {
-          LOG.error("""出错了 >>>>>>>>
-              可能存在下列情形之一：
-              ${possibleErrors.joinToString { String.format("\n\t\t-\t%s\n", it) }}
-              """.trimIndent(), ex)
+          LOG.error("""
+出错了 >>>>>>>>
+  成功解析SQL但注入mybatis失败，失败的SQL为：
+$sql
+
+  可能存在下列情形之一：
+${possibleErrors.joinToString { String.format("\n\t\t-\t%s\n", it) }}""".trimIndent(), ex)
         }
       }
     }

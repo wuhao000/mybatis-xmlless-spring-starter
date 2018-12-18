@@ -11,12 +11,16 @@ import javax.persistence.criteria.JoinType
  *
  * @author 吴昊
  * @since 0.0.1
+ * @param joinTable 连接的表名称
+ * @param type 连接类型： LEFT,RIGHT,INNER
+ * @param joinProperty 主表对应的持久化类中用于连接的属性名称
+ * @param targetColumn 连接表中用于连接的数据库字段名称
  */
-abstract class JoinInfo(private val joinTable: String,
-                        private val joinTableAlias: String?,
-                        val type: JoinType,
-                        private val joinProperty: String,
-                        val targetColumn: String) {
+abstract class JoinInfo(
+    val joinTable: TableName,
+    val type: JoinType,
+    private val joinProperty: String,
+    val targetColumn: String) {
 
   /**
    * 返回用于关联表的属性名称
@@ -33,17 +37,6 @@ abstract class JoinInfo(private val joinTable: String,
    * 获取连接的表的表信息
    */
   abstract fun getJoinTableInfo(): TableInfo?
-
-  /**
-   * 获取连接的表的别名
-   */
-  fun joinTable(): String {
-    return joinTableAlias ?: joinTable
-  }
-
-  fun joinTableDeclaration(): TableName {
-    return TableName(joinTable, joinTableAlias ?: joinTable)
-  }
 
   fun resolveColumnProperty(property: String): Any? {
     return property.toUnderlineCase().toLowerCase()

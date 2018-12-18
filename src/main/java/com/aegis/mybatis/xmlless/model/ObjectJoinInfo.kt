@@ -18,18 +18,16 @@ import javax.persistence.criteria.JoinType
  * Created by 吴昊 on 2018/12/17.
  */
 class ObjectJoinInfo(
-    val selectProperties: List<String>,
-    joinTable: String,
-    joinTableAlias: String?,
+    private val selectProperties: List<String>,
+    joinTable: TableName,
     type: JoinType,
     joinProperty: String,
     targetColumn: String,
     /**  关联表查询的列的别名前缀 */
     val associationPrefix: String? = null,
     /**  join的对象或者属性的类型 */
-    val javaType: Type
-) : JoinInfo(
-    joinTable, joinTableAlias, type, joinProperty, targetColumn) {
+    private val javaType: Type
+) : JoinInfo(joinTable, type, joinProperty, targetColumn) {
 
   override fun getJoinTableInfo(): TableInfo? {
     return TableInfoHelper.getTableInfo(realType())
@@ -38,12 +36,12 @@ class ObjectJoinInfo(
   /**
    * 返回join属性的原始类型
    */
-  fun rawType(): Class<*>? {
+  fun rawType(): Class<*> {
     val type = javaType
     return when (type) {
       is Class<*>          -> type
       is ParameterizedType -> type.rawType as Class<*>
-      else                 -> null
+      else                 -> throw BuildSQLException("无法识别的类型：$javaType")
     }
   }
 
@@ -59,7 +57,7 @@ class ObjectJoinInfo(
       return listOf()
     }
     val list = wrappedColumns(prefix).map {
-      joinTable() + '.' + it
+      joinTable.alias + '.' + it
     }
     if (hasJoinedProperty()) {
       val realType = this.realType()
@@ -91,7 +89,7 @@ class ObjectJoinInfo(
     val mappings = MappingResolver.getMappingCache(realType()) ?: throw BuildSQLException("无法正确解析join信息：$this")
     return selectProperties.mapNotNull { property ->
       mappings.mappings.firstOrNull { it.property == property }
-    }.filter { it.joinInfo != null }.isNotEmpty()
+    }.any { it.joinInfo != null }
   }
 
   private fun resolveJoinColumns(): List<String> {

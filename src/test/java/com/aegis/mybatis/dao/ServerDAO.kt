@@ -16,9 +16,42 @@ interface ServerDAO : XmlLessMapper<Server> {
 
   /**
    *
+   * @param name
+   */
+  fun deleteByName(name: String)
+
+  /**
+   *
+   * @param name
+   * @return
+   */
+  fun existsByName(name: String): Boolean
+
+  /**
+   *
    * @return
    * @param id
    */
-  fun findById(id: Int): Server
+  fun findById(id: Int): Server?
+
+  /**
+   *
+   * @param name
+   * @return
+   */
+  fun findByName(name: String): Server?
+
+  /**
+   *
+   * @param server
+   */
+  fun save(server: Server)
+
+  /**
+   *
+   * @param server
+   * @return
+   */
+  fun update(server: Server): Int
 
 }

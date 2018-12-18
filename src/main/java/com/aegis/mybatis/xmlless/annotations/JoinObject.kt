@@ -9,6 +9,7 @@ import javax.persistence.criteria.JoinType
 @Target(allowedTargets = [
   AnnotationTarget.FIELD
 ])
+@ModifyIgnore
 annotation class JoinObject(
     /**  链接表需要查询的字段 */
     val selectProperties: Array<String> = [],
@@ -19,6 +20,6 @@ annotation class JoinObject(
     val joinProperty: String = "",
     /**  连接表用于连接的字段 */
     val targetColumn: String = "",
-    val associationPrefix: String = ""
+    val associationPrefix: String
 )
 

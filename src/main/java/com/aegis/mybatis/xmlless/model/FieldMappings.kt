@@ -31,7 +31,7 @@ data class FieldMappings(val mappings: List<FieldMapping>,
    * 例如： t_student.id, t_student.name
    */
   fun insertFields(): String {
-    return mappings.filter { it.joinInfo == null && !it.insertIgnore }.joinToString(",") {
+    return mappings.filter { !it.insertIgnore }.joinToString(",") {
       it.column
     }
   }
@@ -62,7 +62,7 @@ data class FieldMappings(val mappings: List<FieldMapping>,
         mappings.firstOrNull {
           it.joinInfo is ObjectJoinInfo && it.property == objectProperty
         }?.let {
-          return SelectColumn(it.joinInfo!!.joinTable(), joinProperty.toUnderlineCase().toLowerCase())
+          return SelectColumn(it.joinInfo!!.joinTable.alias, joinProperty.toUnderlineCase().toLowerCase())
               .toSql()
         }
       }
@@ -108,24 +108,24 @@ data class FieldMappings(val mappings: List<FieldMapping>,
             true
           })
     }.mapNotNull { it.joinInfo }
-        .distinctBy { it.joinTable() }
+        .distinctBy { it.joinTable.alias }
         .joinToString(" ") { joinInfo ->
           val joinProperty = joinInfo.getJoinProperty(tableInfo)
           val col = mappings.firstOrNull { it.property == joinProperty }?.column
               ?: throw BuildSQLException("无法解析join属性$joinProperty")
-          val joinTable = joinInfo.joinTableDeclaration()
+          val joinTable = joinInfo.joinTable
           when (joinInfo) {
             is PropertyJoinInfo -> (String.format(
                 JOIN, joinInfo.type.name,
                 joinTable.toSql(),
-                joinInfo.joinTable(),
+                joinInfo.joinTable.alias,
                 joinInfo.targetColumn,
                 tableInfo.tableName, col
             )).trim()
             is ObjectJoinInfo   -> (String.format(
                 JOIN, joinInfo.type.name,
                 joinTable.toSql(),
-                joinInfo.joinTable(),
+                joinInfo.joinTable.alias,
                 joinInfo.targetColumn,
                 tableInfo.tableName, col
             ) + "\n" + joinInfo.selectJoins(level)).trim()
@@ -157,7 +157,7 @@ data class FieldMappings(val mappings: List<FieldMapping>,
       val maybeJoinPropertyPascal = property.replaceFirst(bestObjectJoinMapping.property, "")
       if (maybeJoinPropertyPascal.isNotBlank() && maybeJoinPropertyPascal.first() in 'A'..'Z') {
         val maybeJoinProperty = maybeJoinPropertyPascal.toCamelCase()
-        return bestObjectJoinMapping.joinInfo!!.joinTable() + DOT + bestObjectJoinMapping.joinInfo
+        return bestObjectJoinMapping.joinInfo!!.joinTable.alias + DOT + bestObjectJoinMapping.joinInfo
             .resolveColumnProperty(maybeJoinProperty)
       }
     }
@@ -170,10 +170,9 @@ data class FieldMappings(val mappings: List<FieldMapping>,
       mapping.joinInfo?.getJoinTableInfo()?.fieldList?.firstOrNull { it.property == property } != null
     }.map { it.joinInfo as ObjectJoinInfo }
     return when {
-      matchedJoinInfos.size > 1  -> throw BuildSQLException("在${matchedJoinInfos
-          .map { it.realType().simpleName }.joinToString(",")}发现了相同的属性$property, " +
+      matchedJoinInfos.size > 1  -> throw BuildSQLException("在${matchedJoinInfos.joinToString(",") { it.realType().simpleName }}发现了相同的属性$property, " +
           "无法确定属性对应的表及字段")
-      matchedJoinInfos.size == 1 -> matchedJoinInfos.first().joinTable() + DOT +
+      matchedJoinInfos.size == 1 -> matchedJoinInfos.first().joinTable.alias + DOT +
           matchedJoinInfos.first().resolveColumnProperty(property)
       else                       -> null
     }
@@ -186,9 +185,11 @@ data class FieldMappings(val mappings: List<FieldMapping>,
     val underlineProperty = property.toUnderlineCase().toLowerCase()
     return mappings.mapNotNull { it.joinInfo }.filter {
       it is PropertyJoinInfo
-    }.map { it as PropertyJoinInfo }.firstOrNull { it.propertyColumn == underlineProperty }?.let {
-      it.joinTable() + DOT + it.propertyColumn
-    }
+    }.map { it as PropertyJoinInfo }
+        .firstOrNull { it.propertyColumn.alias == underlineProperty }
+        ?.let {
+          it.joinTable.alias + DOT + it.propertyColumn.toSql()
+        }
   }
 
 }

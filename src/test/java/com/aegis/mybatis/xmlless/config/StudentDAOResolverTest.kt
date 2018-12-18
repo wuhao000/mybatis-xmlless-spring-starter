@@ -35,18 +35,6 @@ class StudentDAOResolverTest : BaseResolverTest(
   }
 
   @Test
-  fun resolve() {
-    queries.forEach {
-      println(it)
-    }
-    val tableNames = TableInfoHelper.getTableInfos()
-        .map { it.tableName }
-    println(tableNames.joinToString("\n"))
-    val resultMaps = builderAssistant.configuration.resultMaps
-    println(resultMaps)
-  }
-
-  @Test
   fun resolve2() {
     Student::class.java.declaredFields.forEach {
       println(AnnotationUtils.findAnnotation(it, UpdateIgnore::class.java))
@@ -98,6 +86,22 @@ class StudentDAOResolverTest : BaseResolverTest(
           println(query.toString())
           assert(query.toString().contains("graduated = TRUE"))
         }
+  }
+
+  @Test
+  fun resultMaps() {
+    queries.forEach {
+      println(it)
+    }
+    val tableNames = TableInfoHelper.getTableInfos()
+        .map { it.tableName }
+    val resultMaps = builderAssistant.configuration.resultMaps
+    val resultMap = resultMaps.first {
+      it.id == currentNameSpace + "." + "com_aegis_mybatis_dao_StudentDAO_findById"
+    }
+    resultMap.propertyResultMappings.forEach {
+      println("${it.property}/${it.column}/${it.javaType}")
+    }
   }
 
   private fun createQueryForMethod(name: String): Any {

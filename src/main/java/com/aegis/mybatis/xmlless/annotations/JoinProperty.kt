@@ -11,8 +11,10 @@ import javax.persistence.criteria.JoinType
  * @param targetColumn 连接表用于连接的表字段名称
  */
 @Target(allowedTargets = [
-  AnnotationTarget.FIELD
+  AnnotationTarget.FIELD,
+  AnnotationTarget.ANNOTATION_CLASS
 ])
+@ModifyIgnore
 annotation class JoinProperty(
     val selectColumn: String,
     val targetTable: String,

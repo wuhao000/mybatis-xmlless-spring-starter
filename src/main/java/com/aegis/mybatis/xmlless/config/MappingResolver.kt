@@ -159,49 +159,39 @@ object MappingResolver {
   private fun resolveJoin(field: Field): JoinInfo? {
     val joinProperty = field.getDeclaredAnnotation(JoinProperty::class.java)
     val joinObject = field.getDeclaredAnnotation(JoinObject::class.java)
+    val count = field.getDeclaredAnnotation(Count::class.java)
     if (joinProperty != null && joinObject != null) {
       throw IllegalStateException("@JoinObject and @JoinProperty cannot appear on field $field at the same time.")
     }
     return when {
       joinProperty != null -> joinProperty.let {
-        val targetTableName = resolveNameAndAlias(it.targetTable)
-        PropertyJoinInfo(joinProperty.selectColumn,
-            targetTableName.name,
-            targetTableName.alias,
+        val targetTableName = TableName.resolve(it.targetTable)
+        PropertyJoinInfo(ColumnName(joinProperty.selectColumn, field.name),
+            targetTableName,
             it.joinType,
             it.joinProperty,
-            it.targetColumn,
-            field)
+            it.targetColumn)
       }
       joinObject != null   -> joinObject.let {
-        val targetTableName = resolveNameAndAlias(it.targetTable)
+        val targetTableName = TableName.resolve(it.targetTable, joinObject.associationPrefix)
         ObjectJoinInfo(joinObject.selectProperties.toList(),
-            targetTableName.name,
-            targetTableName.alias,
+            targetTableName,
             it.joinType,
             it.joinProperty, it.targetColumn,
             joinObject.associationPrefix,
             field.genericType)
       }
+      count != null        -> {
+        val targetTableName = TableName.resolve(count.targetTable)
+        PropertyJoinInfo(ColumnName("COUNT(${targetTableName.alias}.${count.countColumn})", field.name),
+            targetTableName,
+            count.joinType,
+            count.joinProperty,
+            count.targetColumn,
+            "${targetTableName.alias}.${count.countColumn}")
+      }
       else                 -> null
     }
-  }
-
-  private fun resolveNameAndAlias(targetTable: String): TableName {
-    val targetTableSplits = targetTable.split("\\s+".toRegex())
-    val tableName = targetTableSplits[0]
-    val alias = when (targetTableSplits.size) {
-      3    -> {
-        if (targetTableSplits[1].toLowerCase() != "as") {
-          throw IllegalStateException("Unexpect join table name expression: $targetTable")
-        }
-        targetTableSplits[2]
-      }
-      2    -> targetTableSplits[1]
-      1    -> null
-      else -> throw IllegalStateException("Unexpect join table name expression: $targetTable")
-    }
-    return TableName(tableName, alias)
   }
 
 }

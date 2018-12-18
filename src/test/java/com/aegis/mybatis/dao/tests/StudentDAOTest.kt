@@ -6,6 +6,7 @@ import org.junit.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
+import kotlin.test.assertNotNull
 
 /**
  *
@@ -127,11 +128,12 @@ class StudentDAOTest : BaseTest() {
       ))
     }
     val student = studentDAO.findById(id)
-    student?.scores?.forEach {
+    assertNotNull(student)
+    println(student.count)
+    student.scores?.forEach {
       println(it.subject)
       println(it.subject?.name + "/" + it.score)
     }
-    assert(studentDAO.findById(id) != null)
   }
 
   /**

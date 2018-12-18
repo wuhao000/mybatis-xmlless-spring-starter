@@ -57,6 +57,7 @@ SELECT
 FROM
   %s %s
 %s %s %s
+%s
 </script>"""
 
 /**  count语句模板 */

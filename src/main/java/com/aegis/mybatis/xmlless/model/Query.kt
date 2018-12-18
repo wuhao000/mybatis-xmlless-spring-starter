@@ -105,6 +105,7 @@ data class Query(
   private fun buildSelectSql(): String {
     // 构建select的列
     val buildColsResult = ColumnsResolver.resolve(mappings, properties)
+    val groupBy = resolveGroupBy(mappings)
     val whereSqlResult = resolveWhere()
     val order = resolveOrder()
     val limit = resolveLimit()
@@ -113,12 +114,12 @@ data class Query(
     return if (limitInSubQuery) {
       String.format(SELECT, buildColsResult, from,
           resolvedNameAnnotation?.joinAppend ?: "",
-          "", order, ""
+          "", groupBy, order, ""
       )
     } else {
       String.format(SELECT, buildColsResult, from,
           resolvedNameAnnotation?.joinAppend ?: "",
-          whereSqlResult, order, limit
+          whereSqlResult, groupBy, order, limit
       )
     }
   }
@@ -191,6 +192,16 @@ data class Query(
       limitInSubQuery -> String.format(SUB_QUERY, tableName(), whereSqlResult, limit, defaultFrom)
       includeJoins()  -> defaultFrom
       else            -> tableName()
+    }
+  }
+
+  private fun resolveGroupBy(mappings: FieldMappings): Any {
+    val groupProperties = mappings.mappings.mapNotNull { it.joinInfo }
+        .filter { it is PropertyJoinInfo }
+        .mapNotNull { (it as PropertyJoinInfo).groupBy }
+    return when {
+      groupProperties.isNotEmpty() -> "GROUP BY ${groupProperties.joinToString(", ")}"
+      else                         -> ""
     }
   }
 
