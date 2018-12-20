@@ -16,7 +16,7 @@ import javax.persistence.criteria.JoinType
  * Created by 吴昊 on 2018/12/17.
  */
 class ObjectJoinInfo(
-    private val selectProperties: List<String>,
+    val selectProperties: List<String>,
     joinTable: TableName,
     type: JoinType,
     joinProperty: String,
@@ -25,18 +25,19 @@ class ObjectJoinInfo(
     val associationPrefix: String? = null,
     /**  join的对象或者属性的类型 */
     javaType: Type
-) : JoinInfo(joinTable, type, joinProperty, targetColumn,javaType) {
+) : JoinInfo(joinTable, type, joinProperty, targetColumn, javaType) {
 
   override fun getJoinTableInfo(): TableInfo? {
     return TableInfoHelper.getTableInfo(realType())
   }
 
-  override fun selectFields(level: Int, prefix: String?): List<String> {
+  override fun selectFields(level: Int, prefix: String?): List<SelectColumn> {
     if (level >= 3) {
       return listOf()
     }
+    // 列名称添加前缀防止多表连接的字段名称冲突问题
     val list = wrappedColumns(prefix).map {
-      joinTable.alias + '.' + it
+      SelectColumn(joinTable.alias, it.column, it.alias, it.type)
     }
     if (hasJoinedProperty()) {
       val realType = this.realType()
@@ -71,13 +72,17 @@ class ObjectJoinInfo(
     }.any { it.joinInfo != null }
   }
 
-  private fun resolveJoinColumns(): List<String> {
+  private fun resolveJoinColumns(): List<SelectColumn> {
     val mappings = MappingResolver.getMappingCache(realType()) ?: throw BuildSQLException("无法正确解析join信息：$this")
     val columns = selectProperties.mapNotNull { property ->
       mappings.mappings.firstOrNull { it.property == property }
     }.filter { it.joinInfo == null }.map { it.column }
     return when {
-      columns.isNotEmpty() -> columns.toList()
+      columns.isNotEmpty() -> columns.map {
+        SelectColumn(
+            null, it, null, null
+        )
+      }
       else                 -> TableInfoHelper.getAllFields(realType()).filter {
         !it.isAnnotationPresent(SelectIgnore::class.java)
             && !it.isAnnotationPresent(Transient::class.java)
@@ -85,18 +90,20 @@ class ObjectJoinInfo(
             && !it.isAnnotationPresent(JoinProperty::class.java)
       }.map {
         val columnName = it.name.toUnderlineCase().toLowerCase()
-        "$columnName AS $associationPrefix$columnName"
+        SelectColumn(null, columnName, associationPrefix + columnName, null)
       }
     }
   }
 
-  private fun wrappedColumns(prefix: String? = null): List<String> {
+  private fun wrappedColumns(prefix: String? = null): List<SelectColumn> {
     val fullPrefix = listOf(prefix, associationPrefix).filter { !it.isNullOrBlank() }
         .joinToString("")
-    return resolveJoinColumns().toList().map {
+    return resolveJoinColumns().map {
       when {
-        it.toUpperCase().contains(" AS ") -> it
-        else                              -> "$it AS $fullPrefix$it"
+        it.alias != null -> it
+        else             -> SelectColumn(
+            it.table, it.column, fullPrefix + it.column, javaType
+        )
       }
     }
   }

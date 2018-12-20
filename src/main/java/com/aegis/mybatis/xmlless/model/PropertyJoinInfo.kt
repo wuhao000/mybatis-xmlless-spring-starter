@@ -20,8 +20,11 @@ class PropertyJoinInfo(val propertyColumn: ColumnName,
     return null
   }
 
-  override fun selectFields(level: Int, prefix: String?): List<String> {
-    return listOf(propertyColumn.toSql())
+  override fun selectFields(level: Int, prefix: String?): List<SelectColumn> {
+    return when {
+      groupBy != null -> listOf(SelectColumn(null,propertyColumn.name,propertyColumn.alias,javaType))
+      else            -> listOf(SelectColumn(joinTable.alias,propertyColumn.name,propertyColumn.alias,javaType))
+    }
   }
 
 }

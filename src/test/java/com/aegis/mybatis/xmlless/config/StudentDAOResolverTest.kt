@@ -45,7 +45,10 @@ class StudentDAOResolverTest : BaseResolverTest(
   fun resolveColumns() {
     val mappings = MappingResolver.getMappingCache(Student::class.java)
     val cols = ColumnsResolver.resolve(mappings!!, listOf())
-    println(cols)
+    cols.map {
+      it.toSql()
+    }.forEach {
+    }
   }
 
   @Test

@@ -50,7 +50,12 @@ class XmlLessPageMapperMethod(mapperInterface: Class<*>,
       }
     }
     if (result == null) {
-      result = super.execute(sqlSession, args)
+      try {
+        result = super.execute(sqlSession, args)
+      } catch (e: Exception) {
+        e.printStackTrace()
+        throw e
+      }
     }
     return result
   }

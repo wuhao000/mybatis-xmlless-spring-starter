@@ -36,8 +36,7 @@ class ConditionResolverTest {
         }, function.javaMethod
     ).names
     return ConditionResolver.resolveConditions(
-        conditionExpression.toWords(), function,
-        paramNames
+        conditionExpression.toWords(), function
     )
   }
 

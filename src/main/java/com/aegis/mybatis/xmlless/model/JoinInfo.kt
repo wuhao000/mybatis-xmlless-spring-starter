@@ -62,10 +62,10 @@ abstract class JoinInfo(
    */
   abstract fun getJoinTableInfo(): TableInfo?
 
-  fun resolveColumnProperty(property: String): Any? {
+  fun resolveColumnProperty(property: String): String {
     return property.toUnderlineCase().toLowerCase()
   }
 
-  abstract fun selectFields(level: Int, prefix: String? = null): List<String>
+  abstract fun selectFields(level: Int, prefix: String? = null): List<SelectColumn>
 
 }

@@ -1,8 +1,7 @@
 package com.aegis.mybatis.xmlless.resolver
 
-import com.aegis.mybatis.xmlless.config.fieldInfoMap
-import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.model.FieldMappings
+import com.aegis.mybatis.xmlless.model.SelectColumn
 import org.slf4j.LoggerFactory
 
 /**
@@ -15,28 +14,29 @@ object ColumnsResolver {
   /**
    * 构建查询的列
    */
-  fun resolve(mappings: FieldMappings, properties: List<String>): String {
+  fun resolve(mappings: FieldMappings, properties: List<String>): List<SelectColumn> {
+    return resolveColumns(mappings, properties).sortedBy { it.toSql() }
+  }
+
+  fun resolveIncludedTables(mappings: FieldMappings, properties: List<String>): List<String> {
+    return resolveColumns(mappings, properties).mapNotNull {
+      it.table
+    }
+  }
+
+  private fun resolveColumns(mappings: FieldMappings, properties: List<String>): List<SelectColumn> {
     if (LOG.isDebugEnabled) {
       LOG.debug("Available properties for class ${mappings.modelClass}: ${mappings.mappings.map { it.property }}")
       LOG.debug("Fetch properties for class ${mappings.modelClass}: $properties")
     }
-    val propertyMap = mappings.tableInfo.fieldInfoMap(
-        mappings.modelClass
-    )
-    properties.forEach { property ->
-      if (!property.contains(".") && property !in propertyMap) {
-        throw BuildSQLException("无法解析属性$property")
-      }
-    }
-    val list = when {
+    return when {
       // 指定属性进行查询
       properties.isNotEmpty() -> properties.map {
         mappings.resolveColumnByPropertyName(it)
-      }
+      }.flatten()
       // 查询全部属性
       else                    -> mappings.selectFields()
     }
-    return list.sorted().joinToString(", \n")
   }
 
 }

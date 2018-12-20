@@ -3,6 +3,7 @@ package com.aegis.mybatis.dao
 import com.aegis.mybatis.bean.Server
 import com.aegis.mybatis.xmlless.config.XmlLessMapper
 import org.apache.ibatis.annotations.Mapper
+import org.apache.ibatis.annotations.Param
 
 /**
  *
@@ -18,28 +19,28 @@ interface ServerDAO : XmlLessMapper<Server> {
    *
    * @param name
    */
-  fun deleteByName(name: String)
+  fun deleteByName(@Param("name") name: String)
 
   /**
    *
    * @param name
    * @return
    */
-  fun existsByName(name: String): Boolean
+  fun existsByName(@Param("name") name: String): Boolean
 
   /**
    *
    * @return
    * @param id
    */
-  fun findById(id: Int): Server?
+  fun findById(@Param("id") id: Int): Server?
 
   /**
    *
    * @param name
    * @return
    */
-  fun findByName(name: String): Server?
+  fun findByName(@Param("name") name: String): Server?
 
   /**
    *

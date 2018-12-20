@@ -245,15 +245,17 @@ class StudentDAOTest : BaseTest() {
     val id = "testUpdateNameById"
     val oldName = "oldName"
     val newName = "newName"
-    if (!studentDAO.existsById(id)) {
-      studentDAO.save(
-          Student(
-              id,
-              oldName,
-              "18005184916", 1
-          )
-      )
+    if (studentDAO.existsById(id)) {
+      studentDAO.deleteById(id)
     }
+    studentDAO.save(
+        Student(
+            id,
+            oldName,
+            "18005184916", 1
+        )
+    )
+    println(studentDAO.findById(id))
     assert(studentDAO.findById(id)?.name == oldName)
     assert(studentDAO.updateNameById(newName, id) == 1)
     assert(studentDAO.findById(id)?.name == newName)
