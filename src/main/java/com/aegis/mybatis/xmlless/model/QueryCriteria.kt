@@ -1,5 +1,6 @@
 package com.aegis.mybatis.xmlless.model
 
+import com.aegis.mybatis.xmlless.annotations.Criteria
 import com.aegis.mybatis.xmlless.annotations.TestExpression
 import com.aegis.mybatis.xmlless.annotations.ValueAssign
 import com.aegis.mybatis.xmlless.constant.Strings
@@ -33,12 +34,21 @@ data class QueryCriteria(val property: String,
   }
 
   fun toSql(mappings: FieldMappings, validate: Boolean = true): String {
+    if (parameter != null) {
+      val criteria = when (parameter) {
+        is KProperty<*> -> parameter.javaField!!.getDeclaredAnnotation(Criteria::class.java)
+        else            -> parameter.findAnnotation<Criteria>()
+      }
+      if (criteria != null && criteria.expression.isNotBlank()) {
+        return wrapWithTests(criteria.expression)
+      }
+    }
     val sqlBuilder = toSqlWithoutTest(mappings, validate)
     return wrapWithTests(sqlBuilder)
   }
 
   fun toSqlWithoutTest(mappings: FieldMappings, validate: Boolean = true): String {
-    val columnResult = mappings.resolveColumnByPropertyName(property,validate).joinToString(",\n\t") { it.toSql() }
+    val columnResult = mappings.resolveColumnByPropertyName(property, validate).joinToString(",\n\t") { it.toSql() }
     val value = resolveValue()
     return when {
       value != null -> String.format(operator.getValueTemplate(),
@@ -69,7 +79,8 @@ data class QueryCriteria(val property: String,
     if (parameter != null) {
       val parameterTest = when (parameter) {
         is KProperty<*> -> parameter.javaField!!.getDeclaredAnnotation(TestExpression::class.java)
-        else            -> parameter.findAnnotation<TestExpression>()
+            ?: parameter.javaField!!.getDeclaredAnnotation(Criteria::class.java)?.test
+        else            -> parameter.findAnnotation() ?: parameter.findAnnotation<Criteria>()?.test
       }
       if (parameterTest != null) {
         return resolveTests(parameterTest)
