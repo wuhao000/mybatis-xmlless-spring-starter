@@ -23,6 +23,15 @@ object ParameterResolver {
 
   private val PARAMETER_NAMES_CACHE = HashMap<KFunction<*>, Array<String>>()
 
+  fun isComplexParameter(parameter: KParameter): Boolean {
+    val realType = TypeResolver.resolveRealType(parameter.type.javaType)
+    return (!realType.name.startsWith("java.")
+        && !realType.isPrimitive
+        && !realType.isArray
+        && !realType.isEnum && !Pageable::class.java.isAssignableFrom(realType)
+        && realType != Sort::class.java && realType != Sort.Order::class.java)
+  }
+
   /**
    * 解析参数名称对象的参数或者对象属性
    */
@@ -37,12 +46,7 @@ object ParameterResolver {
       // 复杂对象是排除了 基本类型、java包下的类型、数组类型、枚举类型、及Pageable、Sort和Order等spring data类型的剩余参数
       val complexParameterMap = HashMap<Int, KParameter>()
       function.valueParameters.forEachIndexed { index, parameter ->
-        val realType = TypeResolver.resolveRealType(parameter.type.javaType)
-        if (!realType.name.startsWith("java.")
-            && !realType.isPrimitive
-            && !realType.isArray
-            && !realType.isEnum && !Pageable::class.java.isAssignableFrom(realType)
-            && realType != Sort::class.java && realType != Sort.Order::class.java) {
+        if (isComplexParameter(parameter)) {
           complexParameterMap[index] = parameter
         }
       }
@@ -72,4 +76,3 @@ object ParameterResolver {
   }
 
 }
-

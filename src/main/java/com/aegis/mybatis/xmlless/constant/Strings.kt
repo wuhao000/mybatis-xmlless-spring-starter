@@ -12,4 +12,5 @@ object Strings {
   const val SCRIPT_END = "</script>"
   const val SCRIPT_START = "<script>"
   const val TESTS_CONNECTOR = " &amp;&amp; "
+  const val COLUMN_SEPERATOR = ",\n\t"
 }

@@ -18,12 +18,12 @@ import kotlin.reflect.jvm.jvmErasure
  * @author 吴昊
  * @since 0.0.1
  */
-data class Condition(val property: String,
-                     val operator: Operations,
-                     var append: String? = null,
-                     val paramName: String?,
-                     val parameter: KAnnotatedElement?,
-                     val specificValue: ValueAssign?) {
+data class QueryCriteria(val property: String,
+                         val operator: Operations,
+                         var append: String? = null,
+                         val paramName: String?,
+                         val parameter: KAnnotatedElement?,
+                         val specificValue: ValueAssign?) {
 
   companion object {
     /**  foreach模板 */

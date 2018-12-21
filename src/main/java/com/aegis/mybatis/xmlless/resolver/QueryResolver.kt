@@ -67,7 +67,7 @@ object QueryResolver {
       val resolveSortsResult = resolveSorts(resolvedName)
       val resolveTypeResult = resolveType(resolveSortsResult.remainName)
       val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords, function)
-      val conditions = ConditionResolver.resolveConditions(resolvePropertiesResult.conditionWords, function)
+      val conditions = CriteriaResolver.resolveConditions(resolvePropertiesResult.conditionWords, function)
       val query = Query(
           resolveTypeResult.type,
           resolvePropertiesResult.properties,

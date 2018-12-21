@@ -1,14 +1,19 @@
 package com.aegis.mybatis.xmlless.resolver
 
+import com.aegis.mybatis.xmlless.annotations.Criteria
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.kotlin.split
 import com.aegis.mybatis.xmlless.kotlin.toCamelCase
-import com.aegis.mybatis.xmlless.model.Condition
 import com.aegis.mybatis.xmlless.model.MatchedParameter
+import com.aegis.mybatis.xmlless.model.QueryCriteria
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import kotlin.reflect.KFunction
+import kotlin.reflect.KParameter
+import kotlin.reflect.KProperty1
+import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.valueParameters
 
 /**
  *
@@ -17,17 +22,17 @@ import kotlin.reflect.full.findAnnotation
  * @author 吴昊
  * @since 0.0.8
  */
-object ConditionResolver {
+object CriteriaResolver {
 
   fun resolveConditions(allConditionWords: List<String>,
-                        function: KFunction<*>): List<Condition> {
-    return if (allConditionWords.isNotEmpty()) {
+                        function: KFunction<*>): List<QueryCriteria> {
+    val nameConditions = if (allConditionWords.isNotEmpty()) {
       allConditionWords.split("And").map { addPropertiesWords ->
         // 解析形如 nameEq 或者 nameLikeKeywords 的表达式
         // nameEq 解析为 name = #{name}
         // nameLikeKeywords 解析为 name  LIKE concat('%',#{keywords},'%')
         addPropertiesWords.split("Or").map { singleConditionWords ->
-          resolveCondition(singleConditionWords, function)
+          resolveCriteria(singleConditionWords, function)
         }.apply {
           last().append = "And"
         }
@@ -35,10 +40,36 @@ object ConditionResolver {
     } else {
       listOf()
     }
+    val parameterConditions = arrayListOf<QueryCriteria>()
+    val paramNames = ParameterResolver.resolveNames(function)
+    function.valueParameters.forEachIndexed { index, parameter ->
+      val criteria = parameter.findAnnotation<Criteria>()
+      if (criteria != null) {
+        parameterConditions.add(resolveCriteria(criteria, parameter, paramNames[index], function))
+      } else if (ParameterResolver.isComplexParameter(parameter)) {
+        TypeResolver.resolveRealType(parameter.type).declaredMemberProperties.forEach { property ->
+          val propertyCriteria = property.findAnnotation<Criteria>()
+          if (propertyCriteria != null) {
+            parameterConditions.add(
+                resolveCriteriaFromProperty(propertyCriteria, property, paramNames[index], function)
+            )
+          }
+        }
+      }
+    }
+    return nameConditions + parameterConditions
   }
 
-  private fun resolveCondition(singleConditionWords: List<String>,
-                               function: KFunction<*>): Condition {
+  private fun resolveCriteria(criteria: Criteria, parameter: KParameter, paramName: String, function: KFunction<*>): QueryCriteria {
+    return QueryCriteria(paramName, criteria.operator, "And",
+        paramName, parameter,
+        function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
+          it.param == paramName
+        })
+  }
+
+  private fun resolveCriteria(singleConditionWords: List<String>,
+                              function: KFunction<*>): QueryCriteria {
 // 获取表示条件表达式操作符的单词
     val singleConditionString = singleConditionWords.joinToString("").toCamelCase()
     val opWordsList = Operations.nameWords().filter {
@@ -89,10 +120,19 @@ object ConditionResolver {
       parameterData?.property != null -> parameterData.paramName + DOT + paramName
       else                            -> paramName
     }
-    return Condition(property, op ?: Operations.EqDefault, "Or",
+    return QueryCriteria(property, op ?: Operations.EqDefault, "Or",
         finalParamName, parameter,
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == property
+        })
+  }
+
+  private fun resolveCriteriaFromProperty(criteria: Criteria, property: KProperty1<out Any, Any?>,
+                                          paramName: String, function: KFunction<*>): QueryCriteria {
+    return QueryCriteria(property.name, criteria.operator, "And",
+        paramName + "." + property.name, property,
+        function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
+          it.param == paramName
         })
   }
 

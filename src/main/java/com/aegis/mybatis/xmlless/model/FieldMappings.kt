@@ -15,7 +15,8 @@ import com.baomidou.mybatisplus.core.metadata.TableInfo
 @Suppress("ArrayInDataClass")
 data class FieldMappings(val mappings: List<FieldMapping>,
                          val tableInfo: TableInfo,
-                         var modelClass: Class<*>) {
+                         val modelClass: Class<*>,
+                         val mapUnderscore: Boolean = true) {
 
   /**
    * 获取from后的表名称及join信息的语句
@@ -34,9 +35,18 @@ data class FieldMappings(val mappings: List<FieldMapping>,
    * 获取插入的列名称语句, join属性自动被过滤
    * 例如： t_student.id, t_student.name
    */
-  fun insertFields(): String {
-    return mappings.filter { !it.insertIgnore }.joinToString(",") {
-      it.column
+  fun insertFields(selectedProperties: List<String>): List<String> {
+    return if (selectedProperties.isNotEmpty()) {
+      mappings.filter {
+        !it.insertIgnore
+            && it.property in selectedProperties
+      }.map {
+        it.column
+      }
+    } else {
+      mappings.filter { !it.insertIgnore }.map {
+        it.column
+      }
     }
   }
 
@@ -44,14 +54,17 @@ data class FieldMappings(val mappings: List<FieldMapping>,
    * 获取插入的对象属性语句，例如：
    * #{name}, #{age}, #{details,typeHandler=com.aegis.project.mybatis.handler.DetailsHandler}
    */
-  fun insertProperties(prefix: String? = null, insertProperties: List<String>? = null): String {
+  fun insertProperties(prefix: String? = null, insertProperties: List<String>? = null): List<String> {
     return when {
-      insertProperties != null && insertProperties.isNotEmpty() -> mappings.filter { !it.insertIgnore && it.property in insertProperties }.joinToString(",") {
-        it.getPropertyExpression(prefix)
-      }
-      else                                                      -> mappings.filter { !it.insertIgnore }.joinToString(",") {
-        it.getPropertyExpression(prefix)
-      }
+      insertProperties != null
+          && insertProperties.isNotEmpty() ->
+        mappings.filter { !it.insertIgnore && it.property in insertProperties }.map {
+          it.getPropertyExpression(prefix)
+        }
+      else                                 ->
+        mappings.filter { !it.insertIgnore }.map {
+          it.getPropertyExpression(prefix)
+        }
     }
   }
 
@@ -84,7 +97,7 @@ data class FieldMappings(val mappings: List<FieldMapping>,
     if (column != null) {
       // 非关联表属性
       if (mappings.none { it.joinInfo == null && it.column == column } && validate) {
-        throw IllegalStateException("无法解析属性类${modelClass.simpleName}的属性${property}对应的列名称, 持久化类或关联对象中不存在此属性")
+        throw IllegalStateException("无法解析持久化类${modelClass.simpleName}的属性${property}对应的列名称, 持久化类或关联对象中不存在此属性")
       }
       return listOf(SelectColumn(tableInfo.tableName, column, null, null))
     } else {
@@ -100,9 +113,9 @@ data class FieldMappings(val mappings: List<FieldMapping>,
       }
     }
     if (validate) {
-      throw BuildSQLException("无法解析属性类${modelClass.simpleName}的属性${property}对应的列名称, 持久化类或关联对象中不存在此属性")
+      throw BuildSQLException("无法解析持久化类${modelClass.simpleName}的属性${property}对应的列名称, 持久化类或关联对象中不存在此属性")
     } else {
-      return listOf(SelectColumn(null, column ?: "", null, null))
+      return listOf(SelectColumn(null, column ?: property.toUnderlineCase(), null, null))
     }
   }
 
@@ -208,14 +221,16 @@ data class FieldMappings(val mappings: List<FieldMapping>,
    * 从关联属性中解析对应的关联表的列名称
    */
   private fun resolveFromPropertyJoinInfo(property: String): SelectColumn? {
-    val underlineProperty = property.toUnderlineCase().toLowerCase()
-    return mappings.mapNotNull { it.joinInfo }.filter {
-      it is PropertyJoinInfo
-    }.map { it as PropertyJoinInfo }
-        .firstOrNull { it.propertyColumn.alias == underlineProperty }
-        ?.let {
-          SelectColumn(it.joinTable.alias, it.propertyColumn.name, it.propertyColumn.alias, it.javaType)
-        }
+    val matchedMapping = mappings.firstOrNull {
+      it.joinInfo != null && it.joinInfo is PropertyJoinInfo
+          && it.property == property
+    }
+    if (matchedMapping?.joinInfo != null) {
+      val joinInfo = matchedMapping.joinInfo as PropertyJoinInfo
+      return SelectColumn(joinInfo.joinTable.alias,
+          joinInfo.propertyColumn.name, null, joinInfo.javaType)
+    }
+    return null
   }
 
 }

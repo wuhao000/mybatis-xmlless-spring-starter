@@ -147,7 +147,7 @@ object MappingResolver {
           transient != null || AnnotationUtils.findAnnotation(field, SelectIgnore::class.java) != null,
           joinInfo
       )
-    }, tableInfo, modelClass)
+    }, tableInfo, modelClass, builderAssistant.configuration.isMapUnderscoreToCamelCase)
     MAPPING_CACHE[modelClass.name] = mapping
     return mapping
   }

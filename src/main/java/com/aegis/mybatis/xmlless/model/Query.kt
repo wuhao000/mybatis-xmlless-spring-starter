@@ -40,7 +40,7 @@ data class Query(
     /**  更细或者查询的属性列表 */
     val properties: List<String> = listOf(),
     /**  查询条件信息 */
-    val conditions: List<Condition> = listOf(),
+    val conditions: List<QueryCriteria> = listOf(),
     /**  排序信息 */
     val sorts: List<Sort.Order> = listOf(),
     /** 待解析的方法 */
@@ -70,22 +70,30 @@ data class Query(
   }
 
   fun buildInsertSql(): String {
-    val columnsString = mappings.insertFields()
-    return when {
-      function.name.endsWith("All")                          -> {
-        val valueString = mappings.insertProperties("item.")
-        String.format(BATCH_INSERT, mappings.tableInfo.tableName, columnsString, valueString)
+    val columns = mappings.insertFields(this.properties)
+    val template: String
+    val values = when {
+      function.name.endsWith("All")    -> {
+        template = BATCH_INSERT
+        mappings.insertProperties("item.")
       }
-      this.properties.isNotEmpty()                           -> {
-        val valueString = mappings.insertProperties(insertProperties = this.properties)
-        String.format(INSERT, mappings.tableInfo.tableName, columnsString, valueString)
+      this.properties.isNotEmpty()     -> {
+        template = INSERT
+        mappings.insertProperties(insertProperties = this.properties)
       }
-      this.properties.isEmpty() && this.conditions.isEmpty() -> {
-        val valueString = mappings.insertProperties()
-        String.format(INSERT, mappings.tableInfo.tableName, columnsString, valueString)
+      this.properties.isEmpty()
+          && this.conditions.isEmpty() -> {
+        template = INSERT
+        mappings.insertProperties()
       }
-      else                                                   -> throw BuildSQLException("无法解析${this.function}")
+      else                             -> throw BuildSQLException("无法解析${this.function}")
     }
+    if (columns.size != values.size) {
+      throw BuildSQLException("插入的字段\n$columns\n与插入的值\n$values\n数量不一致")
+    }
+    return String.format(template, mappings.tableInfo.tableName,
+        columns.joinToString(Strings.COLUMN_SEPERATOR),
+        values.joinToString(Strings.COLUMN_SEPERATOR))
   }
 
   /**
@@ -208,9 +216,9 @@ data class Query(
    * 由于name未指明条件类型，自动将name和description归并为一组，并且设置条件类型和description一样为like
    * 同组条件如果超过一个在构建查询语句时添加括号
    */
-  fun resolveGroups(): List<ConditionGroup> {
-    val result = arrayListOf<ConditionGroup>()
-    var tmp = ConditionGroup()
+  fun resolveGroups(): List<QueryCriteriaGroup> {
+    val result = arrayListOf<QueryCriteriaGroup>()
+    var tmp = QueryCriteriaGroup()
     conditions.forEachIndexed { _, condition ->
       when {
         tmp.isEmpty() -> tmp.add(condition)
@@ -220,17 +228,17 @@ data class Query(
         tmp.conditions.map { it.operator }.toSet().let {
           it.size == 1 && it.first() == Operations.EqDefault
         }             -> {
-          result.add(ConditionGroup(
+          result.add(QueryCriteriaGroup(
               (tmp.conditions.map {
-                Condition(it.property, condition.operator, it.append, condition.paramName, condition.parameter, it
+                QueryCriteria(it.property, condition.operator, it.append, condition.paramName, condition.parameter, it
                     .specificValue)
               }.toMutableList() + condition).toMutableList()
           ))
-          tmp = ConditionGroup()
+          tmp = QueryCriteriaGroup()
         }
         else          -> {
           result.add(tmp)
-          tmp = ConditionGroup(mutableListOf(condition))
+          tmp = QueryCriteriaGroup(mutableListOf(condition))
         }
       }
     }
@@ -249,17 +257,15 @@ data class Query(
 
   fun resolveOrder(): String {
     return when {
-      this.sorts.isNotEmpty() ->
-
-        if (extraSortScript.isNullOrBlank()) {
-          String.format(ORDER_BY, this.sorts.joinToString(", ") {
-            "${mappings.resolveColumnByPropertyName(it.property).first().toSql()} ${it.direction}"
-          })
-        } else {
-          String.format(ORDER_BY, this.sorts.joinToString(", ") {
-            "${mappings.resolveColumnByPropertyName(it.property).first().toSql()} ${it.direction}"
-          } + "," + extraSortScript)
+      this.sorts.isNotEmpty() -> {
+        val string = this.sorts.joinToString(", ") {
+          "${mappings.resolveColumnByPropertyName(it.property, false).first().toSql()} ${it.direction}"
         }
+        when {
+          extraSortScript.isNullOrBlank() -> String.format(ORDER_BY, string)
+          else                            -> String.format(ORDER_BY, "$string, $extraSortScript")
+        }
+      }
       extraSortScript != null -> String.format(ORDER_BY, extraSortScript)
       else                    -> ""
     }

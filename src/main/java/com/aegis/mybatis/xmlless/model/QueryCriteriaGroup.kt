@@ -6,9 +6,9 @@ import com.aegis.mybatis.xmlless.constant.Strings.LINE_BREAK_INDENT
 /**
  * Created by 吴昊 on 2018/12/20.
  */
-class ConditionGroup(val conditions: MutableList<Condition> = mutableListOf()) {
+class QueryCriteriaGroup(val conditions: MutableList<QueryCriteria> = mutableListOf()) {
 
-  fun add(condition: Condition) {
+  fun add(condition: QueryCriteria) {
     this.conditions.add(condition)
   }
 

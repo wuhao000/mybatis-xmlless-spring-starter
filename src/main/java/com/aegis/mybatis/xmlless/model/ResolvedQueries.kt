@@ -42,7 +42,9 @@ class ResolvedQueries(private val mapperClass: Class<*>,
           sb.append(it.toString())
         }
     sb.append("\n===================================================")
-    log.info("\n\n" + sb.toString() + "\n")
+    if (log.isDebugEnabled) {
+      log.info("\n\n" + sb.toString() + "\n")
+    }
     logUnresolved()
   }
 
