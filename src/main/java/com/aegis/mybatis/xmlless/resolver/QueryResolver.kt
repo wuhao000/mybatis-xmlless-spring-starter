@@ -3,6 +3,7 @@
 package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
+import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.constant.PAGEABLE_SORT
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
@@ -15,10 +16,10 @@ import com.aegis.mybatis.xmlless.model.QueryType
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
 import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.metadata.TableInfo
+import com.baomidou.mybatisplus.core.toolkit.StringPool
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import org.apache.ibatis.annotations.ResultMap
-import org.apache.ibatis.reflection.ParamNameResolver
-import org.apache.ibatis.session.Configuration
+import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
@@ -52,24 +53,21 @@ object QueryResolver {
     QUERY_CACHE[mapperClass.name + DOT + function.name] = query
   }
 
-  fun resolve(function: KFunction<*>, tableInfo: TableInfo, modelClass: Class<*>, mapperClass: Class<*>):
-      ResolvedQuery {
+  fun resolve(function: KFunction<*>, tableInfo: TableInfo,
+              modelClass: Class<*>, mapperClass: Class<*>,
+              builderAssistant: MapperBuilderAssistant): ResolvedQuery {
     if (getQueryCache(function, mapperClass) != null) {
       return getQueryCache(function, mapperClass)!!
     }
     try {
-      val mappings = MappingResolver.resolve(modelClass, tableInfo)
-      val paramNames = ParamNameResolver(
-          Configuration().apply {
-            this.isUseActualParamName = true
-          }, function.javaMethod
-      ).names
+      val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
+      val paramNames = ParameterResolver.resolveNames(function)
       val resolvedNameAnnotation = function.findAnnotation<ResolvedName>()
-      val resolvedName = resolvedNameAnnotation?.name ?: function.name
+      val resolvedName = getResolvedName(function)
       val resolveSortsResult = resolveSorts(resolvedName)
       val resolveTypeResult = resolveType(resolveSortsResult.remainName)
-      val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords)
-      val conditions = ConditionResolver.resolveConditions(resolvePropertiesResult.conditionWords, function, paramNames)
+      val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords, function)
+      val conditions = CriteriaResolver.resolveConditions(resolvePropertiesResult.conditionWords, function)
       val query = Query(
           resolveTypeResult.type,
           resolvePropertiesResult.properties,
@@ -78,29 +76,36 @@ object QueryResolver {
           function,
           mappings,
           null,
-          resolvedNameAnnotation,
-          mapperClass
+          resolvedNameAnnotation
       )
       function.valueParameters.forEachIndexed { index, param ->
-        val paramName = paramNames[index]
         if (Pageable::class.isSuperclassOf(param.type.jvmErasure)) {
+          val paramName = paramNames[index]
           query.limitation = Limitation("$paramName.offset", "$paramName.pageSize")
           query.extraSortScript = String.format(PAGEABLE_SORT, paramName, paramName)
         }
       }
+      val returnType = resolveReturnType(function)
       val resolvedQuery = ResolvedQuery(
-          query, resolveResultMap(function), resolveReturnType(function), function
+          query, resolveResultMap(function, query,
+          mapperClass, returnType, builderAssistant), returnType, function
       )
       putQueryCache(function, mapperClass, resolvedQuery)
       return resolvedQuery
     } catch (e: Exception) {
+      if (e !is BuildSQLException) {
+        e.printStackTrace()
+      }
       return ResolvedQuery(null, null, null, function, e.message)
     }
   }
 
-  fun resolveProperties(remainWords: List<String>): ResolvePropertiesResult {
+  /**
+   * 解析要查询或者更新的字段
+   */
+  fun resolveProperties(remainWords: List<String>, function: KFunction<*>): ResolvePropertiesResult {
     val byIndex = remainWords.indexOf("By")
-    val properties: List<String> = if (byIndex == 0) {
+    var properties: List<String> = if (byIndex == 0) {
       listOf()
     } else {
       val propertiesWords = if (byIndex > 0) {
@@ -117,11 +122,22 @@ object QueryResolver {
     } else {
       listOf()
     }
+    // 如果方法指定了要查询或者更新的属性，从方法名称解析的字段无效
+    if (function.findAnnotation<SelectedProperties>() != null) {
+      properties = function.findAnnotation<SelectedProperties>()!!.properties.toList()
+    }
     return ResolvePropertiesResult(properties, conditionWords)
   }
 
-  fun resolveResultMap(function: KFunction<*>): String? {
-    return function.findAnnotation<ResultMap>()?.value?.firstOrNull()
+  fun resolveResultMap(function: KFunction<*>, query: Query,
+                       mapperClass: Class<*>, returnType: Class<*>, builderAssistant: MapperBuilderAssistant): String? {
+    val resultMap = function.findAnnotation<ResultMap>()?.value?.firstOrNull()
+    if (resultMap == null && query.type == QueryType.Select) {
+      // 如果没有指定resultMap，则自动生成resultMap
+      return ResultMapResolver.resolveResultMap(mapperClass.name + StringPool.DOT + function.name,
+          builderAssistant, returnType, query)
+    }
+    return resultMap
   }
 
   fun resolveReturnType(function: KFunction<*>): Class<*> {
@@ -153,7 +169,7 @@ object QueryResolver {
           it.endsWith("Asc")  -> it.substring(0, it.length - 3)
           else                -> it
         }
-        Sort.Order(direction, sortProperty)
+        Sort.Order(direction, sortProperty.toCamelCase())
       }
     } else {
       listOf()
@@ -180,6 +196,14 @@ object QueryResolver {
     } ?: throw BuildSQLException("无法解析SQL类型，解析的名称为$name")
     val remainWords = wordsWithoutSort.drop(1)
     return ResolveTypeResult(type, remainWords, typeWord)
+  }
+
+  private fun getResolvedName(function: KFunction<*>): String {
+    val resolvedNameAnnotation = function.findAnnotation<ResolvedName>()
+    return when {
+      resolvedNameAnnotation != null -> resolvedNameAnnotation.name + resolvedNameAnnotation.partNames.joinToString("And")
+      else                           -> function.name
+    }
   }
 
   /**

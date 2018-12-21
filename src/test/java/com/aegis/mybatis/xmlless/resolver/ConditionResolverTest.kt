@@ -1,7 +1,7 @@
 package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.xmlless.kotlin.toWords
-import com.aegis.mybatis.xmlless.model.Condition
+import com.aegis.mybatis.xmlless.model.QueryCriteria
 import org.apache.ibatis.reflection.ParamNameResolver
 import org.apache.ibatis.session.Configuration
 import org.junit.Test
@@ -29,15 +29,14 @@ class ConditionResolverTest {
     }
   }
 
-  private fun resolveConditions(conditionExpression: String, function: KFunction<*>): List<Condition> {
+  private fun resolveConditions(conditionExpression: String, function: KFunction<*>): List<QueryCriteria> {
     val paramNames = ParamNameResolver(
         Configuration().apply {
           this.isUseActualParamName = true
         }, function.javaMethod
     ).names
-    return ConditionResolver.resolveConditions(
-        conditionExpression.toWords(), function,
-        paramNames
+    return CriteriaResolver.resolveConditions(
+        conditionExpression.toWords(), function
     )
   }
 

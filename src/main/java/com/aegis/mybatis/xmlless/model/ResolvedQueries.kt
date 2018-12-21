@@ -33,11 +33,31 @@ class ResolvedQueries(private val mapperClass: Class<*>,
         sb.append("\n" + "\t".repeat(3) + it.name)
       }
     }
-    queries.sortedBy { it.query == null }.forEach { resolvedQuery ->
-      sb.append(resolvedQuery.toString())
+    queries.sortedBy { it.function.name }
+        .filter { it.query != null }.forEach {
+          sb.append(it.toString())
+        }
+    queries.sortedBy { it.function.name }
+        .filter { it.query == null }.forEach {
+          sb.append(it.toString())
+        }
+    sb.append("\n===================================================")
+    if (log.isDebugEnabled) {
+      log.info("\n\n" + sb.toString() + "\n")
     }
-    sb.append("\n**********************************************")
-    log.info("\n\n" + sb.toString() + "\n")
+    logUnresolved()
+  }
+
+  private fun logUnresolved() {
+    val sb = StringBuilder()
+    val unResolved = queries.filter { it.query == null }
+    if (unResolved.isNotEmpty()) {
+      sb.append("以下方法未能成功解析:")
+      unResolved.sortedBy { it.function.name }.forEach {
+        sb.append("\n\t\t- " + it.function.name)
+      }
+      log.error("\n\n" + sb.toString() + "\n")
+    }
   }
 
 }

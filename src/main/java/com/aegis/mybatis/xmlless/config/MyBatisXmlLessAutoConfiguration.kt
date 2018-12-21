@@ -20,7 +20,6 @@ import org.springframework.boot.autoconfigure.AutoConfigureAfter
 import org.springframework.boot.autoconfigure.AutoConfigureBefore
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
-import org.springframework.boot.autoconfigure.condition.ConditionalOnSingleCandidate
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext
@@ -43,7 +42,6 @@ import javax.sql.DataSource
 @ComponentScan("com.aegis.mybatis.xmlless")
 @Configuration
 @ConditionalOnClass(SqlSessionFactory::class, SqlSessionFactoryBean::class)
-@ConditionalOnSingleCandidate(DataSource::class)
 @EnableConfigurationProperties(MybatisPlusProperties::class)
 @AutoConfigureAfter(DataSourceAutoConfiguration::class)
 @AutoConfigureBefore(MybatisPlusAutoConfiguration::class)

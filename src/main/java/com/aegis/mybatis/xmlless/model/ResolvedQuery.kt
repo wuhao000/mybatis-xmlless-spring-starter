@@ -21,10 +21,8 @@ data class ResolvedQuery(
 
   /**  sql语句 */
   var sql: String? = query?.toSql()
-
-  fun countSql(): String? {
-    return query?.toCountSql()
-  }
+  /**  sql类型 */
+  val type = query?.type
 
   override fun toString(): String {
     val sb = StringBuilder()
@@ -35,7 +33,7 @@ data class ResolvedQuery(
     }} 方法:\t$function\n")
     if (isValid()) {
       val prefix = "\t\t- "
-      sb.append(prefix).append("类型: ${type()}\n")
+      sb.append(prefix).append("类型: $type\n")
       sb.append(prefix).append("SQL: \n${sql!!.trim().lines().joinToString("\n") { "\t".repeat(5) + it }}\n")
       sb.append(prefix).append("返回: $returnType")
     } else {
@@ -43,10 +41,6 @@ data class ResolvedQuery(
     }
     sb.append("\n\n")
     return sb.toString()
-  }
-
-  fun type(): QueryType? {
-    return query?.type
   }
 
   private fun isValid(): Boolean {

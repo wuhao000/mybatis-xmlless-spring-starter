@@ -2,6 +2,8 @@ package com.aegis.mybatis.dao
 
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
+import com.aegis.mybatis.xmlless.annotations.SelectedProperties
+import com.aegis.mybatis.xmlless.annotations.TestExpression
 import com.aegis.mybatis.xmlless.config.XmlLessMapper
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param
@@ -28,7 +30,7 @@ interface StudentDAO : XmlLessMapper<Student> {
    *
    * @param id
    */
-  fun deleteById(id: String)
+  fun deleteById(@Param("id") id: String)
 
   /**
    *
@@ -41,21 +43,21 @@ interface StudentDAO : XmlLessMapper<Student> {
    *
    * @param name
    */
-  fun deleteByName(name: String)
+  fun deleteByName(@Param("name") name: String)
 
   /**
    *
    * @param id
    * @return
    */
-  fun existsById(id: String): Boolean
+  fun existsById(@Param("id") id: String): Boolean
 
   /**
    *
    * @param name
    * @return
    */
-  fun existsByName(name: String): Boolean
+  fun existsByName(@Param("name") name: String): Boolean
 
   /**
    *
@@ -67,9 +69,15 @@ interface StudentDAO : XmlLessMapper<Student> {
    *
    * @param page
    * @return
+   * @param form
+   * @param name
+   * @param subjectId
    */
-  @ResolvedName("findAll")
-  fun findAllPage(@Param("pageable") page: Pageable): Page<Student>
+  @ResolvedName("findAllByNameEqAndSubjectIdEq")
+  fun findAllPage(
+      @TestExpression("name != null &amp;&amp; name.length() >= 2") name: String?,
+      subjectId: Int?,
+      @Param("pageable") page: Pageable): Page<Student>
 
   /**
    *
@@ -90,28 +98,29 @@ interface StudentDAO : XmlLessMapper<Student> {
    * @return
    * @param id
    */
-  fun findById(id: String): Student?
+  fun findById(@Param("id") id: String): Student?
 
   /**
    *
    * @param phoneNumber
    * @return
    */
-  fun findByPhoneNumberLikeLeft(phoneNumber: String): List<Student>
+  fun findByPhoneNumberLikeLeft(@Param("phoneNumber") phoneNumber: String): List<Student>
 
   /**
    *
    * @param phoneNumber
    * @return
    */
-  fun findByPhoneNumberLikeRight(phoneNumber: String): List<Student>
+  fun findByPhoneNumberLikeRight(@Param("phoneNumber") phoneNumber: String): List<Student>
 
   /**
    *
    * @param subJectId
    * @return
+   * @param subjectId
    */
-  fun findBySubjectId(subJectId: Int): List<Student>
+  fun findBySubjectId(@Param("subjectId") subjectId: Int): List<Student>
 
   /**
    *
@@ -139,5 +148,14 @@ interface StudentDAO : XmlLessMapper<Student> {
    * @return
    */
   fun updateNameById(name: String, id: String): Int
+
+  /**
+   *
+   * @param student
+   * @return
+   */
+  @SelectedProperties(["name", "phoneNumber"])
+  @ResolvedName("update")
+  fun updatePartly(student: Student): Int
 
 }

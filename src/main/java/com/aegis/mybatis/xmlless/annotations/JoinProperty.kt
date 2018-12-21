@@ -1,6 +1,6 @@
 package com.aegis.mybatis.xmlless.annotations
 
-import com.aegis.mybatis.xmlless.enums.JoinType
+import javax.persistence.criteria.JoinType
 
 /**
  * 用在持久化类的属性上，表示持久化类的属性是一个关联属性
@@ -11,12 +11,14 @@ import com.aegis.mybatis.xmlless.enums.JoinType
  * @param targetColumn 连接表用于连接的表字段名称
  */
 @Target(allowedTargets = [
-  AnnotationTarget.FIELD
+  AnnotationTarget.FIELD,
+  AnnotationTarget.ANNOTATION_CLASS
 ])
+@ModifyIgnore
 annotation class JoinProperty(
     val selectColumn: String,
     val targetTable: String,
-    val joinType: JoinType = JoinType.Left,
+    val joinType: JoinType = JoinType.LEFT,
     val joinProperty: String = "",
     val targetColumn: String
 )

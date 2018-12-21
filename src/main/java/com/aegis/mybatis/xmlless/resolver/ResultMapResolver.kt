@@ -1,9 +1,10 @@
 package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.xmlless.config.MappingResolver
-import com.aegis.mybatis.xmlless.enums.JoinPropertyType
 import com.aegis.mybatis.xmlless.model.FieldMapping
-import com.aegis.mybatis.xmlless.model.FieldMappings
+import com.aegis.mybatis.xmlless.model.ObjectJoinInfo
+import com.aegis.mybatis.xmlless.model.PropertyJoinInfo
+import com.aegis.mybatis.xmlless.model.Query
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.apache.ibatis.builder.ResultMapResolver
@@ -20,29 +21,35 @@ import org.apache.ibatis.mapping.ResultMapping
 object ResultMapResolver {
 
   fun resolveResultMap(id: String, builderAssistant: MapperBuilderAssistant,
-                       modelClass: Class<*>,
-                       mappings: FieldMappings?,
-                       returnType: Class<*>?): String {
-    if (builderAssistant.configuration.hasResultMap(id)) {
-      return id
+                       modelClass: Class<*>, query: Query? = null, optionalProperties: List<String> = listOf()): String? {
+    if (modelClass.name.startsWith("java.lang") || modelClass.isEnum) {
+      return null
     }
-    val resultMap = if (returnType == modelClass) {
-      ResultMapResolver(builderAssistant, id,
-          modelClass, null, null,
-          mappings?.mappings?.map { mapping ->
-            buildByMapping(id, builderAssistant, mapping, mappings.tableInfo)
-          } ?: listOf(), true).resolve()
-    } else {
-      ResultMapResolver(builderAssistant, id, returnType ?: modelClass, null, null, listOf(), true).resolve()
+    val copyId = id.replace(".", "_")
+    if (builderAssistant.configuration.hasResultMap(copyId)) {
+      return copyId
     }
+    val mappings = MappingResolver.getMappingCache(modelClass)
+    val resultMap = ResultMapResolver(builderAssistant, copyId,
+        modelClass, null, null,
+        mappings?.mappings?.mapNotNull { mapping ->
+          when {
+            query != null && query.properties.isNotEmpty() && mapping.property !in query.properties -> null
+            optionalProperties.isNotEmpty() && mapping.property !in optionalProperties              -> null
+            else                                                                                    -> buildByMapping(copyId, builderAssistant, mapping, mappings.tableInfo, modelClass)
+          }
+        } ?: listOf(), true).resolve()
     if (!builderAssistant.configuration.hasResultMap(resultMap.id)) {
       builderAssistant.configuration.addResultMap(resultMap)
     }
-    return id
+    return copyId
   }
 
   private fun buildByMapping(id: String, builderAssistant: MapperBuilderAssistant,
-                             mapping: FieldMapping, tableInfo: TableInfo): ResultMapping? {
+                             mapping: FieldMapping, tableInfo: TableInfo, modelClass: Class<*>): ResultMapping? {
+    if (mapping.selectIgnore) {
+      return null
+    }
     val builder = ResultMapping.Builder(
         builderAssistant.configuration,
         mapping.property
@@ -51,19 +58,38 @@ object ResultMapResolver {
       builder.flags(listOf(ResultFlag.ID))
     }
     if (mapping.joinInfo != null) {
-      if (mapping.joinInfo.joinPropertyType == JoinPropertyType.SingleProperty) {
-        builder.javaType(mapping.tableFieldInfo.propertyType)
-        builder.column(mapping.joinInfo.selectColumns.first())
-      } else if (mapping.joinInfo.joinPropertyType == JoinPropertyType.Object) {
-        if (!mapping.joinInfo.associationPrefix.isNullOrBlank()) {
-          builder.columnPrefix(mapping.joinInfo.associationPrefix)
+      val joinInfo = mapping.joinInfo
+      when (joinInfo) {
+        is PropertyJoinInfo -> {
+          val rawType = joinInfo.rawType()
+          if (Collection::class.java.isAssignableFrom(rawType)) {
+            builder.column(null)
+            builder.javaType(rawType)
+            builder.nestedResultMapId(
+                createSinglePropertyResultMap(
+                    id + "_" + mapping.property, builderAssistant,
+                    joinInfo.realType(),
+                    joinInfo.propertyColumn.alias
+                )
+            )
+          } else {
+            builder.javaType(joinInfo.realType())
+            builder.column(joinInfo.propertyColumn.alias)
+          }
         }
-        builder.javaType(mapping.joinInfo.rawType())
-        val mappedType = mapping.joinInfo.realType()!!
-        builder.nestedResultMapId(
-            resolveResultMap(id + "_" + mapping.property, builderAssistant,
-                mappedType, MappingResolver.getMappingCache(mappedType), null)
-        )
+        is ObjectJoinInfo   -> {
+          if (!joinInfo.associationPrefix.isNullOrBlank()) {
+            builder.columnPrefix(joinInfo.associationPrefix)
+          }
+          builder.javaType(joinInfo.rawType())
+          val mappedType = joinInfo.realType()
+          builder.nestedResultMapId(when (mappedType) {
+            modelClass -> id
+            else       -> resolveResultMap(id + "_" + mapping.property, builderAssistant,
+                mappedType, null, joinInfo.selectProperties
+            )
+          })
+        }
       }
     } else {
       builder.javaType(mapping.tableFieldInfo.propertyType)
@@ -71,6 +97,27 @@ object ResultMapResolver {
     }
     builder.typeHandler(mapping.typeHandler?.newInstance())
     return builder.build()
+  }
+
+  private fun createSinglePropertyResultMap(id: String, builderAssistant: MapperBuilderAssistant, realType: Class<*>,
+                                            column: String): String {
+    val copyId = id.replace(".", "_")
+    if (builderAssistant.configuration.hasResultMap(copyId)) {
+      return copyId
+    }
+    val resultMap = ResultMapResolver(builderAssistant, copyId,
+        realType, null, null,
+        listOf(
+            ResultMapping.Builder(
+                builderAssistant.configuration,
+                null, column, Object::class.java
+            ).build()
+        ), true).resolve()
+
+    if (!builderAssistant.configuration.hasResultMap(resultMap.id)) {
+      builderAssistant.configuration.addResultMap(resultMap)
+    }
+    return copyId
   }
 
 }

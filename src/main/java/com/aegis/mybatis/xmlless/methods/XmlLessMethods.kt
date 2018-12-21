@@ -6,10 +6,8 @@ import com.aegis.mybatis.xmlless.model.QueryType
 import com.aegis.mybatis.xmlless.model.ResolvedQueries
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
-import com.aegis.mybatis.xmlless.resolver.ResultMapResolver
 import com.baomidou.mybatisplus.annotation.IdType
 import com.baomidou.mybatisplus.core.metadata.TableInfo
-import com.baomidou.mybatisplus.core.toolkit.StringPool
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import com.baomidou.mybatisplus.extension.injector.AbstractLogicMethod
 import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator
@@ -37,7 +35,8 @@ class XmlLessMethods : AbstractLogicMethod() {
     const val PROPERTY_SUFFIX = "}"
     private val LOG: Logger = LoggerFactory.getLogger(XmlLessMethods::class.java)
     private val possibleErrors = listOf(
-        "未在级联属性@ModifyIgnore注解将其标记为不需要插入或更新的字段"
+        "未在级联属性@ModifyIgnore注解将其标记为不需要插入或更新的字段",
+        "复杂对象未指定TypeHandler"
     )
   }
 
@@ -52,24 +51,19 @@ class XmlLessMethods : AbstractLogicMethod() {
     // 解析未定义的方法，进行sql推断
     val resolvedQueries = ResolvedQueries(mapperClass, unmappedFunctions)
     unmappedFunctions.forEach { function ->
-      val resolvedQuery: ResolvedQuery = QueryResolver.resolve(function, tableInfo, modelClass, mapperClass)
+      val resolvedQuery: ResolvedQuery = QueryResolver.resolve(function, tableInfo, modelClass, mapperClass, builderAssistant)
       resolvedQueries.add(resolvedQuery)
       // query为null则表明推断失败，resolvedQuery中将包含推断失败的原因，会在后面进行统一输出，方便开发人员了解sql推断的具体结果和失败的具体原因
       if (resolvedQuery.query != null && resolvedQuery.sql != null) {
         val sql = resolvedQuery.sql
         try {
           val sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass)
-          when (resolvedQuery.type()) {
+          when (resolvedQuery.type) {
             in listOf(QueryType.Select,
                 QueryType.Exists,
                 QueryType.Count) -> {
               val returnType = resolvedQuery.returnType ?: throw BuildSQLException("无法解析方法${function}的返回类型")
-              var resultMap = resolvedQuery.resultMap
-              if (resultMap == null && resolvedQuery.type() == QueryType.Select) {
-                // 如果没有指定resultMap，则自动生成resultMap
-                resultMap = ResultMapResolver.resolveResultMap(mapperClass.name + StringPool.DOT + function.name, this.builderAssistant,
-                    modelClass, resolvedQuery.query.mappings, resolvedQuery.returnType)
-              }
+              val resultMap = resolvedQuery.resultMap
               // addSelectMappedStatement这个方法中会使用默认的resultMap，该resultMap映射的类型和modelClass一致，所以如果当前方法的返回值和modelClass
               // 不一致时，不能使用该方法，否则会产生类型转换错误
               if (returnType == modelClass && resultMap == null) {
@@ -80,9 +74,9 @@ class XmlLessMethods : AbstractLogicMethod() {
                     NoKeyGenerator(), null, null)
               }
               // 为select查询自动生成count的statement，用于分页时查询总数
-              if (resolvedQuery.type() == QueryType.Select) {
+              if (resolvedQuery.type == QueryType.Select) {
                 addSelectMappedStatement(mapperClass, function.name + COUNT_STATEMENT_SUFFIX,
-                    languageDriver.createSqlSource(configuration, resolvedQuery.countSql(), modelClass),
+                    languageDriver.createSqlSource(configuration, resolvedQuery.query.buildCountSql(), modelClass),
                     Long::class.java, tableInfo
                 )
               }
@@ -108,10 +102,13 @@ class XmlLessMethods : AbstractLogicMethod() {
             }
           }
         } catch (ex: Exception) {
-          LOG.error("""出错了 >>>>>>>>
-              可能存在下列情形之一：
-              ${possibleErrors.joinToString { String.format("\n\t\t-\t%s\n", it) }}
-              """.trimIndent(), ex)
+          LOG.error("""
+出错了 >>>>>>>>
+  成功解析SQL但注入mybatis失败，失败的SQL为：
+$sql
+
+  可能存在下列情形之一：
+${possibleErrors.joinToString { String.format("\n\t\t-\t%s\n", it) }}""".trimIndent(), ex)
         }
       }
     }

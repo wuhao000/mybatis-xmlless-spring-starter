@@ -1,5 +1,6 @@
 package com.aegis.mybatis.bean
 
+import com.aegis.mybatis.xmlless.annotations.Count
 import com.aegis.mybatis.xmlless.annotations.Handler
 import com.aegis.mybatis.xmlless.annotations.JoinObject
 import com.aegis.mybatis.xmlless.annotations.ModifyIgnore
@@ -44,6 +45,10 @@ class StringTypeHandler : BaseTypeHandler<String>() {
 @Suppress("MemberVisibilityCanBePrivate")
 class Student() {
 
+  @Count(targetTable = "t_score",
+      targetColumn = "student_id",
+      countColumn = "id")
+  var count: Int = 0
   @TableField("sex")
   var gender: Int = 1
   var graduated: Boolean = false
@@ -57,7 +62,7 @@ class Student() {
       targetColumn = "student_id",
       joinProperty = "id",
       associationPrefix = "score_",
-      selectColumns = ["score", "subject_id"]
+      selectProperties = ["score", "subjectId", "subject"]
   )
   @ModifyIgnore
   var scores: MutableList<Score>? = null
@@ -79,4 +84,5 @@ class Student() {
       | scores=$scores
       |)""".trimMargin()
   }
+
 }
