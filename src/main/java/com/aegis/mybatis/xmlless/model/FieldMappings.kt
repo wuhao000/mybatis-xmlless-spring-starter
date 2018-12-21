@@ -95,10 +95,6 @@ data class FieldMappings(val mappings: List<FieldMapping>,
     // 匹配持久化对象的属性查找列名
     val column = resolveFromFieldInfo(property)
     if (column != null) {
-      // 非关联表属性
-      if (mappings.none { it.joinInfo == null && it.column == column } && validate) {
-        throw IllegalStateException("无法解析持久化类${modelClass.simpleName}的属性${property}对应的列名称, 持久化类或关联对象中不存在此属性")
-      }
       return listOf(SelectColumn(tableInfo.tableName, column, null, null))
     } else {
       // 从关联属性中匹配
@@ -112,10 +108,10 @@ data class FieldMappings(val mappings: List<FieldMapping>,
         return resolvedFromJoinObject
       }
     }
-    if (validate) {
-      throw BuildSQLException("无法解析持久化类${modelClass.simpleName}的属性${property}对应的列名称, 持久化类或关联对象中不存在此属性")
-    } else {
+    if (!validate) {
       return listOf(SelectColumn(null, column ?: property.toUnderlineCase(), null, null))
+    } else {
+      throw BuildSQLException("无法解析持久化类${modelClass.simpleName}的属性${property}对应的列名称, 持久化类或关联对象中不存在此属性")
     }
   }
 

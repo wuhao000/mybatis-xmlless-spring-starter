@@ -62,9 +62,7 @@ class UserDAOResolverTest : BaseResolverTest(
   fun resolveResultMap() {
     val resultMaps = builderAssistant.configuration.resultMaps
     val ids = resultMaps.map { it.id }
-    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById"))
-    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById_scores"))
-    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById_scores_subject"))
+    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_UserDAO_findById"))
     val scoreMap = resultMaps.first { it.id == "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById_scores" }
     assert(scoreMap.autoMapping == true)
     assert(scoreMap.hasNestedResultMaps())

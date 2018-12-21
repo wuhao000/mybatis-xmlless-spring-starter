@@ -223,3 +223,34 @@ selectColumns 关联表中需要查询的列集合
 
 
 
+## 条件表达
+
+### 从方法名称中获取查询条件
+
+在方法名称中 By后面和OrderBy前面的部分表示条件，例如：findById，findByNameLikeKeyword，findByNameAndAge等
+
+1. 不包含操作符，如findById，等价于findByIdEq及findByIdEqId（其中Id转成驼峰命名后为持久化类的属性名称，在SQL中会自动转成数据库表的字段名称），转成sql如下：
+id = #{id}
+
+2. 包含操作符，如findByIdNe，Ne表示不等于，转成sql为：
+id != #{id} 
+
+3. 属性名称和mapper方法的参数名称不一致，例如：findByNameLikeKeyword，keyword为mapper查询方法的一个参数的名称，name为持久化对象的属性名称，转成sql为：
+nam LIKE CONCAT('%', #{keyword},'%')
+
+### 使用注解标示条件
+
+可以在mapper方法的参数或者复杂参数（包含多个属性的对象）的属性上添加注解 __@Criteria__
+
+Criteria注解中的operator属性是条件操作符，例如：
+```kotlin
+fun find(@Criteria(operator = Eq) id: Int): User
+```
+和
+
+```kotlin
+fun findById(id: Int): User
+```
+的结果是一样的
+
+> 注意：注解标示的条件和方法名称中的条件并不会去重，所以使用注解声明的条件不要再包含在方法名称中，反之也一样

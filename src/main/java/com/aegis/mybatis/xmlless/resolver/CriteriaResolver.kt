@@ -14,6 +14,7 @@ import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.valueParameters
+import kotlin.reflect.jvm.javaField
 
 /**
  *
@@ -48,7 +49,7 @@ object CriteriaResolver {
         parameterConditions.add(resolveCriteria(criteria, parameter, paramNames[index], function))
       } else if (ParameterResolver.isComplexParameter(parameter)) {
         TypeResolver.resolveRealType(parameter.type).declaredMemberProperties.forEach { property ->
-          val propertyCriteria = property.findAnnotation<Criteria>()
+          val propertyCriteria = property.javaField!!.getDeclaredAnnotation(Criteria::class.java)
           if (propertyCriteria != null) {
             parameterConditions.add(
                 resolveCriteriaFromProperty(propertyCriteria, property, paramNames[index], function)
@@ -70,13 +71,12 @@ object CriteriaResolver {
 
   private fun resolveCriteria(singleConditionWords: List<String>,
                               function: KFunction<*>): QueryCriteria {
-// 获取表示条件表达式操作符的单词
+    // 获取表示条件表达式操作符的单词
     val singleConditionString = singleConditionWords.joinToString("").toCamelCase()
     val opWordsList = Operations.nameWords().filter {
       singleConditionWords.containsAll(it)
           && singleConditionWords.joinToString("").contains(it.joinToString(""))
     }.sortedByDescending { it.size }
-
     val maxOpWordCount = opWordsList.map { it.size }.max()
     val opWords = opWordsList.filter { it.size == maxOpWordCount }
         .sortedBy {

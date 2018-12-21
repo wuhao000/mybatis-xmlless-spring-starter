@@ -34,20 +34,17 @@ data class QueryCriteria(val property: String,
   }
 
   fun toSql(mappings: FieldMappings, validate: Boolean = true): String {
-    if (parameter != null) {
-      val criteria = when (parameter) {
-        is KProperty<*> -> parameter.javaField!!.getDeclaredAnnotation(Criteria::class.java)
-        else            -> parameter.findAnnotation<Criteria>()
-      }
-      if (criteria != null && criteria.expression.isNotBlank()) {
-        return wrapWithTests(criteria.expression)
-      }
-    }
     val sqlBuilder = toSqlWithoutTest(mappings, validate)
     return wrapWithTests(sqlBuilder)
   }
 
   fun toSqlWithoutTest(mappings: FieldMappings, validate: Boolean = true): String {
+    if (parameter != null) {
+      val criteria = parameter.findAnnotation<Criteria>()
+      if (criteria != null && criteria.expression.isNotBlank()) {
+        return criteria.expression
+      }
+    }
     val columnResult = mappings.resolveColumnByPropertyName(property, validate).joinToString(",\n\t") { it.toSql() }
     val value = resolveValue()
     return when {
@@ -70,7 +67,7 @@ data class QueryCriteria(val property: String,
   fun wrapWithTests(sql: String): String {
     val tests = getTests()
     if (tests.isNotBlank()) {
-      return SqlScriptUtils.convertIf(sql, tests, true)
+      return SqlScriptUtils.convertIf("\t" + sql, tests, true)
     }
     return sql
   }
