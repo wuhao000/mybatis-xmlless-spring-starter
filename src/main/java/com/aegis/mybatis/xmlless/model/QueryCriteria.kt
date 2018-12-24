@@ -22,7 +22,7 @@ import kotlin.reflect.jvm.jvmErasure
  */
 data class QueryCriteria(val property: String,
                          val operator: Operations,
-                         var append: Append? = null,
+                         var append: Append = Append.AND,
                          val paramName: String?,
                          val parameter: KAnnotatedElement?,
                          val specificValue: ValueAssign?) {
@@ -125,10 +125,11 @@ data class QueryCriteria(val property: String,
         it.expression
       } else {
         when {
-          Collection::class.java.isAssignableFrom(clazz) -> ".size > 0"
-          clazz == String::class                         -> ".length() > 0"
-          clazz.isArray                                  -> ".length > 0"
-          else                                           -> ".size > 0"
+          Collection::class.java.isAssignableFrom(clazz)           -> ".size > 0"
+          clazz == String::class
+              || clazz == java.lang.String::class.java             -> ".length() > 0"
+          clazz.isArray                                            -> ".length > 0"
+          else                                                     -> ".size > 0"
         }
       }
     }
