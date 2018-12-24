@@ -5,6 +5,7 @@ import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.kotlin.split
 import com.aegis.mybatis.xmlless.kotlin.toCamelCase
+import com.aegis.mybatis.xmlless.model.Append
 import com.aegis.mybatis.xmlless.model.MatchedParameter
 import com.aegis.mybatis.xmlless.model.QueryCriteria
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
@@ -35,7 +36,7 @@ object CriteriaResolver {
         addPropertiesWords.split("Or").map { singleConditionWords ->
           resolveCriteria(singleConditionWords, function)
         }.apply {
-          last().append = "And"
+          last().append = Append.AND
         }
       }.flatten()
     } else {
@@ -66,7 +67,7 @@ object CriteriaResolver {
       criteria.property.isNotBlank() -> criteria.property
       else                           -> paramName
     }
-    return QueryCriteria(property, criteria.operator, "And",
+    return QueryCriteria(property, criteria.operator, Append.AND,
         paramName, parameter,
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == paramName
@@ -124,7 +125,7 @@ object CriteriaResolver {
       parameterData?.property != null -> parameterData.paramName + DOT + paramName
       else                            -> paramName
     }
-    return QueryCriteria(property, op ?: Operations.EqDefault, "Or",
+    return QueryCriteria(property, op ?: Operations.EqDefault, Append.OR,
         finalParamName, parameter,
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == property
@@ -137,7 +138,7 @@ object CriteriaResolver {
       criteria.property.isNotBlank() -> criteria.property
       else                           -> property.name
     }
-    return QueryCriteria(propertyName, criteria.operator, "And",
+    return QueryCriteria(propertyName, criteria.operator, Append.AND,
         paramName + "." + property.name, property,
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == paramName

@@ -230,7 +230,9 @@ data class Query(
         }
         tmp.isEmpty()             -> tmp.add(condition)
         tmp.conditions.map { it.operator }.toSet().let {
-          it.size == 1 && it.first() == Operations.EqDefault && condition.operator == Operations.EqDefault
+          it.size == 1 && it.first() == Operations.EqDefault
+              && condition.operator == Operations.EqDefault
+              && condition.append == Append.OR
         }                         -> tmp.add(condition)
         tmp.conditions.map { it.operator }.toSet().let {
           it.size == 1 && it.first() == Operations.EqDefault

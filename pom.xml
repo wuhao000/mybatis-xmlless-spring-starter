@@ -6,7 +6,7 @@
 
   <groupId>com.aegis</groupId>
   <artifactId>aegis-starter-mybatis</artifactId>
-  <version>0.1.1</version>
+  <version>0.1.2</version>
   <packaging>jar</packaging>
 
   <name>mybatis-xmlless</name>
@@ -88,6 +88,7 @@
     </repository>
   </distributionManagement>
   <build>
+    <defaultGoal>clean install deploy</defaultGoal>
     <plugins>
       <plugin>
         <artifactId>maven-source-plugin</artifactId>

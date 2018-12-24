@@ -22,7 +22,7 @@ import kotlin.reflect.jvm.jvmErasure
  */
 data class QueryCriteria(val property: String,
                          val operator: Operations,
-                         var append: String? = null,
+                         var append: Append? = null,
                          val paramName: String?,
                          val parameter: KAnnotatedElement?,
                          val specificValue: ValueAssign?) {
@@ -34,11 +34,6 @@ data class QueryCriteria(val property: String,
 </foreach>"""
   }
 
-  fun toSql(mappings: FieldMappings): String {
-    val sqlBuilder = toSqlWithoutTest(mappings)
-    return wrapWithTests(sqlBuilder)
-  }
-
   fun hasExpression(): Boolean {
     if (parameter != null) {
       val criteria = parameter.findAnnotation<Criteria>()
@@ -47,6 +42,11 @@ data class QueryCriteria(val property: String,
       }
     }
     return false
+  }
+
+  fun toSql(mappings: FieldMappings): String {
+    val sqlBuilder = toSqlWithoutTest(mappings)
+    return wrapWithTests(sqlBuilder)
   }
 
   fun toSqlWithoutTest(mappings: FieldMappings): String {
@@ -61,16 +61,15 @@ data class QueryCriteria(val property: String,
     val mapping = mappings.mappings.firstOrNull { it.property == property }
     return when {
       value != null -> String.format(operator.getValueTemplate(),
-          columnResult, operator.operator, value) + " " + (append?.toUpperCase() ?: "")
+          columnResult, operator.operator, value) + " " + (append ?: "")
       operator == Operations.In
           && mapping?.joinInfo is PropertyJoinInfo
                     -> String.format(operator.getTemplate(),
           mappings.tableInfo.tableName + "." + mappings.tableInfo.keyColumn,
-          operator.operator, scriptParam(mapping)) + " " + (append?.toUpperCase() ?: "")
+          operator.operator, scriptParam(mapping)) + " " + (append ?: "")
       else          -> {
         String.format(operator.getTemplate(),
-            columnResult, operator.operator, scriptParam()) + " " + (append?.toUpperCase()
-            ?: "")
+            columnResult, operator.operator, scriptParam()) + " " + (append ?: "")
       }
     }
   }
@@ -184,5 +183,13 @@ data class QueryCriteria(val property: String,
     }
     return realParam
   }
+
+}
+
+
+enum class Append {
+
+  AND,
+  OR;
 
 }
