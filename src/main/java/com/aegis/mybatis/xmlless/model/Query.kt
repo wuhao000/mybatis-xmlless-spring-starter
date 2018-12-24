@@ -221,13 +221,20 @@ data class Query(
     var tmp = QueryCriteriaGroup()
     conditions.forEachIndexed { _, condition ->
       when {
-        tmp.isEmpty() -> tmp.add(condition)
+        condition.hasExpression() -> {
+          if (!tmp.isEmpty()) {
+            result.add(tmp)
+            tmp = QueryCriteriaGroup()
+          }
+          result.add(QueryCriteriaGroup(mutableListOf(condition)))
+        }
+        tmp.isEmpty()             -> tmp.add(condition)
         tmp.conditions.map { it.operator }.toSet().let {
           it.size == 1 && it.first() == Operations.EqDefault && condition.operator == Operations.EqDefault
-        }             -> tmp.add(condition)
+        }                         -> tmp.add(condition)
         tmp.conditions.map { it.operator }.toSet().let {
           it.size == 1 && it.first() == Operations.EqDefault
-        }             -> {
+        }                         -> {
           result.add(QueryCriteriaGroup(
               (tmp.conditions.map {
                 QueryCriteria(it.property, condition.operator, it.append, condition.paramName, condition.parameter, it
@@ -236,7 +243,7 @@ data class Query(
           ))
           tmp = QueryCriteriaGroup()
         }
-        else          -> {
+        else                      -> {
           result.add(tmp)
           tmp = QueryCriteriaGroup(mutableListOf(condition))
         }

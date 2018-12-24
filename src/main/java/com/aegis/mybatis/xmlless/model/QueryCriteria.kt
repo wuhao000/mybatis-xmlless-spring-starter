@@ -39,6 +39,16 @@ data class QueryCriteria(val property: String,
     return wrapWithTests(sqlBuilder)
   }
 
+  fun hasExpression(): Boolean {
+    if (parameter != null) {
+      val criteria = parameter.findAnnotation<Criteria>()
+      if (criteria != null && criteria.expression.isNotBlank()) {
+        return criteria.expression.isNotBlank()
+      }
+    }
+    return false
+  }
+
   fun toSqlWithoutTest(mappings: FieldMappings): String {
     if (parameter != null) {
       val criteria = parameter.findAnnotation<Criteria>()
@@ -116,10 +126,10 @@ data class QueryCriteria(val property: String,
         it.expression
       } else {
         when {
-          Collection::class.java.isAssignableFrom(clazz) -> ".size() > 0"
+          Collection::class.java.isAssignableFrom(clazz) -> ".size > 0"
           clazz == String::class                         -> ".length() > 0"
           clazz.isArray                                  -> ".length > 0"
-          else                                           -> ".size() > 0"
+          else                                           -> ".size > 0"
         }
       }
     }
