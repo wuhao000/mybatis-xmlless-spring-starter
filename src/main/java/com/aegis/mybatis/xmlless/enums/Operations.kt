@@ -1,7 +1,7 @@
 package com.aegis.mybatis.xmlless.enums
 
 import com.aegis.mybatis.xmlless.constant.IN_TEMPLATE
-import com.aegis.mybatis.xmlless.constant.NOT_NULL_OR_IS_NULL
+import com.aegis.mybatis.xmlless.constant.NO_VALUE
 import com.aegis.mybatis.xmlless.kotlin.toWords
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods
 
@@ -14,6 +14,8 @@ enum class Operations(val operator: String) {
 
   Eq("="),
   EqDefault("="),
+  EqFalse(" = FALSE"),
+  EqTrue(" = TRUE"),
   Gt(">"),
   Gte(">="),
   In("IN"),
@@ -50,13 +52,13 @@ enum class Operations(val operator: String) {
       else  -> "${XmlLessMethods.PROPERTY_PREFIX}%s${XmlLessMethods.PROPERTY_SUFFIX}"
     }
     return when (this) {
-      Like                          -> "%s %s CONCAT('%%', $valueHolder,'%%')"
-      LikeLeft                      -> "%s %s CONCAT($valueHolder, '%%')"
-      LikeRight                     -> "%s %s CONCAT('%%', $valueHolder)"
-      In                            -> IN_TEMPLATE
-      in listOf(NotNull, IsNotNull) -> NOT_NULL_OR_IS_NULL
-      IsNull                        -> NOT_NULL_OR_IS_NULL
-      else                          -> "%s %s $valueHolder"
+      Like                         -> "%s %s CONCAT('%%', $valueHolder,'%%')"
+      LikeLeft                     -> "%s %s CONCAT($valueHolder, '%%')"
+      LikeRight                    -> "%s %s CONCAT('%%', $valueHolder)"
+      In                           -> IN_TEMPLATE
+      in listOf(NotNull, IsNotNull,
+          IsNull, EqTrue, EqFalse) -> NO_VALUE
+      else                         -> "%s %s $valueHolder"
     }
   }
 

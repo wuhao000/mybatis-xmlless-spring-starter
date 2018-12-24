@@ -24,10 +24,9 @@ object TypeResolver {
   }
 
   fun resolveRealType(type: KType): KClass<*> {
-    return if (type.arguments.isEmpty()) {
-      type.classifier as KClass<*>
-    } else {
-      type.arguments[0].type!!::classifier as KClass<*>
+    return when {
+      type.arguments.isEmpty() -> type.classifier as KClass<*>
+      else                     -> type.arguments[0].type!!.classifier as KClass<*>
     }
   }
 

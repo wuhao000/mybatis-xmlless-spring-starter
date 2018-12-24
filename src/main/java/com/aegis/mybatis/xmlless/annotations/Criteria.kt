@@ -8,6 +8,10 @@ import com.aegis.mybatis.xmlless.enums.Operations
  *
  * @author 吴昊
  * @since 1.4.3
+ * @param expression 条件表达式（不包含if）
+ * @param operator 条件操作符
+ * @param property 条件作用的持久化对象属性
+ * @param test 条件生效的判断
  */
 @Target(allowedTargets = [
   AnnotationTarget.VALUE_PARAMETER,
@@ -17,5 +21,6 @@ import com.aegis.mybatis.xmlless.enums.Operations
 annotation class Criteria(
     val expression: String = "",
     val operator: Operations = Operations.EqDefault,
-    val test: TestExpression = TestExpression()
+    val test: TestExpression = TestExpression(),
+    val property: String = ""
 )

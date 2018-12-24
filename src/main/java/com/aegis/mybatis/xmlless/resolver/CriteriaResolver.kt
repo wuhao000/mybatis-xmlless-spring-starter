@@ -49,7 +49,7 @@ object CriteriaResolver {
         parameterConditions.add(resolveCriteria(criteria, parameter, paramNames[index], function))
       } else if (ParameterResolver.isComplexParameter(parameter)) {
         TypeResolver.resolveRealType(parameter.type).declaredMemberProperties.forEach { property ->
-          val propertyCriteria = property.javaField!!.getDeclaredAnnotation(Criteria::class.java)
+          val propertyCriteria = property.javaField!!.getDeclaredAnnotation(Criteria::class.java)?:property.findAnnotation<Criteria>()
           if (propertyCriteria != null) {
             parameterConditions.add(
                 resolveCriteriaFromProperty(propertyCriteria, property, paramNames[index], function)
@@ -62,7 +62,11 @@ object CriteriaResolver {
   }
 
   private fun resolveCriteria(criteria: Criteria, parameter: KParameter, paramName: String, function: KFunction<*>): QueryCriteria {
-    return QueryCriteria(paramName, criteria.operator, "And",
+    val property = when {
+      criteria.property.isNotBlank() -> criteria.property
+      else                           -> paramName
+    }
+    return QueryCriteria(property, criteria.operator, "And",
         paramName, parameter,
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == paramName
@@ -129,7 +133,11 @@ object CriteriaResolver {
 
   private fun resolveCriteriaFromProperty(criteria: Criteria, property: KProperty1<out Any, Any?>,
                                           paramName: String, function: KFunction<*>): QueryCriteria {
-    return QueryCriteria(property.name, criteria.operator, "And",
+    val propertyName = when {
+      criteria.property.isNotBlank() -> criteria.property
+      else                           -> property.name
+    }
+    return QueryCriteria(propertyName, criteria.operator, "And",
         paramName + "." + property.name, property,
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == paramName

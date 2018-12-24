@@ -5,13 +5,14 @@ import com.aegis.mybatis.xmlless.annotations.TestExpression
 import com.aegis.mybatis.xmlless.annotations.ValueAssign
 import com.aegis.mybatis.xmlless.constant.Strings
 import com.aegis.mybatis.xmlless.enums.Operations
+import com.aegis.mybatis.xmlless.enums.TestType
+import com.aegis.mybatis.xmlless.resolver.AnnotationResolver
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
 import kotlin.reflect.KAnnotatedElement
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty
 import kotlin.reflect.KType
 import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.jvmErasure
 
 /**
@@ -33,26 +34,33 @@ data class QueryCriteria(val property: String,
 </foreach>"""
   }
 
-  fun toSql(mappings: FieldMappings, validate: Boolean = true): String {
-    val sqlBuilder = toSqlWithoutTest(mappings, validate)
+  fun toSql(mappings: FieldMappings): String {
+    val sqlBuilder = toSqlWithoutTest(mappings)
     return wrapWithTests(sqlBuilder)
   }
 
-  fun toSqlWithoutTest(mappings: FieldMappings, validate: Boolean = true): String {
+  fun toSqlWithoutTest(mappings: FieldMappings): String {
     if (parameter != null) {
       val criteria = parameter.findAnnotation<Criteria>()
       if (criteria != null && criteria.expression.isNotBlank()) {
         return criteria.expression
       }
     }
-    val columnResult = mappings.resolveColumnByPropertyName(property, validate).joinToString(",\n\t") { it.toSql() }
+    val columnResult = mappings.resolveColumnByPropertyName(property, false).joinToString(",\n\t") { it.toSql() }
     val value = resolveValue()
+    val mapping = mappings.mappings.firstOrNull { it.property == property }
     return when {
       value != null -> String.format(operator.getValueTemplate(),
           columnResult, operator.operator, value) + " " + (append?.toUpperCase() ?: "")
+      operator == Operations.In
+          && mapping?.joinInfo is PropertyJoinInfo
+                    -> String.format(operator.getTemplate(),
+          mappings.tableInfo.tableName + "." + mappings.tableInfo.keyColumn,
+          operator.operator, scriptParam(mapping)) + " " + (append?.toUpperCase() ?: "")
       else          -> {
         String.format(operator.getTemplate(),
-            columnResult, operator.operator, scriptParam()) + " " + (append?.toUpperCase() ?: "")
+            columnResult, operator.operator, scriptParam()) + " " + (append?.toUpperCase()
+            ?: "")
       }
     }
   }
@@ -74,11 +82,8 @@ data class QueryCriteria(val property: String,
 
   private fun getTests(): String {
     if (parameter != null) {
-      val parameterTest = when (parameter) {
-        is KProperty<*> -> parameter.javaField!!.getDeclaredAnnotation(TestExpression::class.java)
-            ?: parameter.javaField!!.getDeclaredAnnotation(Criteria::class.java)?.test
-        else            -> parameter.findAnnotation() ?: parameter.findAnnotation<Criteria>()?.test
-      }
+      val parameterTest = AnnotationResolver.resolve(parameter)
+          ?: AnnotationResolver.resolve<Criteria>(parameter)?.test
       if (parameterTest != null) {
         return resolveTests(parameterTest)
       }
@@ -88,8 +93,9 @@ data class QueryCriteria(val property: String,
         is KProperty<*> -> tests = resolveTestsFromType(parameter.returnType)
       }
       return tests.joinToString(Strings.TESTS_CONNECTOR)
+    } else {
+      return ""
     }
-    return ""
   }
 
   private fun realParam(): String {
@@ -98,9 +104,25 @@ data class QueryCriteria(val property: String,
 
   private fun resolveTests(parameterTest: TestExpression): String {
     val realParam = realParam()
-    val tests = parameterTest.tests.map {
-      realParam + it.expression
-    }.joinToString(Strings.TESTS_CONNECTOR)
+    val clazz = if (parameter is KParameter) {
+      parameter.type.jvmErasure
+    } else {
+      parameter as KProperty<*>
+      parameter.returnType.jvmErasure
+    }.java
+
+    val tests = parameterTest.value.joinToString(Strings.TESTS_CONNECTOR) {
+      realParam + if (it != TestType.NotEmpty) {
+        it.expression
+      } else {
+        when {
+          Collection::class.java.isAssignableFrom(clazz) -> ".size() > 0"
+          clazz == String::class                         -> ".length() > 0"
+          clazz.isArray                                  -> ".length > 0"
+          else                                           -> ".size() > 0"
+        }
+      }
+    }
     return when {
       tests.isNotEmpty() -> when {
         parameterTest.expression.isNotBlank() -> parameterTest.expression + Strings.TESTS_CONNECTOR + tests
@@ -140,10 +162,14 @@ data class QueryCriteria(val property: String,
     }
   }
 
-  private fun scriptParam(): String {
+  private fun scriptParam(propertyMapping: FieldMapping? = null): String {
     val realParam = realParam()
     // 如果存在realParam未 xxInXx的情况
     if (operator == Operations.In) {
+      if (propertyMapping != null && propertyMapping.joinInfo is PropertyJoinInfo) {
+        return "(SELECT ${propertyMapping.joinInfo.targetColumn} FROM ${propertyMapping.joinInfo.joinTable.name} WHERE " +
+            "${propertyMapping.joinInfo.propertyColumn.name} = #{$realParam})"
+      }
       return String.format(FOREACH, realParam, "item", "#{item}")
     }
     return realParam

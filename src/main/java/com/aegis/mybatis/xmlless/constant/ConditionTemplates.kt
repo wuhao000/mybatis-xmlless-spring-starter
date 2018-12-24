@@ -12,4 +12,4 @@ package com.aegis.mybatis.xmlless.constant
 internal const val IN_TEMPLATE = "%s\n\t%S\n%s"
 
 /**  not null或者is not null的条件表达式模板 */
-internal const val NOT_NULL_OR_IS_NULL = "%s %S"
+internal const val NO_VALUE = "%s %S"

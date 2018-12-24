@@ -45,7 +45,7 @@ fun TableInfo.fieldInfoMap(modelClass: Class<*>): MutableMap<String, TableFieldI
 private fun Field.annotationIncompatible(annotation1: Class<out Annotation>, annotation2: Class<out Annotation>) {
   if (AnnotationUtils.findAnnotation(this, annotation1) != null && AnnotationUtils.findAnnotation(this, annotation2) != null) {
     throw IllegalStateException(
-        "Annotation $annotation1 and $annotation2 cannot be both present on field $this"
+        "注解$annotation1 和 $annotation2 不能同时出现在 $this 上"
     )
   }
 }

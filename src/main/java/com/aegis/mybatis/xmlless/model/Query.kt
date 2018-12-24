@@ -92,8 +92,8 @@ data class Query(
       throw BuildSQLException("插入的字段\n$columns\n与插入的值\n$values\n数量不一致")
     }
     return String.format(template, mappings.tableInfo.tableName,
-        columns.joinToString(Strings.COLUMN_SEPERATOR),
-        values.joinToString(Strings.COLUMN_SEPERATOR))
+        columns.joinToString(Strings.COLUMN_SEPARATOR),
+        values.joinToString(Strings.COLUMN_SEPARATOR))
   }
 
   /**
