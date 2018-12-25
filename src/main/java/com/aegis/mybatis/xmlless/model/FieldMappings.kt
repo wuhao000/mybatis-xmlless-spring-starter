@@ -4,6 +4,7 @@ import com.aegis.mybatis.xmlless.constant.JOIN
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.toCamelCase
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
+import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 
 
@@ -41,11 +42,11 @@ data class FieldMappings(val mappings: List<FieldMapping>,
         !it.insertIgnore
             && it.property in selectedProperties
       }.map {
-        it.column
+        ColumnsResolver.wrapColumn(it.column)
       }
     } else {
       mappings.filter { !it.insertIgnore }.map {
-        it.column
+        ColumnsResolver.wrapColumn(it.column)
       }
     }
   }

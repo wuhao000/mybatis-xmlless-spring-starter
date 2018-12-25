@@ -1,5 +1,6 @@
 package com.aegis.mybatis.xmlless.resolver
 
+import com.aegis.mybatis.xmlless.constant.SQLKeywords
 import com.aegis.mybatis.xmlless.model.FieldMappings
 import com.aegis.mybatis.xmlless.model.SelectColumn
 import org.slf4j.LoggerFactory
@@ -21,6 +22,13 @@ object ColumnsResolver {
   fun resolveIncludedTables(mappings: FieldMappings, properties: List<String>): List<String> {
     return resolveColumns(mappings, properties).mapNotNull {
       it.table
+    }
+  }
+
+  fun wrapColumn(column: String): String {
+    return when {
+      column.toUpperCase() in SQLKeywords.values -> "`$column`"
+      else                                       -> column
     }
   }
 

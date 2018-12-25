@@ -1,6 +1,9 @@
 package com.aegis.mybatis.xmlless.model
 
+import com.aegis.mybatis.xmlless.constant.SQLKeywords
+import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import java.lang.reflect.Type
+import javax.persistence.ColumnResult
 
 
 /**
@@ -16,12 +19,12 @@ data class SelectColumn(val table: String?,
   fun toSql(): String {
     return when {
       table != null -> when {
-        alias != null -> String.format("%s.%s AS %s", table, column, alias)
-        else          -> String.format("%s.%s", table, column)
+        alias != null -> String.format("%s.%s AS %s", table, ColumnsResolver.wrapColumn(column), alias)
+        else          -> String.format("%s.%s", table, ColumnsResolver.wrapColumn(column))
       }
       else          -> when {
-        alias != null -> String.format("%s AS %s", column, alias)
-        else          -> column
+        alias != null -> String.format("%s AS %s", ColumnsResolver.wrapColumn(column), alias)
+        else          -> ColumnsResolver.wrapColumn(column)
       }
     }
   }
