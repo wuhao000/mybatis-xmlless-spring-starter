@@ -6,7 +6,7 @@
 
   <groupId>com.aegis</groupId>
   <artifactId>aegis-starter-mybatis</artifactId>
-  <version>0.1.5</version>
+  <version>0.1.6</version>
   <packaging>jar</packaging>
 
   <name>mybatis-xmlless</name>

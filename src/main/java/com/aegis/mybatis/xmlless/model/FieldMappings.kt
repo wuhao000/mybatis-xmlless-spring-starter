@@ -131,7 +131,8 @@ data class FieldMappings(val mappings: List<FieldMapping>,
    * select查询中的join语句
    */
   fun selectJoins(level: Int, selectedProperties: List<String>? = null,
-                  includedTableAlias: List<String> = listOf()): String {
+                  includedTableAlias: List<String> = listOf(),
+                  joinTableName: TableName? = null): String {
     return mappings.filter {
       !it.selectIgnore && it.joinInfo != null && (
           when {
@@ -145,24 +146,27 @@ data class FieldMappings(val mappings: List<FieldMapping>,
           val col = mappings.firstOrNull { it.property == joinProperty }?.column
               ?: throw BuildSQLException("无法解析join属性$joinProperty")
           val joinTable = joinInfo.joinTable
-          when (joinInfo) {
+          println(joinTableName)
+          val str = when (joinInfo) {
             is PropertyJoinInfo -> (String.format(
                 JOIN, joinInfo.type.name,
                 joinTable.toSql(),
                 joinInfo.joinTable.alias,
                 joinInfo.targetColumn,
-                tableInfo.tableName, col
+                joinTableName?.alias ?: tableInfo.tableName, col
             )).trim()
             is ObjectJoinInfo   -> (String.format(
                 JOIN, joinInfo.type.name,
                 joinTable.toSql(),
                 joinInfo.joinTable.alias,
                 joinInfo.targetColumn,
-                tableInfo.tableName, col
+                joinTableName?.alias ?: tableInfo.tableName, col
             ) + "\n" + joinInfo.selectJoins(level)).trim()
             else                -> ""
           }
-
+          println("======================")
+          println(str)
+          str
         }
   }
 

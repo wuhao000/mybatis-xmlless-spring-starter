@@ -43,9 +43,17 @@ class ObjectJoinInfo(
       val realType = this.realType()
       val mappings = MappingResolver.getMappingCache(realType)
       if (mappings != null) {
-        return mappings.mappings.filter {
-          it.joinInfo != null && it.joinInfo is ObjectJoinInfo
-        }.map { it.joinInfo!!.selectFields(level + 1, associationPrefix) }.flatten() + list
+        val mappingList = if (selectProperties.isNotEmpty()) {
+          mappings.mappings.filter {
+            it.joinInfo != null && it.joinInfo is ObjectJoinInfo
+                && it.property in selectProperties
+          }
+        } else {
+          mappings.mappings.filter {
+            it.joinInfo != null && it.joinInfo is ObjectJoinInfo
+          }
+        }
+        return mappingList.map { it.joinInfo!!.selectFields(level + 1, associationPrefix) }.flatten() + list
       }
     }
     return list
@@ -62,7 +70,9 @@ class ObjectJoinInfo(
     }
     val realType = this.realType()
     val mappings = MappingResolver.getMappingCache(realType)
-    return mappings?.selectJoins(level + 1, selectProperties.toList()) ?: ""
+    return mappings?.selectJoins(level + 1,
+        selectProperties.toList(),
+        listOf(), this.joinTable) ?: ""
   }
 
   private fun hasJoinedProperty(): Boolean {

@@ -29,6 +29,13 @@ fun String.trim(end: String): String {
   }
 }
 
+private fun <E> Set<E>.onlyOrNull(): E? {
+  if (this.size == 1) {
+    return this.first()
+  }
+  return null
+}
+
 /**
  *
  * @author 吴昊
@@ -220,6 +227,8 @@ data class Query(
     val result = arrayListOf<QueryCriteriaGroup>()
     var tmp = QueryCriteriaGroup()
     conditions.forEachIndexed { _, condition ->
+
+
       when {
         condition.hasExpression() -> {
           if (!tmp.isEmpty()) {
@@ -237,12 +246,17 @@ data class Query(
         tmp.conditions.map { it.operator }.toSet().let {
           it.size == 1 && it.first() == Operations.EqDefault
         }                         -> {
-          result.add(QueryCriteriaGroup(
-              (tmp.conditions.map {
-                QueryCriteria(it.property, condition.operator, it.append, condition.paramName, condition.parameter, it
-                    .specificValue)
-              }.toMutableList() + condition).toMutableList()
-          ))
+          if (condition.operator == Operations.EqDefault) {
+            result.addAll(tmp.conditions.map { QueryCriteriaGroup(mutableListOf(it)) })
+            result.add(QueryCriteriaGroup(mutableListOf(condition)))
+          } else {
+            result.add(QueryCriteriaGroup(
+                (tmp.conditions.map {
+                  QueryCriteria(it.property, condition.operator, it.append, condition.paramName, condition.parameter, it
+                      .specificValue)
+                }.toMutableList() + condition).toMutableList()
+            ))
+          }
           tmp = QueryCriteriaGroup()
         }
         else                      -> {
