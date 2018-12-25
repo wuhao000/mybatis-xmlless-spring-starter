@@ -146,8 +146,7 @@ data class FieldMappings(val mappings: List<FieldMapping>,
           val col = mappings.firstOrNull { it.property == joinProperty }?.column
               ?: throw BuildSQLException("无法解析join属性$joinProperty")
           val joinTable = joinInfo.joinTable
-          println(joinTableName)
-          val str = when (joinInfo) {
+          when (joinInfo) {
             is PropertyJoinInfo -> (String.format(
                 JOIN, joinInfo.type.name,
                 joinTable.toSql(),
@@ -164,9 +163,6 @@ data class FieldMappings(val mappings: List<FieldMapping>,
             ) + "\n" + joinInfo.selectJoins(level)).trim()
             else                -> ""
           }
-          println("======================")
-          println(str)
-          str
         }
   }
 

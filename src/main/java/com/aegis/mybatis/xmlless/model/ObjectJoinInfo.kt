@@ -110,7 +110,13 @@ class ObjectJoinInfo(
         .joinToString("")
     return resolveJoinColumns().map {
       when {
-        it.alias != null -> it
+        it.alias != null -> if (prefix != null) {
+          SelectColumn(
+              it.table, it.column, prefix + it.alias, javaType
+          )
+        } else {
+          it
+        }
         else             -> SelectColumn(
             it.table, it.column, fullPrefix + it.column, javaType
         )
