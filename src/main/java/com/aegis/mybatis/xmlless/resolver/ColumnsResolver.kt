@@ -27,8 +27,8 @@ object ColumnsResolver {
 
   fun wrapColumn(column: String): String {
     return when {
-      column.toUpperCase() in SQLKeywords.values -> "`$column`"
-      else                                       -> column
+      column.toUpperCase() in SQLKeywords.getValues() -> "`$column`"
+      else                                            -> column
     }
   }
 

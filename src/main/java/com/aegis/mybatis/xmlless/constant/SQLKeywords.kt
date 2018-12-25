@@ -1,7 +1,7 @@
 package com.aegis.mybatis.xmlless.constant
 
 import kotlin.reflect.full.memberProperties
-
+import kotlin.reflect.jvm.javaField
 
 /**
  *
@@ -47,11 +47,10 @@ object SQLKeywords {
   const val VIEW = "VIEW"
   const val WHEN = "WHEN"
   const val WHERE = "WHERE"
-  val values: List<String>
-    get() {
-      return SQLKeywords::class.memberProperties.map {
-        it.call().toString()
-      }
+  fun getValues(): List<String> {
+    return SQLKeywords::class.memberProperties.map {
+      it.call().toString()
     }
+  }
 
 }
