@@ -25,7 +25,7 @@ class QueryCriteriaGroup(val conditions: MutableList<QueryCriteria> = mutableLis
     return when {
       conditions.size > 1 -> conditions.first().wrapWithTests(
           "(\n\t" + trimCondition(conditions.joinToString(LINE_BREAK_INDENT) { it.toSqlWithoutTest(mappings) }) + "\n)"
-      )
+      ) + " AND"
       else                -> list.first()
     }
   }
