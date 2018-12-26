@@ -17,6 +17,13 @@ import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils.convertTrim
 import org.springframework.data.domain.Sort
 import kotlin.reflect.KFunction
 
+fun <E> Set<E>.onlyOrNull(): E? {
+  if (this.size == 1) {
+    return this.first()
+  }
+  return null
+}
+
 /**
  * 当结尾以指定字符串结束时，返回去掉结尾指定字符串的新字符串，否则返回当前字符串
  * @param end 指定结尾的字符串
@@ -27,13 +34,6 @@ fun String.trim(end: String): String {
     this.endsWith(end) -> this.substring(0, this.length - end.length)
     else               -> this
   }
-}
-
-private fun <E> Set<E>.onlyOrNull(): E? {
-  if (this.size == 1) {
-    return this.first()
-  }
-  return null
 }
 
 /**
@@ -47,7 +47,7 @@ data class Query(
     /**  更细或者查询的属性列表 */
     val properties: List<String> = listOf(),
     /**  查询条件信息 */
-    val conditions: List<QueryCriteria> = listOf(),
+    val criterion: List<QueryCriteria> = listOf(),
     /**  排序信息 */
     val sorts: List<Sort.Order> = listOf(),
     /** 待解析的方法 */
@@ -80,20 +80,20 @@ data class Query(
     val columns = mappings.insertFields(this.properties)
     val template: String
     val values = when {
-      function.name.endsWith("All")    -> {
+      function.name.endsWith("All")   -> {
         template = BATCH_INSERT
         mappings.insertProperties("item.")
       }
-      this.properties.isNotEmpty()     -> {
+      this.properties.isNotEmpty()    -> {
         template = INSERT
         mappings.insertProperties(insertProperties = this.properties)
       }
       this.properties.isEmpty()
-          && this.conditions.isEmpty() -> {
+          && this.criterion.isEmpty() -> {
         template = INSERT
         mappings.insertProperties()
       }
-      else                             -> throw BuildSQLException("无法解析${this.function}")
+      else                            -> throw BuildSQLException("无法解析${this.function}")
     }
     if (columns.size != values.size) {
       throw BuildSQLException("插入的字段\n$columns\n与插入的值\n$values\n数量不一致")
@@ -132,7 +132,7 @@ data class Query(
   }
 
   fun containedTables(): List<String> {
-    return (this.conditions.map {
+    return (this.criterion.map {
       it.toSqlWithoutTest(mappings).split(".")[0]
     } + ColumnsResolver.resolveIncludedTables(mappings, properties)).distinct()
   }
@@ -226,42 +226,40 @@ data class Query(
   fun resolveGroups(): List<QueryCriteriaGroup> {
     val result = arrayListOf<QueryCriteriaGroup>()
     var tmp = QueryCriteriaGroup()
-    conditions.forEachIndexed { _, condition ->
-
-
+    criterion.forEachIndexed { _, criteria ->
       when {
-        condition.hasExpression() -> {
+        criteria.hasExpression()                       -> {
           if (!tmp.isEmpty()) {
             result.add(tmp)
             tmp = QueryCriteriaGroup()
           }
-          result.add(QueryCriteriaGroup(mutableListOf(condition)))
+          result.add(QueryCriteriaGroup(mutableListOf(criteria)))
         }
-        tmp.isEmpty()             -> tmp.add(condition)
-        tmp.conditions.map { it.operator }.toSet().let {
-          it.size == 1 && it.first() == Operations.EqDefault
-              && condition.operator == Operations.EqDefault
-              && condition.append == Append.OR
-        }                         -> tmp.add(condition)
-        tmp.conditions.map { it.operator }.toSet().let {
-          it.size == 1 && it.first() == Operations.EqDefault
-        }                         -> {
-          if (condition.operator == Operations.EqDefault) {
-            result.addAll(tmp.conditions.map { QueryCriteriaGroup(mutableListOf(it)) })
-            result.add(QueryCriteriaGroup(mutableListOf(condition)))
+        tmp.isEmpty() && criteria.append == Append.AND -> result.add(QueryCriteriaGroup(mutableListOf(
+            criteria
+        )))
+        tmp.isEmpty()                                  -> tmp.add(criteria)
+        tmp.onlyDefaultEq()
+            && criteria.operator == Operations.EqDefault
+            && criteria.append == Append.OR
+                                                       -> tmp.add(criteria)
+        tmp.onlyDefaultEq()                            -> {
+          if (criteria.operator == Operations.EqDefault) {
+            result.addAll(tmp.criterion.map { QueryCriteriaGroup(mutableListOf(it)) })
+            result.add(QueryCriteriaGroup(mutableListOf(criteria)))
           } else {
             result.add(QueryCriteriaGroup(
-                (tmp.conditions.map {
-                  QueryCriteria(it.property, condition.operator, it.append, condition.paramName, condition.parameter, it
+                (tmp.criterion.map {
+                  QueryCriteria(it.property, criteria.operator, it.append, criteria.paramName, criteria.parameter, it
                       .specificValue)
-                }.toMutableList() + condition).toMutableList()
+                }.toMutableList() + criteria).toMutableList()
             ))
           }
           tmp = QueryCriteriaGroup()
         }
-        else                      -> {
+        else                                           -> {
           result.add(tmp)
-          tmp = QueryCriteriaGroup(mutableListOf(condition))
+          tmp = QueryCriteriaGroup(mutableListOf(criteria))
         }
       }
     }
@@ -315,9 +313,12 @@ data class Query(
   }
 
   fun resolveUpdateWhere(): String {
-    return String.format("""
+    return when {
+      criterion.isEmpty() -> String.format("""
         WHERE %s = #{%s}
       """, mappings.tableInfo.keyColumn, mappings.tableInfo.keyProperty)
+      else                -> resolveWhere()
+    }
   }
 
   fun resolveWhere(): String {
@@ -327,10 +328,12 @@ data class Query(
     }
     val whereAppend = resolvedNameAnnotation?.whereAppend
     return when {
-      conditions.isNotEmpty() || (whereAppend != null && whereAppend.isNotBlank()) ->
+      criterion.isNotEmpty() || (whereAppend != null && whereAppend.isNotBlank()) ->
         String.format(WHERE, trimCondition(groupBuilders.joinToString(LINE_BREAK) +
-            LINE_BREAK + (whereAppend ?: EMPTY)))
-      else                                                                         -> ""
+            LINE_BREAK + (whereAppend ?: EMPTY)).lines().map {
+          "\t".repeat(3) + it
+        }.joinToString(LINE_BREAK))
+      else                                                                        -> ""
     }
   }
 

@@ -1,32 +1,37 @@
 package com.aegis.mybatis.xmlless.model
 
 import com.aegis.mybatis.xmlless.constant.Strings.LINE_BREAK_INDENT
+import com.aegis.mybatis.xmlless.enums.Operations
 
 
 /**
  * Created by 吴昊 on 2018/12/20.
  */
-class QueryCriteriaGroup(val conditions: MutableList<QueryCriteria> = mutableListOf()) {
+data class QueryCriteriaGroup(val criterion: MutableList<QueryCriteria> = mutableListOf()) {
 
   fun add(condition: QueryCriteria) {
-    this.conditions.add(condition)
+    this.criterion.add(condition)
   }
 
   fun isEmpty(): Boolean {
-    return conditions.isEmpty()
+    return criterion.isEmpty()
   }
 
   fun isNotEmpty(): Boolean {
-    return conditions.isNotEmpty()
+    return criterion.isNotEmpty()
+  }
+
+  fun onlyDefaultEq(): Boolean {
+    return criterion.map { it.operator }.toSet().onlyOrNull() == Operations.EqDefault
   }
 
   fun toSql(mappings: FieldMappings): String {
-    val list = conditions.map { it.toSql(mappings) }
+    val list = criterion.map { it.toSql(mappings) }
     return when {
-      conditions.size > 1 -> conditions.first().wrapWithTests(
-          "(\n\t" + trimCondition(conditions.joinToString(LINE_BREAK_INDENT) { it.toSqlWithoutTest(mappings) }) + "\n)"
+      criterion.size > 1 -> criterion.first().wrapWithTests(
+          "(\n\t" + trimCondition(criterion.joinToString(LINE_BREAK_INDENT) { it.toSqlWithoutTest(mappings) }) + "\n)"
       ) + " AND"
-      else                -> list.first()
+      else               -> list.first()
     }
   }
 

@@ -87,7 +87,7 @@ UPDATE
 internal const val WHERE = """<where>
   <trim suffixOverrides=" AND">
     <trim suffixOverrides=" OR">
-      %s
+%s
     </trim>
   </trim>
 </where>"""

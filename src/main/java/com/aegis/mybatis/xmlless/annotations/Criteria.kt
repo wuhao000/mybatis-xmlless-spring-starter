@@ -1,6 +1,7 @@
 package com.aegis.mybatis.xmlless.annotations
 
 import com.aegis.mybatis.xmlless.enums.Operations
+import org.intellij.lang.annotations.Language
 
 /**
  *
@@ -19,6 +20,7 @@ import com.aegis.mybatis.xmlless.enums.Operations
   AnnotationTarget.FIELD
 ])
 annotation class Criteria(
+    @Language("GenericSQL")
     val expression: String = "",
     val operator: Operations = Operations.EqDefault,
     val test: TestExpression = TestExpression(),
