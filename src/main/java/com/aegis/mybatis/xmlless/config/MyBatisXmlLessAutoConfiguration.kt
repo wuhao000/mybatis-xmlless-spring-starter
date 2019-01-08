@@ -14,6 +14,7 @@ import org.apache.ibatis.plugin.Interceptor
 import org.apache.ibatis.session.SqlSessionFactory
 import org.mybatis.spring.SqlSessionFactoryBean
 import org.mybatis.spring.SqlSessionTemplate
+import org.mybatis.spring.boot.autoconfigure.MybatisProperties
 import org.springframework.beans.BeanUtils
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.boot.autoconfigure.AutoConfigureAfter
@@ -27,9 +28,8 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.io.ResourceLoader
-import org.springframework.util.CollectionUtils
-import org.springframework.util.ObjectUtils
 import org.springframework.util.StringUtils
+import java.util.*
 import javax.sql.DataSource
 
 /**
@@ -46,6 +46,7 @@ import javax.sql.DataSource
 @AutoConfigureAfter(DataSourceAutoConfiguration::class)
 @AutoConfigureBefore(MybatisPlusAutoConfiguration::class)
 class MyBatisXmlLessAutoConfiguration(private var properties: MybatisPlusProperties,
+                                      mybatisProperties: MybatisProperties,
                                       interceptorsProvider: ObjectProvider<Array<Interceptor>>,
                                       private var resourceLoader: ResourceLoader,
                                       databaseIdProvider: ObjectProvider<DatabaseIdProvider>,
@@ -56,6 +57,10 @@ class MyBatisXmlLessAutoConfiguration(private var properties: MybatisPlusPropert
   private var databaseIdProvider: DatabaseIdProvider? = databaseIdProvider.ifAvailable
   private var interceptors: Array<Interceptor>? = interceptorsProvider.ifAvailable
 //  private val logger = LoggerFactory.getLogger(MybatisPlusAutoConfiguration::class.java)
+
+  init {
+    copyProperties(properties, mybatisProperties)
+  }
 
   @Bean
   @Throws(Exception::class)
@@ -71,7 +76,7 @@ class MyBatisXmlLessAutoConfiguration(private var properties: MybatisPlusPropert
     if (this.properties.configurationProperties != null) {
       factory.setConfigurationProperties(this.properties.configurationProperties)
     }
-    if (!ObjectUtils.isEmpty(this.interceptors)) {
+    if (!this.interceptors.isNullOrEmpty()) {
       factory.setPlugins(this.interceptors)
     }
     if (this.databaseIdProvider != null) {
@@ -90,7 +95,7 @@ class MyBatisXmlLessAutoConfiguration(private var properties: MybatisPlusPropert
     if (StringUtils.hasLength(this.properties.typeHandlersPackage)) {
       factory.setTypeHandlersPackage(this.properties.typeHandlersPackage)
     }
-    if (!ObjectUtils.isEmpty(this.properties.resolveMapperLocations())) {
+    if (!this.properties.resolveMapperLocations().isNullOrEmpty()) {
       factory.setMapperLocations(this.properties.resolveMapperLocations())
     }
     // TODO 此处必为非 NULL
@@ -135,7 +140,7 @@ class MyBatisXmlLessAutoConfiguration(private var properties: MybatisPlusPropert
     }
     val xmlLessConfiguration = MybatisXmlLessConfiguration()
     if (configuration != null) {
-      if (!CollectionUtils.isEmpty(this.configurationCustomizers)) {
+      if (!this.configurationCustomizers.isNullOrEmpty()) {
         for (customizer in this.configurationCustomizers!!) {
           customizer.customize(configuration)
         }
@@ -143,6 +148,37 @@ class MyBatisXmlLessAutoConfiguration(private var properties: MybatisPlusPropert
       BeanUtils.copyProperties(configuration, xmlLessConfiguration)
     }
     factory.setConfiguration(xmlLessConfiguration)
+  }
+
+  private fun copyProperties(properties: MybatisPlusProperties, mybatisProperties: MybatisProperties) {
+    if (properties.configLocation.isNullOrBlank()) {
+      properties.configLocation = mybatisProperties.configLocation
+    }
+    if (properties.mapperLocations.isNullOrEmpty()) {
+      properties.mapperLocations = mybatisProperties.mapperLocations
+    }
+    if (properties.typeAliasesPackage.isNullOrBlank()) {
+      properties.typeAliasesPackage = mybatisProperties.typeAliasesPackage
+    }
+    if (properties.typeHandlersPackage.isNullOrBlank()) {
+      properties.typeHandlersPackage = mybatisProperties.typeHandlersPackage
+    }
+    if (properties.isCheckConfigLocation) {
+      properties.isCheckConfigLocation = mybatisProperties.isCheckConfigLocation
+    }
+    if (properties.executorType == null) {
+      properties.executorType = mybatisProperties.executorType
+    }
+    if (properties.configurationProperties == null) {
+      properties.configurationProperties = mybatisProperties.configurationProperties
+    } else {
+      properties.configurationProperties = Properties().apply {
+        putAll(properties.configurationProperties + mybatisProperties.configurationProperties)
+      }
+    }
+    if (properties.configuration != null && mybatisProperties.configuration != null) {
+      BeanUtils.copyProperties(mybatisProperties.configuration, properties.configuration)
+    }
   }
 
 }

@@ -61,15 +61,15 @@ data class QueryCriteria(val property: String,
     val mapping = mappings.mappings.firstOrNull { it.property == property }
     return when {
       value != null -> String.format(operator.getValueTemplate(),
-          columnResult, operator.operator, value) + " " + (append ?: "")
+          columnResult, operator.operator, value) + " " + append
       operator == Operations.In
           && mapping?.joinInfo is PropertyJoinInfo
                     -> String.format(operator.getTemplate(),
           mappings.tableInfo.tableName + "." + mappings.tableInfo.keyColumn,
-          operator.operator, scriptParam(mapping)) + " " + (append ?: "")
+          operator.operator, scriptParam(mapping)) + " " + append
       else          -> {
         String.format(operator.getTemplate(),
-            columnResult, operator.operator, scriptParam()) + " " + (append ?: "")
+            columnResult, operator.operator, scriptParam()) + " " + append
       }
     }
   }
