@@ -20,6 +20,16 @@ class ServerMappingsTest : BaseResolverTest(
     "findById"
 ) {
 
+
+  @Test
+  fun resolve() {
+    queries.forEach {
+      println(it)
+      println(it.query?.includeJoins())
+      println(it.query?.containedTables())
+    }
+  }
+
   @Test
   fun resolveColumns() {
     val mappings = MappingResolver.getMappingCache(modelClass)

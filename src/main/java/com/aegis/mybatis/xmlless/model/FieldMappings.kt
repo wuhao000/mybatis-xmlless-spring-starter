@@ -86,7 +86,11 @@ data class FieldMappings(val mappings: List<FieldMapping>,
           }?.let {
             return listOf(SelectColumn(it.joinInfo!!.joinTable.alias,
                 joinProperty.toUnderlineCase().toLowerCase(),
-                null,
+                if (it.joinInfo is ObjectJoinInfo && !it.joinInfo.associationPrefix.isNullOrBlank()) {
+                  it.joinInfo.associationPrefix + joinProperty.toUnderlineCase().toLowerCase()
+                } else {
+                  null
+                },
                 it.joinInfo.javaType))
           }
         }
