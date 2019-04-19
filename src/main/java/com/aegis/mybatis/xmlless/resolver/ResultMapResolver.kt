@@ -34,9 +34,11 @@ object ResultMapResolver {
         modelClass, null, null,
         mappings?.mappings?.mapNotNull { mapping ->
           when {
-            query != null && query.properties.isNotEmpty() && mapping.property !in query.properties -> null
-            optionalProperties.isNotEmpty() && mapping.property !in optionalProperties              -> null
-            else                                                                                    -> buildByMapping(copyId, builderAssistant, mapping, mappings.tableInfo, modelClass)
+            query != null && query.properties.isNotEmpty()
+                && !isMappingPropertyInQuery(mapping, query) -> null
+            optionalProperties.isNotEmpty()
+                && mapping.property !in optionalProperties   -> null
+            else                                             -> buildByMapping(copyId, builderAssistant, mapping, mappings.tableInfo, modelClass)
           }
         } ?: listOf(), true).resolve()
     if (!builderAssistant.configuration.hasResultMap(resultMap.id)) {
@@ -118,6 +120,17 @@ object ResultMapResolver {
       builderAssistant.configuration.addResultMap(resultMap)
     }
     return copyId
+  }
+
+  private fun isMappingPropertyInQuery(mapping: FieldMapping, query: Query): Boolean {
+    if (mapping.property in query.properties) {
+      return true
+    }
+    if (mapping.joinInfo != null && mapping.joinInfo is ObjectJoinInfo) {
+      return query.properties.filter { it.contains('.') }
+          .map { it.split('.')[0] }.contains(mapping.property)
+    }
+    return false
   }
 
 }

@@ -53,7 +53,7 @@ data class QueryCriteria(val property: String,
     if (parameter != null) {
       val criteria = parameter.findAnnotation<Criteria>()
       if (criteria != null && criteria.expression.isNotBlank()) {
-        return criteria.expression
+        return criteria.expression + " " + append
       }
     }
     val columnResult = mappings.resolveColumnByPropertyName(property, false).joinToString(",\n\t") { it.toSql() }
@@ -125,11 +125,11 @@ data class QueryCriteria(val property: String,
         it.expression
       } else {
         when {
-          Collection::class.java.isAssignableFrom(clazz)           -> ".size > 0"
+          Collection::class.java.isAssignableFrom(clazz) -> ".size > 0"
           clazz == String::class
-              || clazz == java.lang.String::class.java             -> ".length() > 0"
-          clazz.isArray                                            -> ".length > 0"
-          else                                                     -> ".size > 0"
+              || clazz == java.lang.String::class.java   -> ".length() > 0"
+          clazz.isArray                                  -> ".length > 0"
+          else                                           -> ".size > 0"
         }
       }
     }

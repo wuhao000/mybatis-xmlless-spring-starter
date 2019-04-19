@@ -69,4 +69,7 @@ class ServerDAOTest : BaseTest() {
     }
   }
 
+  @Test
+  fun findAllSimple() {
+  }
 }

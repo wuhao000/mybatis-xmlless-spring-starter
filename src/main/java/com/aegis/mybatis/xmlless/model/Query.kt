@@ -65,7 +65,8 @@ data class Query(
   var extraSortScript: String? = null
 
   fun buildCountSql(): String {
-    return String.format(SELECT_COUNT, tableName(), resolveWhere())
+    val from = resolveFrom(false, resolveWhere(), "")
+    return String.format(SELECT_COUNT, from, resolveWhere())
   }
 
   fun buildDeleteSql(): String {
@@ -73,7 +74,8 @@ data class Query(
   }
 
   fun buildExistsSql(): String {
-    return String.format(SELECT_COUNT, tableName(), resolveWhere())
+    val from = resolveFrom(false, resolveWhere(), "")
+    return String.format(SELECT_COUNT, from, resolveWhere())
   }
 
   fun buildInsertSql(): String {
@@ -330,9 +332,9 @@ data class Query(
     return when {
       criterion.isNotEmpty() || (whereAppend != null && whereAppend.isNotBlank()) ->
         String.format(WHERE, trimCondition(groupBuilders.joinToString(LINE_BREAK) +
-            LINE_BREAK + (whereAppend ?: EMPTY)).lines().map {
+            LINE_BREAK + (whereAppend ?: EMPTY)).lines().joinToString(LINE_BREAK) {
           "\t".repeat(3) + it
-        }.joinToString(LINE_BREAK))
+        })
       else                                                                        -> ""
     }
   }
