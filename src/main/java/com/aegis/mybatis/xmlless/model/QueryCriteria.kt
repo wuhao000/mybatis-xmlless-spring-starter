@@ -125,11 +125,11 @@ data class QueryCriteria(val property: String,
         it.expression
       } else {
         when {
-          Collection::class.java.isAssignableFrom(clazz) -> ".size > 0"
+          Collection::class.java.isAssignableFrom(clazz) -> ".size " + TestType.GtZero.expression
           clazz == String::class
-              || clazz == java.lang.String::class.java   -> ".length() > 0"
-          clazz.isArray                                  -> ".length > 0"
-          else                                           -> ".size > 0"
+              || clazz == java.lang.String::class.java   -> ".length() " + TestType.GtZero.expression
+          clazz.isArray                                  -> ".length " + TestType.GtZero.expression
+          else                                           -> ".size " + TestType.GtZero.expression
         }
       }
     }
@@ -149,10 +149,10 @@ data class QueryCriteria(val property: String,
       tests.add("$realParam != null")
     }
     if (type.jvmErasure == String::class) {
-      tests.add("$realParam.length() > 0")
+      tests.add("$realParam.length() " + TestType.GtZero.expression)
     }
     if (Collection::class.java.isAssignableFrom(type.jvmErasure.java)) {
-      tests.add("$realParam.size() > 0")
+      tests.add("$realParam.size() " + TestType.GtZero.expression)
     }
     return tests
   }
