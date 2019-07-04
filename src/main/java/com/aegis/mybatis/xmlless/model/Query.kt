@@ -9,6 +9,7 @@ import com.aegis.mybatis.xmlless.constant.Strings.SCRIPT_START
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
+import com.baomidou.mybatisplus.annotation.DbType
 import com.baomidou.mybatisplus.annotation.FieldFill
 import com.baomidou.mybatisplus.annotation.FieldStrategy
 import com.baomidou.mybatisplus.core.toolkit.StringPool
@@ -16,13 +17,6 @@ import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils.convertTrim
 import org.springframework.data.domain.Sort
 import kotlin.reflect.KFunction
-
-fun <E> Set<E>.onlyOrNull(): E? {
-  if (this.size == 1) {
-    return this.first()
-  }
-  return null
-}
 
 /**
  * 当结尾以指定字符串结束时，返回去掉结尾指定字符串的新字符串，否则返回当前字符串
@@ -56,12 +50,11 @@ data class Query(
     val mappings: FieldMappings,
     /**  limit信息 */
     var limitation: Limitation? = null,
-    val resolvedNameAnnotation: ResolvedName?
+    val resolvedNameAnnotation: ResolvedName?,
+    val dbType: DbType
 ) {
 
-  /**  方法指定忽略的字段 */
-//  val ignoredProperties: List<String>? = function.findAnnotation<IgnoredProperties>()?.properties?.toList()
-
+  /**  来自Page参数的排序条件 */
   var extraSortScript: String? = null
 
   fun buildCountSql(): String {
@@ -74,8 +67,7 @@ data class Query(
   }
 
   fun buildExistsSql(): String {
-    val from = resolveFrom(false, resolveWhere(), "")
-    return String.format(SELECT_COUNT, from, resolveWhere())
+    return buildCountSql()
   }
 
   fun buildInsertSql(): String {
@@ -140,11 +132,11 @@ data class Query(
   }
 
   fun convertIf(sqlScript: String, property: String, mapping: FieldMapping): String {
-    if (mapping.tableFieldInfo.fieldStrategy == FieldStrategy.IGNORED) {
+    if (mapping.tableFieldInfo.whereStrategy == FieldStrategy.IGNORED) {
       return sqlScript
     }
     return when {
-      mapping.tableFieldInfo.fieldStrategy == FieldStrategy.NOT_EMPTY
+      mapping.tableFieldInfo.whereStrategy == FieldStrategy.NOT_EMPTY
           && mapping.tableFieldInfo.isCharSequence ->
         SqlScriptUtils.convertIf(sqlScript,
             String.format("%s != null and %s != ''", property, property), false)
@@ -273,7 +265,10 @@ data class Query(
 
   fun resolveLimit(): String {
     if (limitation != null) {
-      return String.format(LIMIT, limitation?.offsetParam, limitation?.sizeParam)
+      return when (dbType) {
+        DbType.H2 -> String.format(LIMIT_H2, limitation?.offsetParam, limitation?.offsetParam + limitation?.sizeParam)
+        else      -> String.format(LIMIT, limitation?.offsetParam, limitation?.sizeParam)
+      }
     }
     return ""
   }

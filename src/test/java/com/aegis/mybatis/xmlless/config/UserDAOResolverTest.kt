@@ -20,9 +20,12 @@ import kotlin.reflect.full.declaredFunctions
  * @since 0.0.1
  */
 class UserDAOResolverTest : BaseResolverTest(
-    User::class.java, UserDAO::class.java, "findSimpleUserById"
+    User::class.java, UserDAO::class.java, method
 ) {
 
+  companion object {
+    val method = "findById"
+  }
   @Test
   fun mappingResolve() {
     val allMappings = MappingResolver.getAllMappings()
@@ -54,7 +57,7 @@ class UserDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolvePartlyUpdate() {
-    val query = createQueryForMethod("updatePartly")
+    val query = createQueryForMethod("update")
     println(query)
   }
 
@@ -62,7 +65,9 @@ class UserDAOResolverTest : BaseResolverTest(
   fun resolveResultMap() {
     val resultMaps = builderAssistant.configuration.resultMaps
     val ids = resultMaps.map { it.id }
-    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_UserDAO_findById"))
+    println(builderAssistant.hashCode())
+    println(ids)
+    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_UserDAO_$method"))
     val scoreMap = resultMaps.first { it.id == "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById_scores" }
     assert(scoreMap.autoMapping == true)
     assert(scoreMap.hasNestedResultMaps())
@@ -73,16 +78,6 @@ class UserDAOResolverTest : BaseResolverTest(
       println(it.id)
     }
     println(resultMaps)
-  }
-
-  @Test
-  fun resolveSpecValue() {
-    mapperClass.kotlin.declaredFunctions
-        .first { it.name == "findByGraduatedEqTrue" }.also {
-          val query = QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
-          println(query.toString())
-          assert(query.toString().contains("graduated = TRUE"))
-        }
   }
 
   @Test

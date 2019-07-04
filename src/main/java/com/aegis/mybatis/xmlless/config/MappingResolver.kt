@@ -8,8 +8,8 @@ import com.baomidou.mybatisplus.annotation.IdType
 import com.baomidou.mybatisplus.annotation.TableId
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
-import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.springframework.core.annotation.AnnotationUtils
 import java.lang.reflect.Field
@@ -70,10 +70,12 @@ object MappingResolver {
     if (modelClass.isAnnotationPresent(Table::class.java)) {
       val table = modelClass.getDeclaredAnnotation(Table::class.java)
       if (table.name.isNotBlank()) {
+        val field = TableInfo::class.java.getDeclaredField("tableName")
+        field.isAccessible = true
         if (table.schema.isNotBlank()) {
-          tableInfo.tableName = table.schema + "." + table.name
+          field.set(tableInfo, table.schema + "." + table.name)
         } else {
-          tableInfo.tableName = table.name
+          field.set(tableInfo, table.name)
         }
       }
     }
@@ -94,12 +96,18 @@ object MappingResolver {
     }
     if (keyField != null) {
       if (keyField.isAnnotationPresent(GeneratedValue::class.java)) {
-        tableInfo.idType = IdType.AUTO
+        val field = TableInfo::class.java.getDeclaredField("idType")
+        field.isAccessible = true
+        field.set(tableInfo,IdType.AUTO)
       }
       if (tableInfo.keyColumn == null || tableInfo.keyProperty == null) {
         val keyColumn = keyField.name?.toUnderlineCase()?.toLowerCase()
-        tableInfo.keyProperty = keyField.name
-        tableInfo.keyColumn = keyColumn
+        val field = TableInfo::class.java.getDeclaredField("keyProperty")
+        field.isAccessible = true
+        field.set(tableInfo, keyField.name)
+        val keyColumnField = TableInfo::class.java.getDeclaredField("keyColumn")
+        keyColumnField.isAccessible = true
+        keyColumnField.set(tableInfo, keyColumn)
       }
     }
     FIXED_CLASSES.add(modelClass)

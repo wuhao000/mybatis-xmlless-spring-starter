@@ -30,11 +30,6 @@ class ConditionResolverTest {
   }
 
   private fun resolveConditions(conditionExpression: String, function: KFunction<*>): List<QueryCriteria> {
-    val paramNames = ParamNameResolver(
-        Configuration().apply {
-          this.isUseActualParamName = true
-        }, function.javaMethod
-    ).names
     return CriteriaResolver.resolveConditions(
         conditionExpression.toWords(), function
     )

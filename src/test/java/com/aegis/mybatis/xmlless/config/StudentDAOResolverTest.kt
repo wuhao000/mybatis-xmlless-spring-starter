@@ -6,7 +6,6 @@ import com.aegis.mybatis.dao.StudentDAO
 import com.aegis.mybatis.xmlless.annotations.UpdateIgnore
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
-import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
 import org.junit.Test
 import org.springframework.core.annotation.AnnotationUtils
 import kotlin.reflect.full.declaredFunctions
@@ -62,6 +61,12 @@ class StudentDAOResolverTest : BaseResolverTest(
   }
 
   @Test
+  fun resolveFindByPhoneNumberLikeLeft() {
+    val query = createQueryForMethod("findByPhoneNumberLikeLeft")
+    println(query)
+  }
+
+  @Test
   fun resolvePartlyUpdate() {
     val query = createQueryForMethod("updatePartly")
     println(query)
@@ -71,6 +76,10 @@ class StudentDAOResolverTest : BaseResolverTest(
   fun resolveResultMap() {
     val resultMaps = builderAssistant.configuration.resultMaps
     val ids = resultMaps.map { it.id }
+    println(ids.size)
+    ids.forEach {
+      println(it)
+    }
     assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById"))
     assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById_scores"))
     assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById_scores_subject"))
@@ -82,7 +91,6 @@ class StudentDAOResolverTest : BaseResolverTest(
     assert(resultMappings.any { it.property == "subject" })
     val resultMap = builderAssistant.configuration.getResultMap(
         "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById")
-    val subjectMapping = resultMappings.first { it.property == "subject" }
     val mappings = resultMap.propertyResultMappings
     mappings.forEach {
       println("${it.property}/${it.column}/${it.javaType}/${it.typeHandler?.javaClass}")
@@ -104,8 +112,6 @@ class StudentDAOResolverTest : BaseResolverTest(
     queries.forEach {
       println(it)
     }
-    val tableNames = TableInfoHelper.getTableInfos()
-        .map { it.tableName }
     val resultMaps = builderAssistant.configuration.resultMaps
     val resultMap = resultMaps.first {
       it.id == "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById"

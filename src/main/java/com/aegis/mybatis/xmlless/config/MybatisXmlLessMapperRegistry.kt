@@ -16,7 +16,6 @@
 package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.xmlless.config.paginition.XmlLessPageMapperProxyFactory
-import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
 import org.apache.ibatis.binding.BindingException
 import org.apache.ibatis.binding.MapperRegistry
 import org.apache.ibatis.session.Configuration
@@ -36,11 +35,6 @@ import java.util.*
 class MybatisXmlLessMapperRegistry(private val config: Configuration) : MapperRegistry(config) {
 
   private val knownMappers = HashMap<Class<*>, XmlLessPageMapperProxyFactory<*>>()
-
-  init {
-    // 注入SqlRunner
-    GlobalConfigUtils.getSqlInjector(config).injectSqlRunner(config)
-  }
 
   override fun <T> addMapper(type: Class<T>) {
     if (type.isInterface) {

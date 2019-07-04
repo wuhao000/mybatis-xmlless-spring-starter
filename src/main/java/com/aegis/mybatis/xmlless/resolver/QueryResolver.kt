@@ -16,6 +16,7 @@ import com.aegis.mybatis.xmlless.model.QueryType
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
 import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.metadata.TableInfo
+import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
 import com.baomidou.mybatisplus.core.toolkit.StringPool
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import org.apache.ibatis.annotations.ResultMap
@@ -76,7 +77,8 @@ object QueryResolver {
           function,
           mappings,
           null,
-          resolvedNameAnnotation
+          resolvedNameAnnotation,
+          GlobalConfigUtils.getDbType(builderAssistant.configuration)
       )
       function.valueParameters.forEachIndexed { index, param ->
         if (Pageable::class.isSuperclassOf(param.type.jvmErasure)) {

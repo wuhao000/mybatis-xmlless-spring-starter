@@ -15,7 +15,7 @@
  */
 package com.aegis.mybatis.xmlless.config.paginition
 
-import com.baomidou.mybatisplus.core.override.PageMapperProxyFactory
+import org.apache.ibatis.binding.MapperProxyFactory
 import org.apache.ibatis.session.SqlSession
 
 /**
@@ -29,7 +29,7 @@ import org.apache.ibatis.session.SqlSession
  * @since 2018-06-09
  */
 class XmlLessPageMapperProxyFactory<T>(mapperInterface: Class<T>)
-  : PageMapperProxyFactory<T>(mapperInterface) {
+  : MapperProxyFactory<T>(mapperInterface) {
 
   override fun newInstance(sqlSession: SqlSession): T {
     val mapperProxy = XmlLessPageMapperProxy(sqlSession, mapperInterface, methodCache)

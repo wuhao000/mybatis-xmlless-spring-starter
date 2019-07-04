@@ -1,6 +1,8 @@
 package com.aegis.mybatis.dao.tests
 
+import com.aegis.mybatis.bean.Score
 import com.aegis.mybatis.bean.Student
+import com.aegis.mybatis.dao.ScoreDAO
 import com.aegis.mybatis.dao.StudentDAO
 import org.junit.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -17,6 +19,10 @@ class StudentDAOTest : BaseTest() {
 
   val deleteId = "061251173"
   val id = "061251170"
+  val mobile = "17705184916"
+  val name = "张三"
+  @Autowired
+  private lateinit var scoreDAO: ScoreDAO
   @Autowired
   private lateinit var studentDAO: StudentDAO
 
@@ -25,6 +31,7 @@ class StudentDAOTest : BaseTest() {
    */
   @Test
   fun count() {
+    insertStudents()
     assert(studentDAO.count() > 0)
   }
 
@@ -67,7 +74,8 @@ class StudentDAOTest : BaseTest() {
    */
   @Test
   fun existsById() {
-    assert(!studentDAO.existsById("1234"))
+    insertStudents()
+    assert(!studentDAO.existsById("4321"))
     assert(studentDAO.existsById(id))
   }
 
@@ -76,7 +84,13 @@ class StudentDAOTest : BaseTest() {
    */
   @Test
   fun findAll() {
+    if (!studentDAO.existsById(id)) {
+      studentDAO.save(Student(id, "王五", mobile, 22))
+    }
+    val score = Score(80, id, 1)
+    scoreDAO.save(score)
     val list = studentDAO.findAll()
+    assert(scoreDAO.findByStudentId(id).isNotEmpty())
     val spec = list.first { it.id == id }
     assert(spec.scores != null && spec.scores!!.isNotEmpty())
     assert(list.isNotEmpty())
@@ -87,6 +101,7 @@ class StudentDAOTest : BaseTest() {
    */
   @Test
   fun findAllPageable() {
+    insertStudents()
     studentDAO.findAllPageable(
         PageRequest.of(0, 20)).apply {
       this.content.map {
@@ -143,8 +158,11 @@ class StudentDAOTest : BaseTest() {
    */
   @Test
   fun findByPhoneNumberLikeLeft() {
-    assert(studentDAO.findByPhoneNumberLikeLeft("180").isNotEmpty())
-    assert(studentDAO.findByPhoneNumberLikeLeft("4916").isEmpty())
+    insertStudents()
+    assert(studentDAO.findByPhoneNumberLikeLeft(mobile.substring(0, 4)).isNotEmpty())
+    assert(studentDAO.findByPhoneNumberLikeLeft(mobile.substring(2, 6)).isEmpty())
+    assert(studentDAO.findByPhoneNumberLikeRight(mobile.substring(mobile.length - 6, mobile.length)).isNotEmpty())
+    assert(studentDAO.findByPhoneNumberLikeRight(mobile.substring(2, 6)).isEmpty())
   }
 
   /**
@@ -152,6 +170,9 @@ class StudentDAOTest : BaseTest() {
    */
   @Test
   fun findByPhoneNumberLikeRight() {
+    studentDAO.save(
+        Student("1", "李四", "17705184916", 22)
+    )
     assert(studentDAO.findByPhoneNumberLikeRight("4916").isNotEmpty())
     assert(studentDAO.findByPhoneNumberLikeRight("180").isEmpty())
   }
@@ -161,6 +182,7 @@ class StudentDAOTest : BaseTest() {
    */
   @Test
   fun findBySubjectId() {
+    insertStudents()
     val students = studentDAO.findBySubjectId(1)
     println(students)
     assert(students.isNotEmpty())
@@ -226,10 +248,11 @@ class StudentDAOTest : BaseTest() {
    */
   @Test
   fun update() {
+    insertStudents()
     assert(
         studentDAO.update(
             Student(
-                "061251170", "zhangsan",
+                id, "zhangsan",
                 "17712345678",
                 9
             )
@@ -260,6 +283,19 @@ class StudentDAOTest : BaseTest() {
     assert(studentDAO.updateNameById(newName, id) == 1)
     assert(studentDAO.findById(id)?.name == newName)
     studentDAO.deleteById(id)
+  }
+
+  private fun insertStudents() {
+    studentDAO.saveAll(
+        (0..10).map {
+          Student("${it}00$it", "$it", "$it", 1)
+        }
+    )
+    studentDAO.save(
+        Student(id, name, mobile, 1)
+    )
+    val score = Score(80, id, 1)
+    scoreDAO.save(score)
   }
 
 }

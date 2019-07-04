@@ -1,6 +1,9 @@
 package com.aegis.mybatis.bean
 
 import com.aegis.mybatis.xmlless.annotations.JoinObject
+import javax.persistence.Entity
+import javax.persistence.GeneratedValue
+import javax.persistence.Id
 
 
 /**
@@ -9,12 +12,16 @@ import com.aegis.mybatis.xmlless.annotations.JoinObject
  * @since 0.0.5
  */
 @Suppress("unused")
+@Entity
 class Score {
 
+  @Id
+  @GeneratedValue
+  var id: Int = 0
   var score: Int = 0
   var studentId: String = ""
   @JoinObject(
-      selectProperties = ["id","name"],
+      selectProperties = ["id", "name"],
       targetTable = "t_subject",
       targetColumn = "id",
       joinProperty = "subjectId",
@@ -23,4 +30,16 @@ class Score {
   var subject: Subject? = null
   var subjectId: Int = 0
 
+
+  constructor()
+
+  constructor(score: Int, studentId: String, subjectId: Int) {
+    this.score  = score
+    this.studentId = studentId
+    this.subjectId = subjectId
+  }
+
+  override fun toString(): String {
+    return "Score(score=$score, studentId=${studentId}, subjectId=${subjectId})"
+  }
 }
