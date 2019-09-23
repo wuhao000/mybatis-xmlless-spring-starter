@@ -5,6 +5,7 @@ import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.model.*
 import com.aegis.mybatis.xmlless.resolver.TypeResolver
 import com.baomidou.mybatisplus.annotation.IdType
+import com.baomidou.mybatisplus.annotation.TableField
 import com.baomidou.mybatisplus.annotation.TableId
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
@@ -13,10 +14,7 @@ import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.springframework.core.annotation.AnnotationUtils
 import java.lang.reflect.Field
-import javax.persistence.GeneratedValue
-import javax.persistence.Id
-import javax.persistence.Table
-import javax.persistence.Transient
+import javax.persistence.*
 
 /**
  *
@@ -94,11 +92,22 @@ object MappingResolver {
         fixTableInfo(fieldType, TableInfoHelper.initTableInfo(builderAssistant, fieldType), builderAssistant)
       }
     }
+    allFields.filter {
+      it.isAnnotationPresent(Column::class.java) && !it.isAnnotationPresent(TableField::class.java)
+    }.forEach { field ->
+      val column = field.getDeclaredAnnotation(Column::class.java)
+      if (column.name.isNotBlank()) {
+        val tableField = tableInfo.fieldList.first { it.property == field.name }
+        val columnField = TableFieldInfo::class.java.getDeclaredField("column")
+        columnField.isAccessible = true
+        columnField.set(tableField, column.name)
+      }
+    }
     if (keyField != null) {
       if (keyField.isAnnotationPresent(GeneratedValue::class.java)) {
         val field = TableInfo::class.java.getDeclaredField("idType")
         field.isAccessible = true
-        field.set(tableInfo,IdType.AUTO)
+        field.set(tableInfo, IdType.AUTO)
       }
       if (tableInfo.keyColumn == null || tableInfo.keyProperty == null) {
         val keyColumn = keyField.name?.toUnderlineCase()?.toLowerCase()

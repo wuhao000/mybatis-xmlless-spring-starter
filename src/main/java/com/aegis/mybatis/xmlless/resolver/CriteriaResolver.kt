@@ -6,6 +6,7 @@ import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.kotlin.split
 import com.aegis.mybatis.xmlless.kotlin.toCamelCase
 import com.aegis.mybatis.xmlless.model.Append
+import com.aegis.mybatis.xmlless.model.FieldMappings
 import com.aegis.mybatis.xmlless.model.MatchedParameter
 import com.aegis.mybatis.xmlless.model.QueryCriteria
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
@@ -27,14 +28,15 @@ import kotlin.reflect.jvm.javaField
 object CriteriaResolver {
 
   fun resolveConditions(allConditionWords: List<String>,
-                        function: KFunction<*>): List<QueryCriteria> {
+                        function: KFunction<*>,
+                        mappings: FieldMappings): List<QueryCriteria> {
     val nameConditions = if (allConditionWords.isNotEmpty()) {
       allConditionWords.split("And").map { addPropertiesWords ->
         // 解析形如 nameEq 或者 nameLikeKeywords 的表达式
         // nameEq 解析为 name = #{name}
         // nameLikeKeywords 解析为 name  LIKE concat('%',#{keywords},'%')
         addPropertiesWords.split("Or").map { singleConditionWords ->
-          resolveCriteria(singleConditionWords, function)
+          resolveCriteria(singleConditionWords, function, mappings)
         }.apply {
           last().append = Append.AND
         }
@@ -47,13 +49,14 @@ object CriteriaResolver {
     function.valueParameters.forEachIndexed { index, parameter ->
       val criteria = parameter.findAnnotation<Criteria>()
       if (criteria != null) {
-        parameterConditions.add(resolveCriteria(criteria, parameter, paramNames[index], function))
+        parameterConditions.add(resolveCriteria(criteria, parameter, paramNames[index], function, mappings))
       } else if (ParameterResolver.isComplexParameter(parameter)) {
         TypeResolver.resolveRealType(parameter.type).declaredMemberProperties.forEach { property ->
-          val propertyCriteria = property.javaField!!.getDeclaredAnnotation(Criteria::class.java)?:property.findAnnotation<Criteria>()
+          val propertyCriteria = property.javaField!!.getDeclaredAnnotation(Criteria::class.java)
+              ?: property.findAnnotation<Criteria>()
           if (propertyCriteria != null) {
             parameterConditions.add(
-                resolveCriteriaFromProperty(propertyCriteria, property, paramNames[index], function)
+                resolveCriteriaFromProperty(propertyCriteria, property, paramNames[index], function, mappings)
             )
           }
         }
@@ -62,7 +65,9 @@ object CriteriaResolver {
     return nameConditions + parameterConditions
   }
 
-  private fun resolveCriteria(criteria: Criteria, parameter: KParameter, paramName: String, function: KFunction<*>): QueryCriteria {
+  private fun resolveCriteria(criteria: Criteria, parameter: KParameter, paramName: String,
+                              function: KFunction<*>, mappings: FieldMappings):
+      QueryCriteria {
     val property = when {
       criteria.property.isNotBlank() -> criteria.property
       else                           -> paramName
@@ -71,11 +76,13 @@ object CriteriaResolver {
         paramName, parameter,
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == paramName
-        })
+        },
+        mappings)
   }
 
   private fun resolveCriteria(singleConditionWords: List<String>,
-                              function: KFunction<*>): QueryCriteria {
+                              function: KFunction<*>,
+                              mappings: FieldMappings): QueryCriteria {
     // 获取表示条件表达式操作符的单词
     val singleConditionString = singleConditionWords.joinToString("").toCamelCase()
     val opWordsList = Operations.nameWords().filter {
@@ -84,10 +91,9 @@ object CriteriaResolver {
     }.sortedByDescending { it.size }
     val maxOpWordCount = opWordsList.map { it.size }.max()
     val opWords = opWordsList.filter { it.size == maxOpWordCount }
-        .sortedBy {
+        .minBy {
           singleConditionString.indexOf(it.joinToString(""))
         }
-        .firstOrNull()
     val props = when {
       opWords != null -> singleConditionWords.split(opWords)
       else            -> listOf(singleConditionWords)
@@ -129,11 +135,12 @@ object CriteriaResolver {
         finalParamName, parameter,
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == property
-        })
+        },
+        mappings)
   }
 
   private fun resolveCriteriaFromProperty(criteria: Criteria, property: KProperty1<out Any, Any?>,
-                                          paramName: String, function: KFunction<*>): QueryCriteria {
+                                          paramName: String, function: KFunction<*>, mappings: FieldMappings): QueryCriteria {
     val propertyName = when {
       criteria.property.isNotBlank() -> criteria.property
       else                           -> property.name
@@ -142,7 +149,7 @@ object CriteriaResolver {
         paramName + "." + property.name, property,
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == paramName
-        })
+        }, mappings)
   }
 
 }

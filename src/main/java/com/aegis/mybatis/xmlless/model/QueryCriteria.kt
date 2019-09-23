@@ -25,13 +25,20 @@ data class QueryCriteria(val property: String,
                          var append: Append = Append.AND,
                          val paramName: String?,
                          val parameter: KAnnotatedElement?,
-                         val specificValue: ValueAssign?) {
+                         val specificValue: ValueAssign?,
+                         private val mappings: FieldMappings) {
+
+  var columns: List<SelectColumn> = listOf()
 
   companion object {
     /**  foreach模板 */
     const val FOREACH = """<foreach collection="%s" item="%s" separator=", " open="(" close=")">
   %s
 </foreach>"""
+  }
+
+  init {
+    columns = mappings.resolveColumnByPropertyName(property, false)
   }
 
   fun hasExpression(): Boolean {
@@ -56,10 +63,11 @@ data class QueryCriteria(val property: String,
         return criteria.expression + " " + append
       }
     }
-    val columnResult = mappings.resolveColumnByPropertyName(property, false).joinToString(",\n\t") { it.toSql() }
+    val columnResult = columns.joinToString(",\n\t") { it.toSql() }
     val value = resolveValue()
     val mapping = mappings.mappings.firstOrNull { it.property == property }
     return when {
+      // 条件变量为确定的值时
       value != null -> String.format(operator.getValueTemplate(),
           columnResult, operator.operator, value) + " " + append
       operator == Operations.In

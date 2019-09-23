@@ -23,8 +23,8 @@ data class FieldMappings(val mappings: List<FieldMapping>,
    * 获取from后的表名称及join信息的语句
    * 例如： t_student LEFT JOIN t_score ON t_score.student_id = t_student.id
    */
-  fun fromDeclaration(properties: List<String>, includedTableAlias: List<String>): String {
-    val joins = selectJoins(1, properties, includedTableAlias)
+  fun fromDeclaration(properties: List<String>, includedTableAlias: List<String>, onlyIncludesTables: List<String>?): String {
+    val joins = selectJoins(1, properties, includedTableAlias, null, onlyIncludesTables)
     return if (joins.isNotBlank()) {
       tableInfo.tableName + "\n" + selectJoins(1, properties, includedTableAlias)
     } else {
@@ -114,7 +114,7 @@ data class FieldMappings(val mappings: List<FieldMapping>,
       }
     }
     if (!validate) {
-      return listOf(SelectColumn(null, column ?: property.toUnderlineCase(), null, null))
+      return listOf(SelectColumn(tableInfo.tableName, column ?: property.toUnderlineCase(), null, null))
     } else {
       throw BuildSQLException("无法解析持久化类${modelClass.simpleName}的属性${property}对应的列名称, 持久化类或关联对象中不存在此属性")
     }
@@ -137,7 +137,8 @@ data class FieldMappings(val mappings: List<FieldMapping>,
    */
   fun selectJoins(level: Int, selectedProperties: List<String>? = null,
                   includedTableAlias: List<String> = listOf(),
-                  joinTableName: TableName? = null): String {
+                  joinTableName: TableName? = null,
+                  onlyIncludesTables: List<String>? = null): String {
     return mappings.filter {
       !it.selectIgnore && it.joinInfo != null && (
           when {
@@ -146,6 +147,7 @@ data class FieldMappings(val mappings: List<FieldMapping>,
           }) || (it.joinInfo != null && it.joinInfo.joinTable.alias in includedTableAlias)
     }.mapNotNull { it.joinInfo }
         .distinctBy { it.joinTable.alias }
+        .filter { onlyIncludesTables == null || onlyIncludesTables.contains(it.joinTable.name) }
         .joinToString("\n") { joinInfo ->
           val joinProperty = joinInfo.getJoinProperty(tableInfo)
           val col = mappings.firstOrNull { it.property == joinProperty }?.column
