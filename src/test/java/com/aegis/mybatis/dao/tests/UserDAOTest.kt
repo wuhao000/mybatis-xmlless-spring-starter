@@ -4,6 +4,8 @@ import com.aegis.mybatis.bean.User
 import com.aegis.mybatis.dao.UserDAO
 import org.junit.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 
 
 /**
@@ -19,10 +21,24 @@ class UserDAOTest : BaseTest() {
   private lateinit var dao: UserDAO
 
   @Test
+  fun findAllNames() {
+    val names = dao.findAllNames()
+    println(names)
+    assert(names.size == dao.count())
+  }
+
+  @Test
+  fun pageable() {
+    val page = dao.findAll(PageRequest.of(
+        0, 20, Sort.Direction.DESC, "id"
+    ))
+    assert(page.content.isNotEmpty())
+  }
+
+  @Test
   fun save() {
     val user = User(
         name = "w",
-        age = 12,
         deleted = false
     )
     dao.save(user)
@@ -35,12 +51,10 @@ class UserDAOTest : BaseTest() {
   fun saveAll() {
     val user1 = User(
         name = "test",
-        age = 12,
         deleted = false
     )
     val user2 = User(
         name = "w",
-        age = 12,
         deleted = false
     )
     dao.saveAll(listOf(user1, user2))
@@ -50,10 +64,4 @@ class UserDAOTest : BaseTest() {
     dao.deleteById(user2.id!!)
   }
 
-  @Test
-  fun findAllNames(){
-    val names = dao.findAllNames()
-    println(names)
-    assert(names.size == dao.count())
-  }
 }

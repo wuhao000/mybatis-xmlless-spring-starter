@@ -5,6 +5,7 @@ import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.model.*
 import com.aegis.mybatis.xmlless.resolver.TypeResolver
 import com.baomidou.mybatisplus.annotation.IdType
+import com.baomidou.mybatisplus.annotation.TableField
 import com.baomidou.mybatisplus.annotation.TableId
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
@@ -13,10 +14,7 @@ import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.springframework.core.annotation.AnnotationUtils
 import java.lang.reflect.Field
-import javax.persistence.GeneratedValue
-import javax.persistence.Id
-import javax.persistence.Table
-import javax.persistence.Transient
+import javax.persistence.*
 
 /**
  *
@@ -85,6 +83,18 @@ object MappingResolver {
     } else {
       allFields.firstOrNull { it.name == tableInfo.keyProperty }
     }
+    allFields.forEach { field ->
+      if (field.isAnnotationPresent(Column::class.java)) {
+        val column = field.getDeclaredAnnotation(Column::class.java)
+        if (column.name.isNotBlank()) {
+          tableInfo.fieldList.firstOrNull { it.property == field.name }?.apply {
+            val columnField = TableFieldInfo::class.java.declaredFields.first { it.name == "column" }
+            columnField.isAccessible = true
+            columnField.set(this, column.name)
+          }
+        }
+      }
+    }
     allFields.filter { it.isAnnotationPresent(JoinObject::class.java) }.forEach {
       val fieldType = TypeResolver.resolveRealType(it.genericType)
       // 防止无限循环
@@ -123,7 +133,8 @@ object MappingResolver {
       it.name in fieldInfoMap
     }
     val mapping = FieldMappings(fields.map { field ->
-      val transient = field.getDeclaredAnnotation(Transient::class.java)
+      val isTransient = field.getDeclaredAnnotation(Transient::class.java) != null
+          && field.getDeclaredAnnotation(TableField::class.java) == null
       val fieldInfo = fieldInfoMap[field.name]!!
       field.annotationIncompatible(Transient::class.java, SelectIgnore::class.java)
       field.annotationIncompatible(Transient::class.java, UpdateIgnore::class.java)
@@ -141,10 +152,10 @@ object MappingResolver {
           fieldInfo.column ?: field.name.toUnderlineCase().toLowerCase(),
           field.getDeclaredAnnotation(Handler::class.java)?.value?.java,
           fieldInfo,
-          transient != null || AnnotationUtils.findAnnotation(field, InsertIgnore::class.java) != null
+          isTransient || AnnotationUtils.findAnnotation(field, InsertIgnore::class.java) != null
               || AnnotationUtils.findAnnotation(field, GeneratedValue::class.java) != null,
-          transient != null || AnnotationUtils.findAnnotation(field, UpdateIgnore::class.java) != null,
-          transient != null || AnnotationUtils.findAnnotation(field, SelectIgnore::class.java) != null,
+          isTransient || AnnotationUtils.findAnnotation(field, UpdateIgnore::class.java) != null,
+          isTransient || AnnotationUtils.findAnnotation(field, SelectIgnore::class.java) != null,
           joinInfo
       )
     }, tableInfo, modelClass, builderAssistant.configuration.isMapUnderscoreToCamelCase)

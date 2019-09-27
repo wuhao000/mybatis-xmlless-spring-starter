@@ -8,6 +8,9 @@ import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.config.XmlLessMapper
 import org.apache.ibatis.annotations.Mapper
+import org.apache.ibatis.annotations.Param
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 
 /**
  *
@@ -28,6 +31,13 @@ interface UserDAO : XmlLessMapper<User> {
    * @param id
    */
   fun deleteById(id: Int)
+
+  /**
+   *
+   * @param pageable
+   * @return
+   */
+  fun findAll(@Param("pageable") pageable: Pageable): Page<User>
 
   /**
    *

@@ -22,7 +22,6 @@ data class User(
     var id: Int? = null,
     @TableField()
     var name: String? = null,
-    var age: Int? = null,
     var deleted: Boolean = false) {
 
   /**

@@ -88,7 +88,7 @@ class StudentDAOTest : BaseTest() {
   @Test
   fun findAllPageable() {
     studentDAO.findAllPageable(
-        PageRequest.of(0, 20)).apply {
+        PageRequest.of(0, 20, Sort.Direction.DESC, "name")).apply {
       this.content.map {
         it.name + " / ${it.id}"
       }.forEach { println(it) }

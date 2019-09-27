@@ -6,6 +6,7 @@ import com.aegis.mybatis.xmlless.annotations.SelectIgnore
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
+import com.baomidou.mybatisplus.annotation.TableField
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
 import java.lang.reflect.Type
@@ -94,8 +95,10 @@ class ObjectJoinInfo(
         )
       }
       else                 -> TableInfoHelper.getAllFields(realType()).filter {
+        val isTransient = it.isAnnotationPresent(Transient::class.java)
+            && !it.isAnnotationPresent(TableField::class.java)
         !it.isAnnotationPresent(SelectIgnore::class.java)
-            && !it.isAnnotationPresent(Transient::class.java)
+            && !isTransient
             && !it.isAnnotationPresent(JoinObject::class.java)
             && !it.isAnnotationPresent(JoinProperty::class.java)
       }.map {
