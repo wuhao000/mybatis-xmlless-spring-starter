@@ -2,7 +2,7 @@ package com.aegis.mybatis.xmlless.config.paginition
 
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods
 import com.baomidou.mybatisplus.core.metadata.IPage
-import com.baomidou.mybatisplus.core.override.PageMapperMethod
+import org.apache.ibatis.binding.MapperMethod
 import org.apache.ibatis.mapping.SqlCommandType
 import org.apache.ibatis.session.Configuration
 import org.apache.ibatis.session.SqlSession
@@ -22,10 +22,10 @@ import java.lang.reflect.Method
 class XmlLessPageMapperMethod(mapperInterface: Class<*>,
                               requestMethod: Method,
                               config: Configuration) :
-    PageMapperMethod(mapperInterface, requestMethod, config) {
+    MapperMethod(mapperInterface, requestMethod, config) {
 
-  private val command = PageMapperMethod.SqlCommand(config, mapperInterface, requestMethod)
-  private val method = PageMapperMethod.MethodSignature(config, mapperInterface, requestMethod)
+  private val command = MapperMethod.SqlCommand(config, mapperInterface, requestMethod)
+  private val method = MapperMethod.MethodSignature(config, mapperInterface, requestMethod)
 
   init {
   }
@@ -75,7 +75,7 @@ class XmlLessPageMapperMethod(mapperInterface: Class<*>,
   private fun executeForTotal(sqlSession: SqlSession, args: Array<out Any?>?): Long {
     val param = method.convertArgsToSqlCommandParam(args)
     val commandName = command.name + XmlLessMethods.COUNT_STATEMENT_SUFFIX
-    return sqlSession.selectOne<Long>(commandName, param)
+    return sqlSession.selectOne(commandName, param)
   }
 
   private fun findIPageArg(args: Array<out Any?>): Any? {

@@ -16,6 +16,7 @@ import com.aegis.mybatis.xmlless.model.QueryType
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
 import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.metadata.TableInfo
+import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
 import com.baomidou.mybatisplus.core.toolkit.StringPool
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import org.apache.ibatis.annotations.ResultMap
@@ -67,7 +68,7 @@ object QueryResolver {
       val resolveSortsResult = resolveSorts(resolvedName)
       val resolveTypeResult = resolveType(resolveSortsResult.remainName)
       val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords, function)
-      val conditions = CriteriaResolver.resolveConditions(resolvePropertiesResult.conditionWords, function)
+      val conditions = CriteriaResolver.resolveConditions(resolvePropertiesResult.conditionWords, function, mappings)
       val query = Query(
           resolveTypeResult.type,
           resolvePropertiesResult.properties,
@@ -76,7 +77,8 @@ object QueryResolver {
           function,
           mappings,
           null,
-          resolvedNameAnnotation
+          resolvedNameAnnotation,
+          GlobalConfigUtils.getDbType(builderAssistant.configuration)
       )
       function.valueParameters.forEachIndexed { index, param ->
         if (Pageable::class.isSuperclassOf(param.type.jvmErasure)) {

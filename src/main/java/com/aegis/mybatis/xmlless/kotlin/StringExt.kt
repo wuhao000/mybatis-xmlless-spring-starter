@@ -125,7 +125,7 @@ fun String.toPascalCase(): String {
  * @return 转化为下划线命名的字符串
  */
 fun String.toUnderlineCase(): String {
-  return toConstantCase().toUpperCase()
+  return toConstantCase().toLowerCase()
 }
 
 /**

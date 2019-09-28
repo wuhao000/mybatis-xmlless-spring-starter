@@ -10,6 +10,7 @@ import org.apache.ibatis.type.JdbcType
 import java.sql.CallableStatement
 import java.sql.PreparedStatement
 import java.sql.ResultSet
+import javax.persistence.Column
 import javax.persistence.Id
 
 /**
@@ -49,7 +50,7 @@ class Student() {
       targetColumn = "student_id",
       countColumn = "id")
   var count: Int = 0
-  @TableField("sex")
+  @Column(name = "sex")
   var gender: Int = 1
   var graduated: Boolean = false
   @Id

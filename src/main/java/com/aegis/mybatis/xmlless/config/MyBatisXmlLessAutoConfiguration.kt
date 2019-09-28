@@ -56,7 +56,6 @@ class MyBatisXmlLessAutoConfiguration(private var properties: MybatisPlusPropert
   private var configurationCustomizers: List<ConfigurationCustomizer>? = configurationCustomizersProvider.ifAvailable
   private var databaseIdProvider: DatabaseIdProvider? = databaseIdProvider.ifAvailable
   private var interceptors: Array<Interceptor>? = interceptorsProvider.ifAvailable
-//  private val logger = LoggerFactory.getLogger(MybatisPlusAutoConfiguration::class.java)
 
   init {
     copyProperties(properties, mybatisProperties)
@@ -85,7 +84,6 @@ class MyBatisXmlLessAutoConfiguration(private var properties: MybatisPlusPropert
     if (StringUtils.hasLength(this.properties.typeAliasesPackage)) {
       factory.setTypeAliasesPackage(this.properties.typeAliasesPackage)
     }
-    // TODO 自定义枚举包
     if (StringUtils.hasLength(this.properties.typeEnumsPackage)) {
       factory.setTypeEnumsPackage(this.properties.typeEnumsPackage)
     }
@@ -98,7 +96,6 @@ class MyBatisXmlLessAutoConfiguration(private var properties: MybatisPlusPropert
     if (!this.properties.resolveMapperLocations().isNullOrEmpty()) {
       factory.setMapperLocations(this.properties.resolveMapperLocations())
     }
-    // TODO 此处必为非 NULL
     val globalConfig = this.properties.globalConfig
     //注入填充器
     if (this.applicationContext.getBeanNamesForType(MetaObjectHandler::class.java,

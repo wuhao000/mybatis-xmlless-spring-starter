@@ -7,9 +7,8 @@ import com.aegis.mybatis.xmlless.model.ResolvedQueries
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.baomidou.mybatisplus.annotation.IdType
+import com.baomidou.mybatisplus.core.injector.AbstractMethod
 import com.baomidou.mybatisplus.core.metadata.TableInfo
-import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
-import com.baomidou.mybatisplus.extension.injector.AbstractLogicMethod
 import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator
 import org.apache.ibatis.executor.keygen.NoKeyGenerator
 import org.apache.ibatis.mapping.MappedStatement
@@ -26,7 +25,7 @@ import kotlin.reflect.full.declaredFunctions
  * @author 吴昊
  * @since 0.0.1
  */
-class XmlLessMethods : AbstractLogicMethod() {
+class XmlLessMethods : AbstractMethod() {
 
   companion object {
     const val COUNT_STATEMENT_SUFFIX = "CountAllSuffix"
@@ -58,6 +57,7 @@ class XmlLessMethods : AbstractLogicMethod() {
         val sql = resolvedQuery.sql
         try {
           val sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass)
+          @Suppress("NON_EXHAUSTIVE_WHEN")
           when (resolvedQuery.type) {
             in listOf(QueryType.Select,
                 QueryType.Exists,
@@ -67,7 +67,7 @@ class XmlLessMethods : AbstractLogicMethod() {
               // addSelectMappedStatement这个方法中会使用默认的resultMap，该resultMap映射的类型和modelClass一致，所以如果当前方法的返回值和modelClass
               // 不一致时，不能使用该方法，否则会产生类型转换错误
               if (returnType == modelClass && resultMap == null) {
-                addSelectMappedStatement(mapperClass, function.name, sqlSource, returnType, tableInfo)
+                addSelectMappedStatementForTable(mapperClass, function.name, sqlSource, tableInfo)
               } else {
                 addMappedStatement(mapperClass, function.name,
                     sqlSource, SqlCommandType.SELECT, null, resultMap, returnType,
@@ -75,9 +75,9 @@ class XmlLessMethods : AbstractLogicMethod() {
               }
               // 为select查询自动生成count的statement，用于分页时查询总数
               if (resolvedQuery.type == QueryType.Select) {
-                addSelectMappedStatement(mapperClass, function.name + COUNT_STATEMENT_SUFFIX,
+                addSelectMappedStatementForOther(mapperClass, function.name + COUNT_STATEMENT_SUFFIX,
                     languageDriver.createSqlSource(configuration, resolvedQuery.query.buildCountSql(), modelClass),
-                    Long::class.java, tableInfo
+                    Long::class.java
                 )
               }
             }
@@ -98,8 +98,6 @@ class XmlLessMethods : AbstractLogicMethod() {
             QueryType.Update     -> {
               addUpdateMappedStatement(mapperClass, modelClass, function.name, sqlSource)
             }
-            else                 -> {
-            }
           }
         } catch (ex: Exception) {
           LOG.error("""
@@ -115,10 +113,10 @@ ${possibleErrors.joinToString { String.format("\n\t\t-\t%s\n", it) }}""".trimInd
     resolvedQueries.log()
     // 其实这里的return是没有必要的，mybatis plus也没有对这个返回值做任何的处理，
     // 所里这里随便返回了一个sql声明
-    return addSelectMappedStatement(mapperClass,
+    return addSelectMappedStatementForTable(mapperClass,
         "unknown",
         languageDriver.createSqlSource(configuration, "select 1", modelClass),
-        modelClass, tableInfo
+        tableInfo
     )
   }
 

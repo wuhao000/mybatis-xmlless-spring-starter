@@ -32,7 +32,7 @@ abstract class JoinInfo(
    */
   fun getJoinProperty(tableInfo: TableInfo): String {
     return when {
-      joinProperty.isEmpty() -> tableInfo.keyProperty ?: throw BuildSQLException("无法解析${tableInfo.clazz}的主键属性")
+      joinProperty.isEmpty() -> tableInfo.keyProperty ?: throw BuildSQLException("无法解析${tableInfo.entityType}的主键属性")
       else                   -> joinProperty
     }
   }

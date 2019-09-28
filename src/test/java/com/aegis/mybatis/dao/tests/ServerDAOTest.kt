@@ -18,8 +18,12 @@ class ServerDAOTest : BaseTest() {
 
   @Test
   fun findById() {
-    val server1 = serverDAO.findById(1)
-    val server2 = serverDAO.findById(2)
+    val server = createServer()
+    serverDAO.save(server)
+    val newServer2 = Server(name = "server2", ip = "192.168.1.12", parentId = server.id, providerId = 1)
+    serverDAO.save(newServer2)
+    val server1 = serverDAO.findById(server.id)
+    val server2 = serverDAO.findById(newServer2.id)
     assertNotNull(server1)
     assertNotNull(server2)
     println(server1.provider)
@@ -31,14 +35,18 @@ class ServerDAOTest : BaseTest() {
     assertEquals(server1.name, server2.parent?.name)
   }
 
+  private fun createServer(): Server {
+    val name = "server3"
+    return Server(name = name, ip = "192.168.1.11", parentId = 2, providerId = 1)
+  }
+
   @Test
   fun save() {
-    val name = "server3"
-    val server = Server(name = name, ip = "192.168.1.11", parentId = 2, providerId = 1)
-    if (!serverDAO.existsByName(name)) {
+    val server = createServer()
+    if (!serverDAO.existsByName(server.name)) {
       serverDAO.save(server)
     }
-    val server3 = serverDAO.findByName(name)
+    val server3 = serverDAO.findByName(server.name)
     assertNotNull(server3)
     assertEquals(2, server3.parentId)
   }

@@ -22,7 +22,7 @@ data class QueryCriteriaGroup(val criterion: MutableList<QueryCriteria> = mutabl
   }
 
   fun onlyDefaultEq(): Boolean {
-    return criterion.map { it.operator }.toSet().onlyOrNull() == Operations.EqDefault
+    return criterion.map { it.operator }.toSet().singleOrNull() == Operations.EqDefault
   }
 
   fun toSql(mappings: FieldMappings): String {

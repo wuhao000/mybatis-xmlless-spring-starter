@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component
 @Component
 class MySqlInjector : AbstractSqlInjector() {
 
-  override fun getMethodList(): List<AbstractMethod> {
+  override fun getMethodList(mapperClass: Class<*>?): List<AbstractMethod> {
     return listOf(
         XmlLessMethods()
     )

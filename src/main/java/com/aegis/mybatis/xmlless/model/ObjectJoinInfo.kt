@@ -8,7 +8,7 @@ import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.baomidou.mybatisplus.annotation.TableField
 import com.baomidou.mybatisplus.core.metadata.TableInfo
-import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import java.lang.reflect.Type
 import javax.persistence.Transient
 import javax.persistence.criteria.JoinType

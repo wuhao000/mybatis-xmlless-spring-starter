@@ -8,11 +8,11 @@ enum class TestType(val expression: String) {
 
   EqFalse("= FALSE"),
   EqTrue(""),
-  GtZero(" > 0"),
-  GteZero(" >= 0"),
+  GtZero(" &gt; 0"),
+  GteZero(" &gt;= 0"),
   IsNull(" = null"),
-  LtZero(" < 0"),
-  LteZero(" <= 0"),
+  LtZero(" &lt; 0"),
+  LteZero(" &lt;= 0"),
   NotNull(" != null"),
   NotEmpty("");
 

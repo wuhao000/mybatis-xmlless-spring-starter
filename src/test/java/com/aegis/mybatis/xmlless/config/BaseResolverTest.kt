@@ -2,12 +2,10 @@ package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
-import com.baomidou.mybatisplus.core.config.GlobalConfig
+import com.baomidou.mybatisplus.core.MybatisConfiguration
 import com.baomidou.mybatisplus.core.metadata.TableInfo
-import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
-import com.baomidou.mybatisplus.core.toolkit.TableInfoHelper
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import org.apache.ibatis.builder.MapperBuilderAssistant
-import org.apache.ibatis.session.Configuration
 import org.junit.Before
 import kotlin.reflect.full.declaredFunctions
 
@@ -17,7 +15,7 @@ open class BaseResolverTest(val modelClass: Class<*>,
 
   var methods: List<String> = methods.toList()
 
-  protected val configuration = Configuration().apply {
+  protected val configuration = MybatisConfiguration().apply {
     this.isMapUnderscoreToCamelCase = true
   }
   protected val currentNameSpace = "np"
@@ -30,12 +28,6 @@ open class BaseResolverTest(val modelClass: Class<*>,
 
   @Before
   fun init() {
-    GlobalConfigUtils.setGlobalConfig(
-        configuration,
-        GlobalConfig().setDbConfig(GlobalConfig.DbConfig().apply {
-          this.tablePrefix = "t_"
-        })
-    )
     tableInfo = createTableInfo(modelClass)
     queries = mapperClass.kotlin.declaredFunctions
         .filter { it.name in methods }

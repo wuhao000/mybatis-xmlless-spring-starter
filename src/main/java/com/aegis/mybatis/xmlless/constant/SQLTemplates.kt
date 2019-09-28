@@ -29,7 +29,7 @@ DELETE FROM
 /**  单条数据插入语句模板 */
 internal const val INSERT = """INSERT INTO
   %s(%s)
-VALUE
+VALUES
   (%s)"""
 
 /**  join表达式模板 */
@@ -42,6 +42,7 @@ internal const val JOIN = """
 
 /**  limit 语句模板 */
 internal const val LIMIT = "LIMIT #{%s}, #{%s}"
+internal const val LIMIT_H2 = "LIMIT #{%s}-#{%s}"
 
 /**  Pageable参数中的排序 */
 internal const val PAGEABLE_SORT = """<if test="%s.sort.isSorted">

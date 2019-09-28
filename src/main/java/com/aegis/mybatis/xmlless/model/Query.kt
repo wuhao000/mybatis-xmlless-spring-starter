@@ -9,6 +9,7 @@ import com.aegis.mybatis.xmlless.constant.Strings.SCRIPT_START
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
+import com.baomidou.mybatisplus.annotation.DbType
 import com.baomidou.mybatisplus.annotation.FieldFill
 import com.baomidou.mybatisplus.annotation.FieldStrategy
 import com.baomidou.mybatisplus.core.toolkit.StringPool
@@ -16,13 +17,6 @@ import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils.convertTrim
 import org.springframework.data.domain.Sort
 import kotlin.reflect.KFunction
-
-fun <E> Set<E>.onlyOrNull(): E? {
-  if (this.size == 1) {
-    return this.first()
-  }
-  return null
-}
 
 /**
  * 当结尾以指定字符串结束时，返回去掉结尾指定字符串的新字符串，否则返回当前字符串
@@ -56,76 +50,18 @@ data class Query(
     val mappings: FieldMappings,
     /**  limit信息 */
     var limitation: Limitation? = null,
-    val resolvedNameAnnotation: ResolvedName?
+    val resolvedNameAnnotation: ResolvedName?,
+    val dbType: DbType
 ) {
 
-  /**  方法指定忽略的字段 */
-//  val ignoredProperties: List<String>? = function.findAnnotation<IgnoredProperties>()?.properties?.toList()
-
+  /**  来自Page参数的排序条件 */
   var extraSortScript: String? = null
 
   fun buildCountSql(): String {
-    val from = resolveFrom(false, resolveWhere(), "")
-    return String.format(SELECT_COUNT, from, resolveWhere())
-  }
-
-  fun buildDeleteSql(): String {
-    return String.format(DELETE, tableName(), resolveWhere())
-  }
-
-  fun buildExistsSql(): String {
-    val from = resolveFrom(false, resolveWhere(), "")
-    return String.format(SELECT_COUNT, from, resolveWhere())
-  }
-
-  fun buildInsertSql(): String {
-    val columns = mappings.insertFields(this.properties)
-    val template: String
-    val values = when {
-      function.name.endsWith("All")   -> {
-        template = BATCH_INSERT
-        mappings.insertProperties("item.")
-      }
-      this.properties.isNotEmpty()    -> {
-        template = INSERT
-        mappings.insertProperties(insertProperties = this.properties)
-      }
-      this.properties.isEmpty()
-          && this.criterion.isEmpty() -> {
-        template = INSERT
-        mappings.insertProperties()
-      }
-      else                            -> throw BuildSQLException("无法解析${this.function}")
-    }
-    if (columns.size != values.size) {
-      throw BuildSQLException("插入的字段\n$columns\n与插入的值\n$values\n数量不一致")
-    }
-    return String.format(template, mappings.tableInfo.tableName,
-        columns.joinToString(Strings.COLUMN_SEPARATOR),
-        values.joinToString(Strings.COLUMN_SEPARATOR))
-  }
-
-  /**
-   * 构建select查询语句
-   */
-  fun buildSelectSql(): String {
-    // 构建select的列
-    val buildColsResult = ColumnsResolver.resolve(mappings, properties)
-    val groupBy = resolveGroupBy(mappings)
-    val whereSqlResult = resolveWhere()
-    val order = resolveOrder()
-    val limit = resolveLimit()
-    val limitInSubQuery = limitInSubQuery()
-    val from = resolveFrom(limitInSubQuery, whereSqlResult, limit)
-    return when {
-      limitInSubQuery -> buildScript(SELECT, buildColsResult.joinToString(",\n\t") { it.toSql() }, from,
-          resolvedNameAnnotation?.joinAppend ?: "",
-          "", groupBy, order, "")
-      else            -> buildScript(SELECT, buildColsResult.joinToString(",\n\t") { it.toSql() }, from,
-          resolvedNameAnnotation?.joinAppend ?: "",
-          whereSqlResult, groupBy, order, limit
-      )
-    }
+    // 必须先解析查询条件才能确定条件中用于判断的字段来自哪张表
+    val where = resolveWhere()
+    val from = resolveFrom(false, resolveWhere(), "", true)
+    return String.format(SELECT_COUNT, from, where)
   }
 
   fun buildUpdateSql(): String {
@@ -140,11 +76,11 @@ data class Query(
   }
 
   fun convertIf(sqlScript: String, property: String, mapping: FieldMapping): String {
-    if (mapping.tableFieldInfo.fieldStrategy == FieldStrategy.IGNORED) {
+    if (mapping.tableFieldInfo.whereStrategy == FieldStrategy.IGNORED) {
       return sqlScript
     }
     return when {
-      mapping.tableFieldInfo.fieldStrategy == FieldStrategy.NOT_EMPTY
+      mapping.tableFieldInfo.whereStrategy == FieldStrategy.NOT_EMPTY
           && mapping.tableFieldInfo.isCharSequence ->
         SqlScriptUtils.convertIf(sqlScript,
             String.format("%s != null and %s != ''", property, property), false)
@@ -177,17 +113,6 @@ data class Query(
     }
   }
 
-  fun hasCollectionJoinProperty(): Boolean {
-    return when {
-      this.properties.isNotEmpty() -> this.mappings.mappings.filter { it.property in this.properties }
-      else                         -> this.mappings.mappings
-    }.filter {
-      it.joinInfo != null
-    }.any {
-      Collection::class.java.isAssignableFrom(it.tableFieldInfo.propertyType)
-    }
-  }
-
   fun includeJoins(): Boolean {
     return properties.isEmpty() || properties.any { !it.startsWith(mappings.tableInfo.tableName) }
         || containedTables().distinct().any { it != mappings.tableInfo.tableName }
@@ -195,29 +120,6 @@ data class Query(
 
   fun limitInSubQuery(): Boolean {
     return hasCollectionJoinProperty() && limitation != null
-  }
-
-  fun resolveFrom(limitInSubQuery: Boolean, whereSqlResult: String, limit: String): String {
-    val defaultFrom = mappings.fromDeclaration(properties, containedTables())
-    return when {
-      limitInSubQuery -> String.format(SUB_QUERY, tableName(), whereSqlResult, limit, defaultFrom)
-      includeJoins()  -> defaultFrom
-      else            -> tableName()
-    }
-  }
-
-  fun resolveGroupBy(mappings: FieldMappings): String {
-    val mappingList = when {
-      properties.isNotEmpty() -> mappings.mappings.filter { it.property in properties }
-      else                    -> mappings.mappings
-    }
-    val groupProperties = mappingList.mapNotNull { it.joinInfo }
-        .filter { it is PropertyJoinInfo }
-        .mapNotNull { (it as PropertyJoinInfo).groupBy }
-    return when {
-      groupProperties.isNotEmpty() -> "GROUP BY\n\t${groupProperties.joinToString(", ")}"
-      else                         -> ""
-    }
   }
 
   /**
@@ -253,7 +155,7 @@ data class Query(
             result.add(QueryCriteriaGroup(
                 (tmp.criterion.map {
                   QueryCriteria(it.property, criteria.operator, it.append, criteria.paramName, criteria.parameter, it
-                      .specificValue)
+                      .specificValue, mappings)
                 }.toMutableList() + criteria).toMutableList()
             ))
           }
@@ -273,7 +175,10 @@ data class Query(
 
   fun resolveLimit(): String {
     if (limitation != null) {
-      return String.format(LIMIT, limitation?.offsetParam, limitation?.sizeParam)
+      return when (dbType) {
+        DbType.H2 -> String.format(LIMIT_H2, limitation?.offsetParam, limitation?.offsetParam + limitation?.sizeParam)
+        else      -> String.format(LIMIT, limitation?.offsetParam, limitation?.sizeParam)
+      }
     }
     return ""
   }
@@ -323,22 +228,6 @@ data class Query(
     }
   }
 
-  fun resolveWhere(): String {
-    val groups = resolveGroups()
-    val groupBuilders = groups.map {
-      it.toSql(mappings)
-    }
-    val whereAppend = resolvedNameAnnotation?.whereAppend
-    return when {
-      criterion.isNotEmpty() || (whereAppend != null && whereAppend.isNotBlank()) ->
-        String.format(WHERE, trimCondition(groupBuilders.joinToString(LINE_BREAK) +
-            LINE_BREAK + (whereAppend ?: EMPTY)).lines().joinToString(LINE_BREAK) {
-          "\t".repeat(3) + it
-        })
-      else                                                                        -> ""
-    }
-  }
-
   fun toSql(): String {
     return when (type) {
       QueryType.Delete -> {
@@ -358,11 +247,131 @@ data class Query(
     }
   }
 
+  private fun buildDeleteSql(): String {
+    return String.format(DELETE, tableName(), resolveWhere())
+  }
+
+  private fun buildExistsSql(): String {
+    return buildCountSql()
+  }
+
+  private fun buildInsertSql(): String {
+    val columns = mappings.insertFields(this.properties)
+    val template: String
+    val values = when {
+      function.name.endsWith("All")   -> {
+        template = BATCH_INSERT
+        mappings.insertProperties("item.")
+      }
+      this.properties.isNotEmpty()    -> {
+        template = INSERT
+        mappings.insertProperties(insertProperties = this.properties)
+      }
+      this.properties.isEmpty()
+          && this.criterion.isEmpty() -> {
+        template = INSERT
+        mappings.insertProperties()
+      }
+      else                            -> throw BuildSQLException("无法解析${this.function}")
+    }
+    if (columns.size != values.size) {
+      throw BuildSQLException("插入的字段\n$columns\n与插入的值\n$values\n数量不一致")
+    }
+    return String.format(template, mappings.tableInfo.tableName,
+        columns.joinToString(Strings.COLUMN_SEPARATOR),
+        values.joinToString(Strings.COLUMN_SEPARATOR))
+  }
+
   private fun buildScript(template: String, vararg args: String): String {
     val formattedSql = String.format(template, *args).trim()
     return when {
       formattedSql.startsWith(SCRIPT_START) -> formattedSql
       else                                  -> SCRIPT_START + LINE_BREAK + formattedSql.trim() + LINE_BREAK + SCRIPT_END
+    }
+  }
+
+  /**
+   * 构建select查询语句
+   */
+  private fun buildSelectSql(): String {
+    // 构建select的列
+    val buildColsResult = ColumnsResolver.resolve(mappings, properties)
+    val groupBy = resolveGroupBy(mappings)
+    val whereSqlResult = resolveWhere()
+    val order = resolveOrder()
+    val limit = resolveLimit()
+    val limitInSubQuery = limitInSubQuery()
+    val from = resolveFrom(limitInSubQuery, whereSqlResult, limit)
+    return when {
+      limitInSubQuery -> buildScript(SELECT, buildColsResult.joinToString(",\n\t") { it.toSql() }, from,
+          resolvedNameAnnotation?.joinAppend ?: "",
+          "", groupBy, order, "")
+      else            -> buildScript(SELECT, buildColsResult.joinToString(",\n\t") { it.toSql() }, from,
+          resolvedNameAnnotation?.joinAppend ?: "",
+          whereSqlResult, groupBy, order, limit
+      )
+    }
+  }
+
+  private fun hasCollectionJoinProperty(): Boolean {
+    return when {
+      this.properties.isNotEmpty() -> this.mappings.mappings.filter { it.property in this.properties }
+      else                         -> this.mappings.mappings
+    }.filter {
+      it.joinInfo != null
+    }.any {
+      Collection::class.java.isAssignableFrom(it.tableFieldInfo.propertyType)
+    }
+  }
+
+  /**
+   * @param isCount 移除没有被条件引用的join表
+   */
+  private fun resolveFrom(limitInSubQuery: Boolean, whereSqlResult: String, limit: String,
+                          isCount: Boolean = false): String {
+    val onlyIncludesTables = if (isCount) {
+      criterion.map {
+        it.columns.mapNotNull { it.table }
+      }.flatten().distinct()
+    } else {
+      null
+    }
+    val defaultFrom = mappings.fromDeclaration(properties, containedTables(), onlyIncludesTables)
+
+    return when {
+      limitInSubQuery -> String.format(SUB_QUERY, tableName(), whereSqlResult, limit, defaultFrom)
+      includeJoins()  -> defaultFrom
+      else            -> tableName()
+    }
+  }
+
+  private fun resolveGroupBy(mappings: FieldMappings): String {
+    val mappingList = when {
+      properties.isNotEmpty() -> mappings.mappings.filter { it.property in properties }
+      else                    -> mappings.mappings
+    }
+    val groupProperties = mappingList.mapNotNull { it.joinInfo }
+        .filter { it is PropertyJoinInfo }
+        .mapNotNull { (it as PropertyJoinInfo).groupBy }
+    return when {
+      groupProperties.isNotEmpty() -> "GROUP BY\n\t${groupProperties.joinToString(", ")}"
+      else                         -> ""
+    }
+  }
+
+  private fun resolveWhere(): String {
+    val groups = resolveGroups()
+    val groupBuilders = groups.map {
+      it.toSql(mappings)
+    }
+    val whereAppend = resolvedNameAnnotation?.whereAppend
+    return when {
+      criterion.isNotEmpty() || (whereAppend != null && whereAppend.isNotBlank()) ->
+        String.format(WHERE, trimCondition(groupBuilders.joinToString(LINE_BREAK) +
+            LINE_BREAK + (whereAppend ?: EMPTY)).lines().joinToString(LINE_BREAK) {
+          "\t".repeat(3) + it
+        })
+      else                                                                        -> ""
     }
   }
 
