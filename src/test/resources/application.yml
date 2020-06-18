@@ -9,7 +9,7 @@ spring:
 mybatis:
   configuration:
     map-underscore-to-camel-case: "true"
-  mapper-locations: mapper/*.xml
+  mapper-locations: classpath:mapper/*.xml
 mybatis-plus:
   global-config:
     db-config:

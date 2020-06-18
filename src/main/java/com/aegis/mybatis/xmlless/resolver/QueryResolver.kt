@@ -17,13 +17,13 @@ import com.aegis.mybatis.xmlless.model.ResolvedQuery
 import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
-import com.baomidou.mybatisplus.core.toolkit.StringPool
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import org.apache.ibatis.annotations.ResultMap
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
+import java.lang.reflect.Method
 import java.lang.reflect.ParameterizedType
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.findAnnotation
@@ -54,9 +54,11 @@ object QueryResolver {
     QUERY_CACHE[mapperClass.name + DOT + function.name] = query
   }
 
-  fun resolve(function: KFunction<*>, tableInfo: TableInfo,
-              modelClass: Class<*>, mapperClass: Class<*>,
-              builderAssistant: MapperBuilderAssistant): ResolvedQuery {
+  fun resolve(
+      function: KFunction<*>, tableInfo: TableInfo,
+      modelClass: Class<*>, mapperClass: Class<*>,
+      builderAssistant: MapperBuilderAssistant
+  ): ResolvedQuery {
     if (getQueryCache(function, mapperClass) != null) {
       return getQueryCache(function, mapperClass)!!
     }
@@ -87,17 +89,16 @@ object QueryResolver {
           query.extraSortScript = String.format(PAGEABLE_SORT, paramName, paramName)
         }
       }
-      val returnType = resolveReturnType(function)
+      val returnType = resolveReturnType(function.javaMethod!!)
       val resolvedQuery = ResolvedQuery(
-          query, resolveResultMap(function, query,
-          mapperClass, returnType, builderAssistant), returnType, function
-      )
+          query, resolveResultMap(
+          function, query,
+          mapperClass, returnType, builderAssistant
+      ), returnType, function)
       putQueryCache(function, mapperClass, resolvedQuery)
       return resolvedQuery
     } catch (e: Exception) {
-      if (e !is BuildSQLException) {
-        e.printStackTrace()
-      }
+      e.printStackTrace()
       return ResolvedQuery(null, null, null, function, e.message)
     }
   }
@@ -131,28 +132,40 @@ object QueryResolver {
     return ResolvePropertiesResult(properties, conditionWords)
   }
 
-  fun resolveResultMap(function: KFunction<*>, query: Query,
-                       mapperClass: Class<*>, returnType: Class<*>, builderAssistant: MapperBuilderAssistant): String? {
+  fun resolveResultMap(
+      function: KFunction<*>, query: Query,
+      mapperClass: Class<*>, returnType: Class<*>, builderAssistant: MapperBuilderAssistant
+  ): String? {
     val resultMap = function.findAnnotation<ResultMap>()?.value?.firstOrNull()
     if (resultMap == null && query.type == QueryType.Select) {
       // 如果没有指定resultMap，则自动生成resultMap
-      return ResultMapResolver.resolveResultMap(mapperClass.name + StringPool.DOT + function.name,
-          builderAssistant, returnType, query)
+      return ResultMapResolver.resolveResultMap(
+          mapperClass.name + DOT + function.name,
+          builderAssistant, returnType, query, listOf(), function
+      )
     }
     return resultMap
   }
 
-  fun resolveReturnType(function: KFunction<*>): Class<*> {
+  fun resolveReturnType(function: Method): Class<*> {
     return if (listOf(Collection::class, Page::class, IPage::class)
-            .any { it.java.isAssignableFrom(function.javaMethod!!.returnType) }) {
-      val type = (function.javaMethod!!.genericReturnType as ParameterizedType).actualTypeArguments[0]
+            .any { it.java.isAssignableFrom(function.returnType) }
+    ) {
+      val type = (function.genericReturnType as ParameterizedType).actualTypeArguments[0]
       if (type is Class<*>) {
         type
+      } else if (type is ParameterizedType) {
+        val rawType = type.rawType
+        if (rawType is Class<*>) {
+          rawType
+        } else {
+          function.returnType
+        }
       } else {
-        function.javaMethod!!.returnType
+        function.returnType
       }
     } else {
-      function.javaMethod!!.returnType
+      function.returnType
     }
   }
 

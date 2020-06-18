@@ -1,6 +1,11 @@
 package com.aegis.mybatis.xmlless.config.paginition
 
+import com.aegis.jackson.createObjectMapper
+import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
+import com.aegis.mybatis.xmlless.annotations.JsonResult
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods
+import com.aegis.mybatis.xmlless.model.JsonWrapper
+import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.baomidou.mybatisplus.core.metadata.IPage
 import org.apache.ibatis.binding.MapperMethod
 import org.apache.ibatis.mapping.SqlCommandType
@@ -19,22 +24,22 @@ import java.lang.reflect.Method
  * @author 吴昊
  * @since 0.0.4
  */
-class XmlLessPageMapperMethod(mapperInterface: Class<*>,
-                              requestMethod: Method,
-                              config: Configuration) :
-    MapperMethod(mapperInterface, requestMethod, config) {
+class XmlLessPageMapperMethod(
+    mapperInterface: Class<*>,
+    val requestMethod: Method,
+    config: Configuration
+) : MapperMethod(mapperInterface, requestMethod, config) {
 
-  private val command = MapperMethod.SqlCommand(config, mapperInterface, requestMethod)
-  private val method = MapperMethod.MethodSignature(config, mapperInterface, requestMethod)
-
-  init {
-  }
+  private val mapper = createObjectMapper()
+  private val command = SqlCommand(config, mapperInterface, requestMethod)
+  private val method = MethodSignature(config, mapperInterface, requestMethod)
 
   @Suppress("UNCHECKED_CAST")
   override fun execute(sqlSession: SqlSession, args: Array<out Any?>?): Any? {
     var result: Any? = null
     if (command.type == SqlCommandType.SELECT && args != null
-        && Page::class.java.isAssignableFrom(method.returnType)) {
+        && Page::class.java.isAssignableFrom(method.returnType)
+    ) {
       val list = executeForMany<Any>(sqlSession, args) as List<Any>
       val pageArg = findIPageArg(args) as IPage<*>?
       result = if (pageArg != null) {
@@ -55,6 +60,25 @@ class XmlLessPageMapperMethod(mapperInterface: Class<*>,
       } catch (e: Exception) {
         e.printStackTrace()
         throw e
+      }
+    }
+    if (result == null) {
+      return result
+    }
+    val returnClass = QueryResolver.resolveReturnType(requestMethod)
+    if (requestMethod.isAnnotationPresent(JsonResult::class.java)
+        || returnClass.isAnnotationPresent(JsonMappingProperty::class.java)) {
+      if (result is MutableCollection<*>) {
+        val list = arrayListOf<Any>()
+        list.addAll(result as Collection<Any>)
+        result.clear()
+        (result as MutableCollection<Any>).addAll(
+            list.map {
+              mapper.readValue((it as JsonWrapper).json, returnClass)
+            }
+        )
+      } else {
+        result = mapper.readValue((result as JsonWrapper).json, returnClass)
       }
     }
     return result

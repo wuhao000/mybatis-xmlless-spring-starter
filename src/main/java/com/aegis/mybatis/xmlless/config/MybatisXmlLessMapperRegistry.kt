@@ -28,13 +28,16 @@ import java.util.*
  * 继承至MapperRegistry
  *
  *
- * @author Caratacus hubin
  * @since 2017-04-19
  */
 @Suppress("UNCHECKED_CAST")
 class MybatisXmlLessMapperRegistry(private val config: Configuration) : MapperRegistry(config) {
 
   private val knownMappers = HashMap<Class<*>, XmlLessPageMapperProxyFactory<*>>()
+
+  fun <T> addXMlLessMapper(type: Class<T>) {
+    addMapper(type)
+  }
 
   override fun <T> addMapper(type: Class<T>) {
     if (type.isInterface) {
@@ -62,6 +65,10 @@ class MybatisXmlLessMapperRegistry(private val config: Configuration) : MapperRe
     }
   }
 
+  fun <T> getXmlLessMapper(type: Class<T>, sqlSession: SqlSession): T {
+    return getMapper(type, sqlSession)
+  }
+
   override fun <T> getMapper(type: Class<T>, sqlSession: SqlSession): T {
     val mapperProxyFactory = knownMappers[type] as XmlLessPageMapperProxyFactory<T>
     try {
@@ -80,6 +87,10 @@ class MybatisXmlLessMapperRegistry(private val config: Configuration) : MapperRe
 
   override fun <T> hasMapper(type: Class<T>): Boolean {
     return knownMappers.containsKey(type)
+  }
+
+  fun <T> hasXmlLessMapper(type: Class<T>): Boolean {
+    return hasMapper(type)
   }
 
 }

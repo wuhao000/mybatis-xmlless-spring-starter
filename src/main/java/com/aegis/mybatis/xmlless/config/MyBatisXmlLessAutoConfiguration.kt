@@ -12,6 +12,7 @@ import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean
 import org.apache.ibatis.mapping.DatabaseIdProvider
 import org.apache.ibatis.plugin.Interceptor
 import org.apache.ibatis.session.SqlSessionFactory
+import org.apache.ibatis.type.TypeHandlerRegistry
 import org.mybatis.spring.SqlSessionFactoryBean
 import org.mybatis.spring.SqlSessionTemplate
 import org.mybatis.spring.boot.autoconfigure.MybatisProperties

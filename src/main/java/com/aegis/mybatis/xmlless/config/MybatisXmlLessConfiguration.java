@@ -6,6 +6,11 @@ import org.apache.ibatis.session.SqlSession;
 
 /**
  * Created by 吴昊 on 2018/12/13.
+ *
+ * @author wuhao
+ * @date 2018
+ * @version 0.1
+ * @since 0.1
  */
 public class MybatisXmlLessConfiguration extends MybatisConfiguration {
 
@@ -17,7 +22,7 @@ public class MybatisXmlLessConfiguration extends MybatisConfiguration {
   private MybatisXmlLessMapperRegistry mybatisXmlLessMapperRegistry = new MybatisXmlLessMapperRegistry(this);
 
   public <T> void addMapper(Class<T> type ) {
-    mybatisXmlLessMapperRegistry.addMapper(type);
+    mybatisXmlLessMapperRegistry.addXMlLessMapper(type);
   }
 
   public void addMappers(String packageName, Class superType) {
@@ -29,7 +34,7 @@ public class MybatisXmlLessConfiguration extends MybatisConfiguration {
   }
 
   public <T>  T getMapper(Class<T> type, SqlSession sqlSession) {
-    return mybatisXmlLessMapperRegistry.getMapper(type, sqlSession);
+    return mybatisXmlLessMapperRegistry.getXmlLessMapper(type, sqlSession);
   }
 
   public MapperRegistry getMapperRegistry() {
@@ -37,7 +42,7 @@ public class MybatisXmlLessConfiguration extends MybatisConfiguration {
   }
 
   public boolean hasMapper(Class type) {
-    return mybatisXmlLessMapperRegistry.hasMapper(type);
+    return mybatisXmlLessMapperRegistry.hasXmlLessMapper(type);
   }
 
 }

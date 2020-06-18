@@ -1,6 +1,7 @@
 package com.aegis.mybatis.dao
 
 import com.aegis.mybatis.bean.Student
+import com.aegis.mybatis.bean.StudentDetail
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.annotations.TestExpression
@@ -20,6 +21,10 @@ import org.springframework.data.domain.Pageable
  */
 @Mapper
 interface StudentDAO : XmlLessMapper<Student> {
+
+  fun findDetail(): List<StudentDetail>
+
+  fun findId(): List<String>
 
   /**
    *

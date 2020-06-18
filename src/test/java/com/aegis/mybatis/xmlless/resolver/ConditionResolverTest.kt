@@ -2,6 +2,7 @@ package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.StudentDAO
+import com.aegis.mybatis.dao.StudentDetailDAO
 import com.aegis.mybatis.xmlless.config.BaseResolverTest
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.kotlin.toWords
@@ -17,8 +18,8 @@ import kotlin.reflect.full.declaredFunctions
  * @author 吴昊
  * @since 0.0.8
  */
-class ConditionResolverTest:BaseResolverTest(
-    Student::class.java,StudentDAO::class.java,"findById"
+class ConditionResolverTest : BaseResolverTest(
+    Student::class.java, StudentDetailDAO::class.java, "findByFavorites"
 ) {
 
   @Test
@@ -34,7 +35,11 @@ class ConditionResolverTest:BaseResolverTest(
     }
   }
 
-  private fun resolveConditions(conditionExpression: String, function: KFunction<*>, mappings: FieldMappings): List<QueryCriteria> {
+  private fun resolveConditions(
+      conditionExpression: String,
+      function: KFunction<*>,
+      mappings: FieldMappings
+  ): List<QueryCriteria> {
     return CriteriaResolver.resolveConditions(
         conditionExpression.toWords(), function, mappings
     )

@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.junit.Before
+import kotlin.reflect.KFunction
 import kotlin.reflect.full.declaredFunctions
 
 open class BaseResolverTest(val modelClass: Class<*>,
@@ -26,14 +27,19 @@ open class BaseResolverTest(val modelClass: Class<*>,
   }
   protected lateinit var tableInfo: TableInfo
 
+
   @Before
   fun init() {
     tableInfo = createTableInfo(modelClass)
-    queries = mapperClass.kotlin.declaredFunctions
-        .filter { it.name in methods }
+    queries = getFunctions()
         .map {
           QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
         }
+  }
+
+  fun getFunctions(): List<KFunction<*>> {
+    return mapperClass.kotlin.declaredFunctions
+        .filter { it.name in methods }
   }
 
   private fun createTableInfo(modelClass: Class<*>): TableInfo {

@@ -27,5 +27,7 @@ import org.springframework.test.context.junit4.SpringRunner
     MyBatisXmlLessAutoConfiguration::class,
     MybatisPlusAutoConfiguration::class)
 @Ignore
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@AutoConfigureTestDatabase(
+    replace = AutoConfigureTestDatabase.Replace.NONE
+)
 class BaseTest

@@ -1,10 +1,6 @@
 package com.aegis.mybatis.bean
 
-import com.aegis.mybatis.xmlless.annotations.Count
-import com.aegis.mybatis.xmlless.annotations.Handler
-import com.aegis.mybatis.xmlless.annotations.JoinObject
-import com.aegis.mybatis.xmlless.annotations.ModifyIgnore
-import com.baomidou.mybatisplus.annotation.TableField
+import com.aegis.mybatis.xmlless.annotations.*
 import org.apache.ibatis.type.BaseTypeHandler
 import org.apache.ibatis.type.JdbcType
 import java.sql.CallableStatement
@@ -12,6 +8,11 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 import javax.persistence.Column
 import javax.persistence.Id
+
+@JsonMappingProperty
+data class StudentDetail(
+    var height: Int? = null
+)
 
 /**
  * for test
@@ -46,18 +47,28 @@ class StringTypeHandler : BaseTypeHandler<String>() {
 @Suppress("MemberVisibilityCanBePrivate")
 class Student() {
 
-  @Count(targetTable = "t_score",
+  @Count(
+      targetTable = "t_score",
       targetColumn = "student_id",
-      countColumn = "id")
+      countColumn = "id"
+  )
   var count: Int = 0
+
+  @JsonMappingProperty
+  var detail: StudentDetail? = null
+
   @Column(name = "sex")
   var gender: Int = 1
   var graduated: Boolean = false
+  @JsonMappingProperty
+  var favorites: List<String> = listOf()
   @Id
   var id: String = ""
   var name: String = ""
+
   @Handler(StringTypeHandler::class)
   var phoneNumber: String = ""
+
   @JoinObject(
       targetTable = "t_score",
       targetColumn = "student_id",
@@ -83,6 +94,7 @@ class Student() {
       | gender=$gender,
       | graduated=$graduated,
       | scores=$scores
+      | favorites=$favorites
       |)""".trimMargin()
   }
 

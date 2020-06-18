@@ -8,4 +8,5 @@ package com.aegis.mybatis.bean
  * @author 吴昊
  * @since 0.0.9
  */
-data class ServerProvider(var id: Int = 0, var name: String = "")
+data class ServerProvider(var id: Int = 0,
+                          var name: String = "")
