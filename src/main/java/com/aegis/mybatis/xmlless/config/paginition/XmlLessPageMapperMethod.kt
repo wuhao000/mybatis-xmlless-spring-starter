@@ -69,12 +69,16 @@ class XmlLessPageMapperMethod(
     if (requestMethod.isAnnotationPresent(JsonResult::class.java)
         || returnClass.isAnnotationPresent(JsonMappingProperty::class.java)) {
       if (result is MutableCollection<*>) {
-        val list = arrayListOf<Any>()
-        list.addAll(result as Collection<Any>)
+        val list = arrayListOf<Any?>()
+        list.addAll(result as Collection<Any?>)
         result.clear()
-        (result as MutableCollection<Any>).addAll(
+        (result as MutableCollection<Any?>).addAll(
             list.map {
-              mapper.readValue((it as JsonWrapper).json, returnClass)
+              if (it == null) {
+                null
+              } else {
+                mapper.readValue((it as JsonWrapper).json, returnClass)
+              }
             }
         )
       } else {

@@ -43,6 +43,8 @@ interface StudentDetailDAO : XmlLessMapper<Student> {
    */
   fun findDetail(): List<StudentDetail>
 
+  fun findDetailById(@Param("id") id: String): StudentDetail?
+
   /**
    *
    * @return
