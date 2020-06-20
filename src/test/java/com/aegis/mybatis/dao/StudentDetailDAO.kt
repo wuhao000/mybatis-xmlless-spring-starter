@@ -1,5 +1,6 @@
 package com.aegis.mybatis.dao
 
+import com.aegis.mybatis.bean.EducationInfo
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.bean.StudentDetail
 import com.aegis.mybatis.xmlless.annotations.JsonResult
@@ -44,6 +45,9 @@ interface StudentDetailDAO : XmlLessMapper<Student> {
   fun findDetail(): List<StudentDetail>
 
   fun findDetailById(@Param("id") id: String): StudentDetail?
+
+  @JsonResult
+  fun findEducation(): List<List<EducationInfo>?>
 
   /**
    *

@@ -4,6 +4,8 @@ import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.StudentDetailDAO
 import com.aegis.mybatis.xmlless.config.BaseResolverTest
 import org.junit.Test
+import kotlin.reflect.full.functions
+import kotlin.reflect.jvm.javaMethod
 
 /**
  * TODO
@@ -32,6 +34,14 @@ class QueryResolverTest : BaseResolverTest(
       println(rmId)
       println(rm)
     }
+  }
+
+  @Test
+  fun resolveReturnType() {
+    val fn = StudentDetailDAO::class.functions
+        .first { it.name == "findEducation" }
+    val type = QueryResolver.resolveReturnType(fn.javaMethod!!)
+    println(type)
   }
 
 }

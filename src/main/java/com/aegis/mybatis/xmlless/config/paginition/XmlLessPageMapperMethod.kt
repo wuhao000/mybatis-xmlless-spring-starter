@@ -30,9 +30,11 @@ class XmlLessPageMapperMethod(
     config: Configuration
 ) : MapperMethod(mapperInterface, requestMethod, config) {
 
-  private val mapper = createObjectMapper()
   private val command = SqlCommand(config, mapperInterface, requestMethod)
   private val method = MethodSignature(config, mapperInterface, requestMethod)
+  companion object {
+    val mapper = createObjectMapper()
+  }
 
   @Suppress("UNCHECKED_CAST")
   override fun execute(sqlSession: SqlSession, args: Array<out Any?>?): Any? {
@@ -66,8 +68,10 @@ class XmlLessPageMapperMethod(
       return result
     }
     val returnClass = QueryResolver.resolveReturnType(requestMethod)
+    val type = QueryResolver.resolveJavaType(requestMethod)
     if (requestMethod.isAnnotationPresent(JsonResult::class.java)
-        || returnClass.isAnnotationPresent(JsonMappingProperty::class.java)) {
+        || returnClass.isAnnotationPresent(JsonMappingProperty::class.java)
+    ) {
       if (result is MutableCollection<*>) {
         val list = arrayListOf<Any?>()
         list.addAll(result as Collection<Any?>)
@@ -77,12 +81,16 @@ class XmlLessPageMapperMethod(
               if (it == null) {
                 null
               } else {
-                mapper.readValue((it as JsonWrapper).json, returnClass)
+                when (val json = (it as JsonWrapper).json) {
+                  null -> null
+                  else -> mapper.readValue<Any?>(json, type)
+                }
               }
             }
         )
       } else {
-        result = mapper.readValue((result as JsonWrapper).json, returnClass)
+        val json = (result as JsonWrapper).json ?: return null
+        result = mapper.readValue<Any?>(json, type)
       }
     }
     return result

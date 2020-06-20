@@ -9,6 +9,10 @@ import java.sql.ResultSet
 import javax.persistence.Column
 import javax.persistence.Id
 
+data class EducationInfo(
+    val school: String = ""
+)
+
 @JsonMappingProperty
 data class StudentDetail(
     var height: Int? = null
@@ -57,11 +61,13 @@ class Student() {
   @JsonMappingProperty
   var detail: StudentDetail? = null
 
+  @JsonMappingProperty
+  var education: List<EducationInfo>? = null
+  @JsonMappingProperty
+  var favorites: List<String> = listOf()
   @Column(name = "sex")
   var gender: Int = 1
   var graduated: Boolean = false
-  @JsonMappingProperty
-  var favorites: List<String> = listOf()
   @Id
   var id: String = ""
   var name: String = ""

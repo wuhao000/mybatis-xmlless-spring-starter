@@ -5,6 +5,7 @@ package com.aegis.mybatis.xmlless.resolver
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.config.MappingResolver
+import com.aegis.mybatis.xmlless.config.paginition.XmlLessPageMapperMethod
 import com.aegis.mybatis.xmlless.constant.PAGEABLE_SORT
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.split
@@ -18,6 +19,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
+import com.fasterxml.jackson.databind.JavaType
 import org.apache.ibatis.annotations.ResultMap
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.springframework.data.domain.Page
@@ -94,12 +96,23 @@ object QueryResolver {
           query, resolveResultMap(
           function, query,
           mapperClass, returnType, builderAssistant
-      ), returnType, function)
+      ), returnType, function
+      )
       putQueryCache(function, mapperClass, resolvedQuery)
       return resolvedQuery
     } catch (e: Exception) {
       e.printStackTrace()
       return ResolvedQuery(null, null, null, function, e.message)
+    }
+  }
+
+  fun resolveJavaType(function: Method): JavaType? {
+    val typeFactory = XmlLessPageMapperMethod.mapper.typeFactory
+    if (Collection::class.java.isAssignableFrom(function.returnType)) {
+      val type = (function.genericReturnType as ParameterizedType).actualTypeArguments[0]
+      return typeFactory.constructType(type)
+    } else {
+      return typeFactory.constructType(function.returnType)
     }
   }
 

@@ -1,5 +1,6 @@
 package com.aegis.mybatis.dao.tests
 
+import com.aegis.mybatis.bean.EducationInfo
 import com.aegis.mybatis.dao.StudentDetailDAO
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -44,6 +45,20 @@ class StudentDetailDAOTest : BaseTest() {
   fun getJsonObject() {
     val s = studentDAO.findDetail()
     assertEquals(s.size, 1)
+    println(s)
+  }
+
+  @Test
+  @DisplayName("返回数组对象列表")
+  fun getJsonObjectArrayList() {
+    val s = studentDAO.findEducation()
+    assertEquals(s.size, 1)
+    assert(s.any { it != null && it.isNotEmpty() })
+    s.forEach {
+      it?.forEach {
+        assert(it is EducationInfo)
+      }
+    }
     println(s)
   }
 
