@@ -6,6 +6,7 @@ import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.HANDLER_PREFIX
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.PROPERTY_PREFIX
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.PROPERTY_SUFFIX
+import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import org.apache.ibatis.type.TypeHandler
 import org.springframework.core.annotation.AnnotationUtils
@@ -27,8 +28,7 @@ data class FieldMapping(
   /**  对应数据库表的列名称 */
   val column: String = tableFieldInfo.column ?: field.name.toUnderlineCase().toLowerCase()
   val insertIgnore: Boolean
-  val isJsonObject: Boolean =
-      field.isAnnotationPresent(JsonMappingProperty::class.java)
+  val isJsonObject: Boolean = field.isAnnotationPresent(JsonMappingProperty::class.java)
   val isJsonArray: Boolean = isJsonObject && Collection::class.java.isAssignableFrom(field.type)
   /**  持久化类的属性名称 */
   val property: String = field.name
@@ -69,7 +69,7 @@ data class FieldMapping(
       return handlerAnno.value.java.newInstance()
     }
     if (field.isAnnotationPresent(JsonMappingProperty::class.java)) {
-      return TmpHandler(field.type)
+      return TmpHandler(QueryResolver.toJavaType(field.genericType))
     }
     return null
   }

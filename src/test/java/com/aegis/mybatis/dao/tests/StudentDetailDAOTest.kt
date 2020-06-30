@@ -33,6 +33,18 @@ class StudentDetailDAOTest : BaseTest() {
   }
 
   @Test
+  @DisplayName("属性为对象数组")
+  fun findAll() {
+    val list = studentDAO.findAll()
+    list.forEach {
+      assert(it.education != null)
+      it.education?.forEach {
+        assert(it is EducationInfo)
+      }
+    }
+  }
+
+  @Test
   @DisplayName("返回数组类型列表")
   fun getJsonArray() {
     val s = studentDAO.findFavorites()

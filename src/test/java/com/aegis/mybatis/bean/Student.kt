@@ -9,6 +9,7 @@ import java.sql.ResultSet
 import javax.persistence.Column
 import javax.persistence.Id
 
+@JsonMappingProperty
 data class EducationInfo(
     val school: String = ""
 )

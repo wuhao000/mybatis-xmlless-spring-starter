@@ -2,6 +2,7 @@ package com.aegis.mybatis.xmlless.config
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.JavaType
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.ibatis.type.BaseTypeHandler
 import org.apache.ibatis.type.JdbcType
@@ -10,7 +11,7 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 
 
-open class TmpHandler(val type: Class<*>) : BaseTypeHandler<Any>() {
+open class TmpHandler(val type: JavaType? = null) : BaseTypeHandler<Any>() {
 
   val mapper = ObjectMapper().apply {
     setSerializationInclusion(JsonInclude.Include.NON_NULL)

@@ -27,6 +27,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import java.lang.reflect.Method
 import java.lang.reflect.ParameterizedType
+import java.lang.reflect.Type
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.isSuperclassOf
@@ -107,13 +108,17 @@ object QueryResolver {
   }
 
   fun resolveJavaType(function: Method): JavaType? {
-    val typeFactory = XmlLessPageMapperMethod.mapper.typeFactory
     if (Collection::class.java.isAssignableFrom(function.returnType)) {
       val type = (function.genericReturnType as ParameterizedType).actualTypeArguments[0]
-      return typeFactory.constructType(type)
+      return toJavaType(type)
     } else {
-      return typeFactory.constructType(function.returnType)
+      return toJavaType(function.returnType)
     }
+  }
+
+  fun toJavaType(type: Type): JavaType? {
+    val typeFactory = XmlLessPageMapperMethod.mapper.typeFactory
+    return typeFactory.constructType(type)
   }
 
   /**
