@@ -43,6 +43,7 @@ import kotlin.reflect.jvm.jvmErasure
 object QueryResolver {
 
   private val QUERY_CACHE = hashMapOf<String, ResolvedQuery>()
+  private val SPECIAL_NAME_PART = listOf("OrUpdate", "OrUpdateAll")
 
   @Suppress("unused")
   fun getQueryCache(key: String): ResolvedQuery? {
@@ -227,8 +228,11 @@ object QueryResolver {
       in listOf("Insert", "Save")          -> QueryType.Insert
       else                                 -> null
     } ?: throw BuildSQLException("无法解析SQL类型，解析的名称为$name")
-    val remainWords = wordsWithoutSort.drop(1)
-    return ResolveTypeResult(type, remainWords, typeWord)
+    val remainWords = wordsWithoutSort.drop(1).toMutableList()
+    if (remainWords.joinToString("") in SPECIAL_NAME_PART) {
+      remainWords.clear()
+    }
+    return ResolveTypeResult(type, remainWords.toList(), typeWord)
   }
 
   private fun getResolvedName(function: KFunction<*>): String {

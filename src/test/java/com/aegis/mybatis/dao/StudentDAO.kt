@@ -134,6 +134,11 @@ interface StudentDAO : XmlLessMapper<Student> {
    */
   fun save(student: Student)
 
+
+  fun saveOrUpdate(student: Student)
+
+  fun saveOrUpdateAll(list: List<Student>)
+
   /**
    *
    * @param list

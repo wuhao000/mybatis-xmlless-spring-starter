@@ -40,8 +40,7 @@ class XmlLessPageMapperMethod(
   override fun execute(sqlSession: SqlSession, args: Array<out Any?>?): Any? {
     var result: Any? = null
     if (command.type == SqlCommandType.SELECT && args != null
-        && Page::class.java.isAssignableFrom(method.returnType)
-    ) {
+        && Page::class.java.isAssignableFrom(method.returnType)) {
       val list = executeForMany<Any>(sqlSession, args) as List<Any>
       val pageArg = findIPageArg(args) as IPage<*>?
       result = if (pageArg != null) {

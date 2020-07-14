@@ -6,6 +6,7 @@ import com.aegis.mybatis.bean.StudentDetail
 import com.aegis.mybatis.dao.ScoreDAO
 import com.aegis.mybatis.dao.StudentDAO
 import org.junit.Test
+import org.springframework.beans.BeanUtils
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -271,6 +272,51 @@ class StudentDAOTest : BaseTest() {
     studentDAO.deleteByIds(listOf("saveAll1", "saveAll2"))
     assert(!studentDAO.existsById(id1))
     assert(!studentDAO.existsById(id2))
+  }
+
+  /**
+   * 测试新增或更新
+   */
+  @Test
+  fun saveOrUpdate() {
+    studentDAO.saveOrUpdate(Student(
+        id,
+        "wuhao",
+        "18005184916", 1
+    ).apply {
+      detail = StudentDetail(172)
+      favorites = listOf("旅游", "登山")
+    })
+  }
+
+  /**
+   * 测试新增或更新
+   */
+  @Test
+  fun saveOrUpdateAll() {
+    val student1 = Student(
+        id, "李四", "18012345678", 1
+    ).apply {
+      email = "aaa@a.com"
+      detail = StudentDetail(172)
+      favorites = listOf("旅游", "登山")
+    }
+    val student3 = Student(
+        "aaa", "王五", "18055555555", 2
+    )
+    val student2 = Student()
+    BeanUtils.copyProperties(student1, student2)
+    student2.name = "张三"
+    student2.email = null
+    studentDAO.save(student1)
+    studentDAO.saveOrUpdateAll(listOf(student2, student3))
+    val student4 = studentDAO.findById(id)
+    assertNotNull(student4)
+    assertEquals(student2.name, student4.name)
+    assertEquals(student2.name, student4.name)
+    println(student4.email)
+    val student5 = studentDAO.findById(student3.id)
+    assertNotNull(student5)
   }
 
   /**

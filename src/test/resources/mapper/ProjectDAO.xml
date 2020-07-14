@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aegis.mybatis.dao.StudentDAO">
+  <insert id="saveOrUpdateAll">
+    INSERT INTO
+    t_student(detail,
+    education,
+    favorites,
+    sex,
+    graduated,
+    id,
+    name,
+    phone_number)
+    VALUES
+    <foreach collection="list" item="item" separator=",">
+      (#{item.detail, typeHandler=com.aegis.mybatis.xmlless.config.TmpHandler},
+      #{item.education, typeHandler=com.aegis.mybatis.xmlless.config.TmpHandler},
+      #{item.favorites, typeHandler=com.aegis.mybatis.xmlless.config.TmpHandler},
+      #{item.gender},
+      #{item.graduated},
+      #{item.id},
+      #{item.name},
+      #{item.phoneNumber, typeHandler=com.aegis.mybatis.bean.StringTypeHandler})
+    </foreach>
+    ON DUPLICATE KEY UPDATE
+    <trim suffixOverrides=",">
+      detail = (if(VALUES(detail) = null, detail, VALUES(detail))),
+      education = (if(VALUES(education) = null, education, VALUES(education))),
+      favorites = (if(VALUES(favorites) = null, favorites, VALUES(favorites))),
+      sex = (if(VALUES(sex) = null, sex, VALUES(sex))),
+      graduated = (if(VALUES(graduated) = null, graduated, VALUES(graduated))),
+      name = (if(VALUES(name) = null, name, VALUES(name))),
+      phone_number = (if(VALUES(phone_number) = null, phone_number, VALUES(phone_number))),
+    </trim>
+  </insert>
+</mapper>

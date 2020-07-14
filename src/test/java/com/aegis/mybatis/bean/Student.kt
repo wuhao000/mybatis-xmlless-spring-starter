@@ -72,6 +72,7 @@ class Student() {
   @Id
   var id: String = ""
   var name: String = ""
+  var email: String? = null
 
   @Handler(StringTypeHandler::class)
   var phoneNumber: String = ""

@@ -65,7 +65,7 @@ data class Query(
   }
 
   fun buildUpdateSql(): String {
-    return String.format(UPDATE, tableName(), resolveUpdateProperties(),
+    return String.format(UPDATE, tableName(), resolveUpdateProperties(false),
         resolveUpdateWhere())
   }
 
@@ -94,22 +94,27 @@ data class Query(
    * @param prefix 前缀
    * @return sql 脚本片段
    */
-  fun getSqlSet(prefix: String?, mapping: FieldMapping): String {
+  fun getSqlSet(prefix: String?, mapping: FieldMapping, insertUpdate: Boolean): String {
+    val column = mapping.tableFieldInfo.column
     val newPrefix = prefix ?: StringPool.EMPTY
     // 默认: column=
-    var sqlSet = mapping.tableFieldInfo.column + StringPool.EQUALS
-
-    sqlSet += when {
-      mapping.tableFieldInfo.update != null
-          && mapping.tableFieldInfo.update.isNotEmpty() ->
-        String.format(mapping.tableFieldInfo.update, mapping.tableFieldInfo.column)
-      else                                              -> SqlScriptUtils.safeParam(newPrefix + mapping.getPropertyExpression(null, false))
+    var sqlSet = column + StringPool.EQUALS
+    if (insertUpdate) {
+      sqlSet += "(if(VALUES($column) = null, $column, VALUES($column)))"
+    } else {
+      sqlSet += when {
+        !mapping.tableFieldInfo.update.isNullOrBlank() -> String.format(mapping.tableFieldInfo.update, column)
+        else                                           -> SqlScriptUtils.safeParam(newPrefix + mapping.getPropertyExpression(null, false))
+      }
     }
     sqlSet += StringPool.COMMA
-    return when {
-      mapping.tableFieldInfo.fieldFill == FieldFill.UPDATE
-          || mapping.tableFieldInfo.fieldFill == FieldFill.INSERT_UPDATE -> sqlSet
-      else                                                               -> convertIf(sqlSet, newPrefix + mapping.tableFieldInfo.property, mapping)
+    if (insertUpdate) {
+      return sqlSet
+    }
+    return when (mapping.tableFieldInfo.fieldFill) {
+      FieldFill.UPDATE,
+      FieldFill.INSERT_UPDATE -> sqlSet
+      else                    -> convertIf(sqlSet, newPrefix + mapping.tableFieldInfo.property, mapping)
     }
   }
 
@@ -199,26 +204,6 @@ data class Query(
     }
   }
 
-  fun resolveUpdateProperties(): String {
-    if (this.properties.isEmpty()) {
-      return wrapSetScript(mappings.mappings.filter {
-        it.joinInfo == null && !it.updateIgnore
-            && it.property != mappings.tableInfo.keyProperty
-      }.joinToString(StringPool.NEWLINE) {
-        getSqlSet(null, it)
-      })
-    }
-    val builders = this.properties.map { property ->
-      val mapping = this.mappings.mappings.firstOrNull { it.property == property }
-      if (mapping == null) {
-        throw BuildSQLException("无法解析待更新属性：$property, 方法：$function")
-      } else {
-        getSqlSet(null, mapping)
-      }
-    }
-    return wrapSetScript(builders.joinToString(StringPool.NEWLINE))
-  }
-
   fun resolveUpdateWhere(): String {
     return when {
       criterion.isEmpty() -> String.format("""
@@ -230,18 +215,10 @@ data class Query(
 
   fun toSql(): String {
     return when (type) {
-      QueryType.Delete -> {
-        buildDeleteSql()
-      }
-      QueryType.Insert -> {
-        buildInsertSql()
-      }
-      QueryType.Select -> {
-        buildSelectSql()
-      }
-      QueryType.Update -> {
-        buildUpdateSql()
-      }
+      QueryType.Delete -> buildDeleteSql()
+      QueryType.Insert -> buildInsertSql()
+      QueryType.Select -> buildSelectSql()
+      QueryType.Update -> buildUpdateSql()
       QueryType.Count  -> buildCountSql()
       QueryType.Exists -> buildExistsSql()
     }
@@ -260,16 +237,25 @@ data class Query(
     val template: String
     val values = when {
       function.name.endsWith("All")   -> {
-        template = BATCH_INSERT
+        template = when {
+          function.name.endsWith("OrUpdateAll") -> BATCH_INSERT_OR_UPDATE
+          else                                  -> BATCH_INSERT
+        }
         mappings.insertProperties("item.")
       }
       this.properties.isNotEmpty()    -> {
-        template = INSERT
+        template = when {
+          function.name.endsWith("OrUpdate") -> INSERT_OR_UPDATE
+          else                               -> INSERT
+        }
         mappings.insertProperties(insertProperties = this.properties)
       }
       this.properties.isEmpty()
           && this.criterion.isEmpty() -> {
-        template = INSERT
+        template = when {
+          function.name.endsWith("OrUpdate") -> INSERT_OR_UPDATE
+          else                               -> INSERT
+        }
         mappings.insertProperties()
       }
       else                            -> throw BuildSQLException("无法解析${this.function}")
@@ -279,7 +265,8 @@ data class Query(
     }
     return String.format(template, mappings.tableInfo.tableName,
         columns.joinToString(Strings.COLUMN_SEPARATOR),
-        values.joinToString(Strings.COLUMN_SEPARATOR))
+        values.joinToString(Strings.COLUMN_SEPARATOR),
+        resolveUpdateProperties(true))
   }
 
   private fun buildScript(template: String, vararg args: String): String {
@@ -359,6 +346,26 @@ data class Query(
     }
   }
 
+  private fun resolveUpdateProperties(isInsertUpdate: Boolean): String {
+    if (this.properties.isEmpty()) {
+      return wrapSetScript(mappings.mappings.filter {
+        it.joinInfo == null && !it.updateIgnore
+            && it.property != mappings.tableInfo.keyProperty
+      }.joinToString(StringPool.NEWLINE) {
+        getSqlSet(null, it, isInsertUpdate)
+      }, isInsertUpdate)
+    }
+    val builders = this.properties.map { property ->
+      val mapping = this.mappings.mappings.firstOrNull { it.property == property }
+      if (mapping == null) {
+        throw BuildSQLException("无法解析待更新属性：$property, 方法：$function")
+      } else {
+        getSqlSet(null, mapping, isInsertUpdate)
+      }
+    }
+    return wrapSetScript(builders.joinToString(StringPool.NEWLINE), isInsertUpdate)
+  }
+
   private fun resolveWhere(): String {
     val groups = resolveGroups()
     val groupBuilders = groups.map {
@@ -383,8 +390,12 @@ data class Query(
     return sql.trim().trim(" AND").trim(" OR")
   }
 
-  private fun wrapSetScript(sql: String): String {
-    return convertTrim(sql, SQLKeywords.SET, null, null, ",")
+  private fun wrapSetScript(sql: String, noSetPrefix: Boolean): String {
+    val prefix = when {
+      noSetPrefix -> ""
+      else        -> SQLKeywords.SET
+    }
+    return convertTrim(sql, prefix, null, null, ",")
   }
 
 }

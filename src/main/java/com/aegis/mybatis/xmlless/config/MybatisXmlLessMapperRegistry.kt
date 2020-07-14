@@ -42,7 +42,7 @@ class MybatisXmlLessMapperRegistry(private val config: Configuration) : MapperRe
   override fun <T> addMapper(type: Class<T>) {
     if (type.isInterface) {
       if (hasMapper(type)) {
-        // TODO 如果之前注入 直接返回
+        // 如果之前注入 直接返回
         return
         // throw new BindingException("Type " + type +
         // " is already known to the MybatisPlusMapperRegistry.");
@@ -53,7 +53,7 @@ class MybatisXmlLessMapperRegistry(private val config: Configuration) : MapperRe
         // It's important that the type is added before the parser is run
         // otherwise the binding may automatically be attempted by the
         // mapper parser. If the type is already known, it won't try.
-        // TODO 自定义无 XML 注入
+        // 自定义无 XML 注入
         val parser = MybatisXmlLessMapperAnnotationBuilder(config, type)
         parser.parse()
         loadCompleted = true

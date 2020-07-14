@@ -86,10 +86,11 @@ class XmlLessMethods : AbstractMethod() {
             }
             QueryType.Insert     -> {
               // 如果id类型为自增，则将自增的id回填到插入的对象中
-              val keyGenerator = when {
-                tableInfo.idType == IdType.AUTO -> Jdbc3KeyGenerator.INSTANCE
-                else                            -> NoKeyGenerator.INSTANCE
+              val keyGenerator = when (tableInfo.idType) {
+                IdType.AUTO -> Jdbc3KeyGenerator.INSTANCE
+                else        -> NoKeyGenerator.INSTANCE
               }
+
               addInsertMappedStatement(
                   mapperClass, modelClass, function.name, sqlSource,
                   keyGenerator, tableInfo.keyProperty, tableInfo.keyColumn

@@ -141,7 +141,7 @@ public class MybatisXmlLessMapperAnnotationBuilder extends MapperAnnotationBuild
       parseCache();
       parseCacheRef();
       Method[] methods = type.getMethods();
-      // TODO 注入 CURD 动态 SQL (应该在注解之前注入)
+      // 注入 CURD 动态 SQL (应该在注解之前注入)
       // 吴昊： 仅仅注释掉了判断
 //      if (BaseMapper.class.isAssignableFrom(type)) {
       GlobalConfigUtils.getSqlInjector(configuration).inspectInject(assistant, type);
@@ -215,7 +215,7 @@ public class MybatisXmlLessMapperAnnotationBuilder extends MapperAnnotationBuild
     applyConstructorArgs(args, returnType, resultMappings);
     applyResults(results, returnType, resultMappings);
     Discriminator disc = applyDiscriminator(resultMapId, returnType, discriminator);
-    // TODO add AutoMappingBehaviour
+    // add AutoMappingBehaviour
     assistant.addResultMap(resultMapId, returnType, null, disc, resultMappings, null);
     createDiscriminatorResultMaps(resultMapId, returnType, discriminator);
   }
@@ -290,7 +290,6 @@ public class MybatisXmlLessMapperAnnotationBuilder extends MapperAnnotationBuild
         // issue #136
         applyConstructorArgs(c.constructArgs(), resultType, resultMappings);
         applyResults(c.results(), resultType, resultMappings);
-        // TODO add AutoMappingBehaviour
         assistant.addResultMap(caseResultMapId, c.type(), resultMapId, null, resultMappings, null);
       }
     }
@@ -658,7 +657,7 @@ public class MybatisXmlLessMapperAnnotationBuilder extends MapperAnnotationBuild
           resultSetType,
           flushCache,
           useCache,
-          // TODO gcode issue #577
+          // gcode issue #577
           false,
           keyGenerator,
           keyProperty,
