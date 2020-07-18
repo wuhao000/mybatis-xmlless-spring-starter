@@ -108,12 +108,12 @@ object QueryResolver {
     }
   }
 
-  fun resolveJavaType(function: Method): JavaType? {
-    if (Collection::class.java.isAssignableFrom(function.returnType)) {
+  fun resolveJavaType(function: Method, forceSingleValue: Boolean = false): JavaType? {
+    return if (!forceSingleValue && Collection::class.java.isAssignableFrom(function.returnType)) {
       val type = (function.genericReturnType as ParameterizedType).actualTypeArguments[0]
-      return toJavaType(type)
+      toJavaType(type)
     } else {
-      return toJavaType(function.returnType)
+      toJavaType(function.returnType)
     }
   }
 

@@ -32,6 +32,7 @@ class XmlLessPageMapperMethod(
 
   private val command = SqlCommand(config, mapperInterface, requestMethod)
   private val method = MethodSignature(config, mapperInterface, requestMethod)
+
   companion object {
     val mapper = createObjectMapper()
   }
@@ -40,7 +41,8 @@ class XmlLessPageMapperMethod(
   override fun execute(sqlSession: SqlSession, args: Array<out Any?>?): Any? {
     var result: Any? = null
     if (command.type == SqlCommandType.SELECT && args != null
-        && Page::class.java.isAssignableFrom(method.returnType)) {
+        && Page::class.java.isAssignableFrom(method.returnType)
+    ) {
       val list = executeForMany<Any>(sqlSession, args) as List<Any>
       val pageArg = findIPageArg(args) as IPage<*>?
       result = if (pageArg != null) {
@@ -67,23 +69,36 @@ class XmlLessPageMapperMethod(
       return result
     }
     val returnClass = QueryResolver.resolveReturnType(requestMethod)
-    val type = QueryResolver.resolveJavaType(requestMethod)
+    val forceSingleValue = forceSingleValue(requestMethod)
+    val type = QueryResolver.resolveJavaType(requestMethod, forceSingleValue)
     if (requestMethod.isAnnotationPresent(JsonResult::class.java)
         || returnClass.isAnnotationPresent(JsonMappingProperty::class.java)
     ) {
+      if (forceSingleValue) {
+        val size = (result as MutableCollection<Any?>).size
+        if (size > 1) {
+          throw XmlLessException("Need result size to be 1, but got [$size]")
+        } else if (size == 0){
+          return null
+        } else {
+          val value = result.first()
+          val json = extractJson(value)
+          return when (json) {
+            null -> null
+            else -> mapper.readValue<Any?>(json, type)
+          }
+        }
+      }
       if (result is MutableCollection<*>) {
         val list = arrayListOf<Any?>()
         list.addAll(result as Collection<Any?>)
         result.clear()
         (result as MutableCollection<Any?>).addAll(
             list.map {
-              if (it == null) {
-                null
-              } else {
-                when (val json = (it as JsonWrapper).json) {
-                  null -> null
-                  else -> mapper.readValue<Any?>(json, type)
-                }
+              val json = extractJson(it)
+              when (json) {
+                null -> null
+                else -> mapper.readValue<Any?>(json, type)
               }
             }
         )
@@ -93,6 +108,15 @@ class XmlLessPageMapperMethod(
       }
     }
     return result
+  }
+
+  private fun extractJson(it: Any?): String? {
+    return when (it) {
+      null           -> null
+      is String      -> it
+      is JsonWrapper -> it.json
+      else           -> it.toString()
+    }
   }
 
   private fun <E> executeForMany(sqlSession: SqlSession, args: Array<out Any?>?): Any {
@@ -117,6 +141,11 @@ class XmlLessPageMapperMethod(
     return args.filterNotNull().firstOrNull {
       IPage::class.java.isAssignableFrom(it.javaClass)
     }
+  }
+
+  private fun forceSingleValue(requestMethod: Method): Boolean {
+    return requestMethod.isAnnotationPresent(JsonResult::class.java)
+        && requestMethod.getAnnotation(JsonResult::class.java).forceSingleValue
   }
 
 }

@@ -26,6 +26,12 @@ class StudentDetailDAOTest : BaseTest() {
   }
 
   @Test
+  fun findNickNamesById() {
+    val s = studentDAO.findNickNamesById("a")
+    println(s)
+  }
+
+  @Test
   @DisplayName("数组值包含查询")
   fun findByFavoritesIn() {
     val s = studentDAO.findByFavoritesIn(listOf("登山"))

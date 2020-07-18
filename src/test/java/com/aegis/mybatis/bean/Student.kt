@@ -69,6 +69,8 @@ class Student() {
   @Column(name = "sex")
   var gender: Int = 1
   var graduated: Boolean = false
+  @JsonMappingProperty
+  var nickNames: List<String>? = null
   @Id
   var id: String = ""
   var name: String = ""
