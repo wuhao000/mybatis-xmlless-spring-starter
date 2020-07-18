@@ -9,6 +9,7 @@ import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.apache.ibatis.builder.ResultMapResolver
 import org.apache.ibatis.mapping.ResultFlag
 import org.apache.ibatis.mapping.ResultMapping
+import org.apache.ibatis.type.JdbcType
 import org.apache.ibatis.type.StringTypeHandler
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.findAnnotation
@@ -22,12 +23,24 @@ import kotlin.reflect.full.findAnnotation
  */
 object ResultMapResolver {
 
+  fun isJsonType(
+      modelClass: Class<*>,
+      query: Query?,
+      function: KFunction<*>?
+  ): Boolean {
+    if (function != null && function.findAnnotation<JsonResult>() != null) {
+      return true
+    }
+    return (modelClass.isAnnotationPresent(JsonMappingProperty::class.java)
+        && query != null && query.properties.includes.size == 1)
+  }
+
   fun resolveResultMap(
       id: String,
       builderAssistant: MapperBuilderAssistant,
       modelClass: Class<*>,
       query: Query? = null,
-      optionalProperties: List<String> = listOf(),
+      optionalProperties: Properties = Properties(),
       function: KFunction<*>? = null
   ): String? {
     if (modelClass.name.startsWith("java.lang") || modelClass.isEnum) {
@@ -144,24 +157,12 @@ object ResultMapResolver {
     return copyId
   }
 
-  fun isJsonType(
-      modelClass: Class<*>,
-      query: Query?,
-      function: KFunction<*>?
-  ): Boolean {
-    if (function != null && function.findAnnotation<JsonResult>() != null) {
-      return true
-    }
-    return (modelClass.isAnnotationPresent(JsonMappingProperty::class.java)
-        && query != null && query.properties.size == 1)
-  }
-
   private fun isMappingPropertyInQuery(mapping: FieldMapping, query: Query): Boolean {
-    if (mapping.property in query.properties) {
+    if (query.properties.isIncludeNotEmpty() && mapping.property in query.properties) {
       return true
     }
     if (mapping.joinInfo != null && mapping.joinInfo is ObjectJoinInfo) {
-      return query.properties.filter { it.contains('.') }
+      return query.properties.includes.filter { it.contains('.') && it !in query.properties.excludes }
           .map { it.split('.')[0] }.contains(mapping.property)
     }
     return false
@@ -170,7 +171,7 @@ object ResultMapResolver {
   private fun resolveResultMappings(
       mappings: FieldMappings?,
       query: Query?,
-      optionalProperties: List<String>,
+      optionalProperties: Properties,
       builderAssistant: MapperBuilderAssistant,
       modelClass: Class<*>,
       copyId: String,
@@ -178,23 +179,24 @@ object ResultMapResolver {
   ): List<ResultMapping> {
     if (isJsonType(modelClass, query, function)) {
       val column = query!!.mappings.mappings
-          .first { it.property == query.properties[0] }.column
+          .first { it.property == query.properties.includes[0] }.column
       return listOf(
           ResultMapping.Builder(
               builderAssistant.configuration,
               null, column, String::class.java
-          )
-              .typeHandler(StringTypeHandler())
+          ).typeHandler(StringTypeHandler())
               .flags(arrayListOf(ResultFlag.CONSTRUCTOR))
+              .jdbcType(JdbcType.VARCHAR)
               .build()
       )
     }
     return mappings?.mappings?.mapNotNull { mapping ->
       when {
-        query != null && query.properties.isNotEmpty()
-            && !isMappingPropertyInQuery(mapping, query) -> null
-        optionalProperties.isNotEmpty()
-            && mapping.property !in optionalProperties   -> null
+        query != null && ((query.properties.isIncludeNotEmpty()
+            && !isMappingPropertyInQuery(mapping, query))) -> null
+        (optionalProperties.isIncludeNotEmpty()
+            && mapping.property !in optionalProperties)
+            || mapping.property in optionalProperties.excludes -> null
         else                                             -> buildByMapping(
             copyId,
             builderAssistant,

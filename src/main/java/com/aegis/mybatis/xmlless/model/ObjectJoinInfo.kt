@@ -16,7 +16,7 @@ import javax.persistence.criteria.JoinType
  * Created by 吴昊 on 2018/12/17.
  */
 class ObjectJoinInfo(
-    val selectProperties: List<String>,
+    val selectProperties: Properties,
     joinTable: TableName,
     type: JoinType,
     joinProperty: String,
@@ -43,7 +43,7 @@ class ObjectJoinInfo(
       val realType = this.realType()
       val mappings = MappingResolver.getMappingCache(realType)
       if (mappings != null) {
-        val mappingList = if (selectProperties.isNotEmpty()) {
+        val mappingList = if (selectProperties.isIncludeNotEmpty()) {
           mappings.mappings.filter {
             it.joinInfo != null && it.joinInfo is ObjectJoinInfo
                 && it.property in selectProperties
@@ -51,6 +51,7 @@ class ObjectJoinInfo(
         } else {
           mappings.mappings.filter {
             it.joinInfo != null && it.joinInfo is ObjectJoinInfo
+                && it.property !in selectProperties.excludes
           }
         }
         return mappingList.map { it.joinInfo!!.selectFields(level + 1, associationPrefix) }.flatten() + list
@@ -71,20 +72,20 @@ class ObjectJoinInfo(
     val realType = this.realType()
     val mappings = MappingResolver.getMappingCache(realType)
     return mappings?.selectJoins(level + 1,
-        selectProperties.toList(),
+        selectProperties,
         listOf(), this.joinTable) ?: ""
   }
 
   private fun hasJoinedProperty(): Boolean {
     val mappings = MappingResolver.getMappingCache(realType()) ?: throw BuildSQLException("无法正确解析join信息：$this")
-    return selectProperties.mapNotNull { property ->
+    return selectProperties.includes.mapNotNull { property ->
       mappings.mappings.firstOrNull { it.property == property }
     }.any { it.joinInfo != null }
   }
 
   private fun resolveJoinColumns(): List<SelectColumn> {
     val mappings = MappingResolver.getMappingCache(realType()) ?: throw BuildSQLException("无法正确解析join信息：$this")
-    val columns = selectProperties.mapNotNull { property ->
+    val columns = selectProperties.includes.mapNotNull { property ->
       mappings.mappings.firstOrNull { it.property == property }
     }.filter { it.joinInfo == null }.map { it.column }
     return when {

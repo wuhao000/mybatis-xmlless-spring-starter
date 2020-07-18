@@ -2,6 +2,7 @@ package com.aegis.mybatis.dao
 
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.bean.StudentDetail
+import com.aegis.mybatis.xmlless.annotations.ExcludeProperties
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.annotations.TestExpression
@@ -137,6 +138,7 @@ interface StudentDAO : XmlLessMapper<Student> {
 
   fun saveOrUpdate(student: Student)
 
+  @ExcludeProperties(update = ["name"])
   fun saveOrUpdateAll(list: List<Student>)
 
   /**

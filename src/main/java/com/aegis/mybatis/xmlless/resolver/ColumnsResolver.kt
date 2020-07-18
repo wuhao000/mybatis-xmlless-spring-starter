@@ -2,6 +2,7 @@ package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.xmlless.constant.SQLKeywords
 import com.aegis.mybatis.xmlless.model.FieldMappings
+import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.model.SelectColumn
 import org.slf4j.LoggerFactory
 
@@ -15,11 +16,11 @@ object ColumnsResolver {
   /**
    * 构建查询的列
    */
-  fun resolve(mappings: FieldMappings, properties: List<String>): List<SelectColumn> {
+  fun resolve(mappings: FieldMappings, properties: Properties): List<SelectColumn> {
     return resolveColumns(mappings, properties).sortedBy { it.toSql() }
   }
 
-  fun resolveIncludedTables(mappings: FieldMappings, properties: List<String>): List<String> {
+  fun resolveIncludedTables(mappings: FieldMappings, properties: Properties): List<String> {
     return resolveColumns(mappings, properties).mapNotNull {
       it.table
     }
@@ -32,19 +33,12 @@ object ColumnsResolver {
     }
   }
 
-  private fun resolveColumns(mappings: FieldMappings, properties: List<String>): List<SelectColumn> {
+  private fun resolveColumns(mappings: FieldMappings, properties: Properties): List<SelectColumn> {
     if (LOG.isDebugEnabled) {
       LOG.debug("Available properties for class ${mappings.modelClass}: ${mappings.mappings.map { it.property }}")
       LOG.debug("Fetch properties for class ${mappings.modelClass}: $properties")
     }
-    return when {
-      // 指定属性进行查询
-      properties.isNotEmpty() -> properties.map {
-        mappings.resolveColumnByPropertyName(it)
-      }.flatten()
-      // 查询全部属性
-      else                    -> mappings.selectFields()
-    }
+    return mappings.selectFields(properties)
   }
 
 }

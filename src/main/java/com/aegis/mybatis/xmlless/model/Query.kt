@@ -39,7 +39,7 @@ data class Query(
     /**  sql类型 */
     val type: QueryType,
     /**  更细或者查询的属性列表 */
-    val properties: List<String> = listOf(),
+    val properties: Properties = Properties(),
     /**  查询条件信息 */
     val criterion: List<QueryCriteria> = listOf(),
     /**  排序信息 */
@@ -119,7 +119,8 @@ data class Query(
   }
 
   fun includeJoins(): Boolean {
-    return properties.isEmpty() || properties.any { !it.startsWith(mappings.tableInfo.tableName) }
+    return properties.includes.isEmpty()
+        || properties.includes.any { !it.startsWith(mappings.tableInfo.tableName) }
         || containedTables().distinct().any { it != mappings.tableInfo.tableName }
   }
 
@@ -241,7 +242,7 @@ data class Query(
           function.name.endsWith("OrUpdateAll") -> BATCH_INSERT_OR_UPDATE
           else                                  -> BATCH_INSERT
         }
-        mappings.insertProperties("item.")
+        mappings.insertProperties("item.", this.properties)
       }
       this.properties.isNotEmpty()    -> {
         template = when {
@@ -250,7 +251,7 @@ data class Query(
         }
         mappings.insertProperties(insertProperties = this.properties)
       }
-      this.properties.isEmpty()
+      this.properties.isIncludeEmpty()
           && this.criterion.isEmpty() -> {
         template = when {
           function.name.endsWith("OrUpdate") -> INSERT_OR_UPDATE
@@ -261,7 +262,7 @@ data class Query(
       else                            -> throw BuildSQLException("无法解析${this.function}")
     }
     if (columns.size != values.size) {
-      throw BuildSQLException("插入的字段\n$columns\n与插入的值\n$values\n数量不一致")
+      throw BuildSQLException("解析方法[${function}]失败，插入的字段\n$columns\n与插入的值\n$values\n数量不一致")
     }
     return String.format(template, mappings.tableInfo.tableName,
         columns.joinToString(Strings.COLUMN_SEPARATOR),
@@ -302,8 +303,11 @@ data class Query(
 
   private fun hasCollectionJoinProperty(): Boolean {
     return when {
-      this.properties.isNotEmpty() -> this.mappings.mappings.filter { it.property in this.properties }
-      else                         -> this.mappings.mappings
+      this.properties.isIncludeNotEmpty() -> this.mappings.mappings
+          .filter { it.property in this.properties}
+      else                         -> this.mappings.mappings.filter {
+        it.property !in this.properties.excludes
+      }
     }.filter {
       it.joinInfo != null
     }.any {
@@ -334,8 +338,9 @@ data class Query(
 
   private fun resolveGroupBy(mappings: FieldMappings): String {
     val mappingList = when {
-      properties.isNotEmpty() -> mappings.mappings.filter { it.property in properties }
-      else                    -> mappings.mappings
+      properties.isIncludeNotEmpty() -> mappings.mappings
+          .filter { it.property in properties }
+      else                    -> mappings.mappings.filter { it.property !in properties.excludes }
     }
     val groupProperties = mappingList.mapNotNull { it.joinInfo }
         .filter { it is PropertyJoinInfo }
@@ -347,15 +352,17 @@ data class Query(
   }
 
   private fun resolveUpdateProperties(isInsertUpdate: Boolean): String {
-    if (this.properties.isEmpty()) {
+    if (this.properties.isIncludeEmpty()) {
       return wrapSetScript(mappings.mappings.filter {
         it.joinInfo == null && !it.updateIgnore
+            && it.property !in this.properties.excludes
+            && it.property !in this.properties.updateExcludeProperties
             && it.property != mappings.tableInfo.keyProperty
       }.joinToString(StringPool.NEWLINE) {
         getSqlSet(null, it, isInsertUpdate)
       }, isInsertUpdate)
     }
-    val builders = this.properties.map { property ->
+    val builders = this.properties.includes.map { property ->
       val mapping = this.mappings.mappings.firstOrNull { it.property == property }
       if (mapping == null) {
         throw BuildSQLException("无法解析待更新属性：$property, 方法：$function")
@@ -399,3 +406,4 @@ data class Query(
   }
 
 }
+

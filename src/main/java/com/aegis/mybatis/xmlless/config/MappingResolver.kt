@@ -11,18 +11,9 @@ import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.ibatis.builder.MapperBuilderAssistant
-import org.apache.ibatis.type.BaseTypeHandler
-import org.apache.ibatis.type.JdbcType
-import org.apache.ibatis.type.TypeHandler
 import org.springframework.core.annotation.AnnotationUtils
 import java.lang.reflect.Field
-import java.sql.CallableStatement
-import java.sql.PreparedStatement
-import java.sql.ResultSet
 import javax.persistence.Column
 import javax.persistence.GeneratedValue
 import javax.persistence.Id
@@ -234,7 +225,9 @@ class MappingResolverProxy {
       joinObject != null   -> joinObject.let {
         val targetTableName = TableName.resolve(it.targetTable, joinObject.associationPrefix)
         ObjectJoinInfo(
-            joinObject.selectProperties.toList(),
+            Properties(
+                joinObject.selectProperties.toList()
+            ),
             targetTableName,
             it.joinType,
             it.joinProperty, it.targetColumn,

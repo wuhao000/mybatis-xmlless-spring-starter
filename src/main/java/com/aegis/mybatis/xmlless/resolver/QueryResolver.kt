@@ -2,6 +2,7 @@
 
 package com.aegis.mybatis.xmlless.resolver
 
+import com.aegis.mybatis.xmlless.annotations.ExcludeProperties
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.config.MappingResolver
@@ -11,10 +12,7 @@ import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.split
 import com.aegis.mybatis.xmlless.kotlin.toCamelCase
 import com.aegis.mybatis.xmlless.kotlin.toWords
-import com.aegis.mybatis.xmlless.model.Limitation
-import com.aegis.mybatis.xmlless.model.Query
-import com.aegis.mybatis.xmlless.model.QueryType
-import com.aegis.mybatis.xmlless.model.ResolvedQuery
+import com.aegis.mybatis.xmlless.model.*
 import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
@@ -77,7 +75,8 @@ object QueryResolver {
       val conditions = CriteriaResolver.resolveConditions(resolvePropertiesResult.conditionWords, function, mappings)
       val query = Query(
           resolveTypeResult.type,
-          resolvePropertiesResult.properties,
+          Properties(resolvePropertiesResult.properties, resolvePropertiesResult.excludeProperties,
+              resolvePropertiesResult.updateExcludeProperties),
           conditions,
           resolveSortsResult.sorts,
           function,
@@ -117,11 +116,6 @@ object QueryResolver {
     }
   }
 
-  fun toJavaType(type: Type): JavaType? {
-    val typeFactory = XmlLessPageMapperMethod.mapper.typeFactory
-    return typeFactory.constructType(type)
-  }
-
   /**
    * 解析要查询或者更新的字段
    */
@@ -144,11 +138,17 @@ object QueryResolver {
     } else {
       listOf()
     }
+    var excludeProperties = listOf<String>()
+    var updateExcludeProperties = listOf<String>()
     // 如果方法指定了要查询或者更新的属性，从方法名称解析的字段无效
     if (function.findAnnotation<SelectedProperties>() != null) {
       properties = function.findAnnotation<SelectedProperties>()!!.properties.toList()
     }
-    return ResolvePropertiesResult(properties, conditionWords)
+    if (function.findAnnotation<ExcludeProperties>() != null) {
+      excludeProperties = function.findAnnotation<ExcludeProperties>()!!.properties.toList()
+      updateExcludeProperties = function.findAnnotation<ExcludeProperties>()!!.update.toList()
+    }
+    return ResolvePropertiesResult(properties, conditionWords, excludeProperties, updateExcludeProperties)
   }
 
   fun resolveResultMap(
@@ -160,7 +160,7 @@ object QueryResolver {
       // 如果没有指定resultMap，则自动生成resultMap
       return ResultMapResolver.resolveResultMap(
           mapperClass.name + DOT + function.name,
-          builderAssistant, returnType, query, listOf(), function
+          builderAssistant, returnType, query, Properties(), function
       )
     }
     return resultMap
@@ -235,6 +235,11 @@ object QueryResolver {
     return ResolveTypeResult(type, remainWords.toList(), typeWord)
   }
 
+  fun toJavaType(type: Type): JavaType? {
+    val typeFactory = XmlLessPageMapperMethod.mapper.typeFactory
+    return typeFactory.constructType(type)
+  }
+
   private fun getResolvedName(function: KFunction<*>): String {
     val resolvedNameAnnotation = function.findAnnotation<ResolvedName>()
     return when {
@@ -248,7 +253,12 @@ object QueryResolver {
    * @author 吴昊
    * @since 0.0.2
    */
-  data class ResolvePropertiesResult(val properties: List<String>, val conditionWords: List<String>)
+  data class ResolvePropertiesResult(
+      val properties: List<String>,
+      val conditionWords: List<String>,
+      val excludeProperties: List<String>,
+      val updateExcludeProperties: List<String>
+  )
 
   /**
    * 从方法名中解析出的排序属性结果
