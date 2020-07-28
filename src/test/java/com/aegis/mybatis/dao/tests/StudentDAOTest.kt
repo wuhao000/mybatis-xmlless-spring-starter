@@ -3,6 +3,7 @@ package com.aegis.mybatis.dao.tests
 import com.aegis.mybatis.bean.Score
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.bean.StudentDetail
+import com.aegis.mybatis.bean.StudentState
 import com.aegis.mybatis.dao.ScoreDAO
 import com.aegis.mybatis.dao.StudentDAO
 import org.junit.Test
@@ -38,6 +39,12 @@ class StudentDAOTest : BaseTest() {
   fun count() {
     insertStudents()
     assert(studentDAO.count() > 0)
+  }
+
+  @Test
+  fun findByState() {
+    val list = studentDAO.findByStateIn(listOf(StudentState.normal))
+    assert(list.isNotEmpty())
   }
 
   /**

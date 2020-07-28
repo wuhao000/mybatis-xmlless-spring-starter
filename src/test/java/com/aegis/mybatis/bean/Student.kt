@@ -64,17 +64,21 @@ class Student() {
 
   @JsonMappingProperty
   var education: List<EducationInfo>? = null
+  var email: String? = null
+
   @JsonMappingProperty
   var favorites: List<String> = listOf()
+
   @Column(name = "sex")
   var gender: Int = 1
   var graduated: Boolean = false
-  @JsonMappingProperty
-  var nickNames: List<String>? = null
+
   @Id
   var id: String = ""
   var name: String = ""
-  var email: String? = null
+
+  @JsonMappingProperty
+  var nickNames: List<String>? = null
 
   @Handler(StringTypeHandler::class)
   var phoneNumber: String = ""
@@ -88,6 +92,7 @@ class Student() {
   )
   @ModifyIgnore
   var scores: MutableList<Score>? = null
+  var state: StudentState = StudentState.normal
 
   constructor(id: String, name: String, phoneNumber: String, gender: Int)
       : this() {
@@ -107,5 +112,12 @@ class Student() {
       | favorites=$favorites
       |)""".trimMargin()
   }
+
+}
+
+enum class StudentState {
+
+  normal,
+  abnormal;
 
 }
