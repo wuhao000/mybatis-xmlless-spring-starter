@@ -29,6 +29,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>com.aegis</groupId>
+      <artifactId>commons</artifactId>
+      <version>${aegis-commons.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.springframework.data</groupId>
       <artifactId>spring-data-commons</artifactId>
       <version>${spring-data-commons.version}</version>

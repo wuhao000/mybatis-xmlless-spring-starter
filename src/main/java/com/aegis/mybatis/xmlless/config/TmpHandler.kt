@@ -1,5 +1,6 @@
 package com.aegis.mybatis.xmlless.config
 
+import com.aegis.jackson.createObjectMapper
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JavaType
@@ -13,18 +14,7 @@ import java.sql.ResultSet
 
 open class TmpHandler(val type: JavaType? = null) : BaseTypeHandler<Any>() {
 
-  val mapper = ObjectMapper().apply {
-    setSerializationInclusion(JsonInclude.Include.NON_NULL)
-    this.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-    this.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false)
-    this.configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false)
-    this.configure(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES, false)
-    this.configure(DeserializationFeature.FAIL_ON_MISSING_EXTERNAL_TYPE_ID_PROPERTY, false)
-    this.configure(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES, false)
-    this.configure(DeserializationFeature.FAIL_ON_NUMBERS_FOR_ENUMS, false)
-    this.configure(DeserializationFeature.FAIL_ON_READING_DUP_TREE_KEY, false)
-    this.configure(DeserializationFeature.FAIL_ON_TRAILING_TOKENS, false)
-  }
+  val mapper = createObjectMapper()
 
   override fun getNullableResult(rs: ResultSet, column: String): Any? {
     val columnValue = rs.getString(column)
