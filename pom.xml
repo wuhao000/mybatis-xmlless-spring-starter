@@ -6,7 +6,7 @@
 
   <groupId>com.aegis</groupId>
   <artifactId>aegis-starter-mybatis-parent</artifactId>
-  <version>3.4.2</version>
+  <version>3.4.3</version>
   <modules>
     <module>mybatis-xmlless</module>
     <module>mybatis-xmlless-spring-boot-starter</module>

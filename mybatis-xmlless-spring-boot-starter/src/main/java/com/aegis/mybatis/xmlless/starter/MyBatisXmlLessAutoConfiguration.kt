@@ -46,7 +46,7 @@ import javax.sql.DataSource
 @EnableConfigurationProperties(MybatisPlusProperties::class)
 @AutoConfigureAfter(DataSourceAutoConfiguration::class)
 @AutoConfigureBefore(MybatisPlusAutoConfiguration::class)
-class MyBatisXmlLessAutoConfiguration(private var properties: MybatisPlusProperties,
+open class MyBatisXmlLessAutoConfiguration(private var properties: MybatisPlusProperties,
                                       mybatisProperties: MybatisProperties,
                                       interceptorsProvider: ObjectProvider<Array<Interceptor>>,
                                       private var resourceLoader: ResourceLoader,

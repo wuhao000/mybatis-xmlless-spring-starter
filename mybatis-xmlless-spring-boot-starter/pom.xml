@@ -5,7 +5,7 @@
   <parent>
     <artifactId>aegis-starter-mybatis-parent</artifactId>
     <groupId>com.aegis</groupId>
-    <version>3.4.2</version>
+    <version>3.4.3</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -15,9 +15,10 @@
     <dependency>
       <groupId>com.aegis</groupId>
       <artifactId>mybatis-xmlless</artifactId>
-      <version>3.4.2</version>
+      <version>3.4.3</version>
     </dependency>
   </dependencies>
+
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -58,25 +59,26 @@
         <groupId>org.jetbrains.kotlin</groupId>
         <artifactId>kotlin-maven-plugin</artifactId>
         <version>${kotlin.version}</version>
-        <executions>
-          <execution>
-            <id>compile</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>test-compile</id>
-            <phase>test-compile</phase>
-            <goals>
-              <goal>test-compile</goal>
-            </goals>
-          </execution>
-        </executions>
         <configuration>
-          <jvmTarget>1.8</jvmTarget>
+          <compilerPlugins>
+            <plugin>spring</plugin>
+            <plugin>no-arg</plugin>
+            <plugin>jpa</plugin>
+          </compilerPlugins>
         </configuration>
+        <dependencies>
+          <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-maven-allopen -->
+          <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-maven-allopen</artifactId>
+            <version>${kotlin.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-maven-noarg</artifactId>
+            <version>${kotlin.version}</version>
+          </dependency>
+        </dependencies>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
