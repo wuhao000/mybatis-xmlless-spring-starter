@@ -30,4 +30,4 @@ import org.springframework.test.context.junit4.SpringRunner
 @AutoConfigureTestDatabase(
     replace = AutoConfigureTestDatabase.Replace.NONE
 )
-class BaseTest
+open class BaseTest

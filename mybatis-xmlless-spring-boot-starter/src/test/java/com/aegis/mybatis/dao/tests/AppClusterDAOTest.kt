@@ -10,7 +10,7 @@ import org.springframework.data.domain.PageRequest
 /**
  * Created by 吴昊 on 2018/12/17.
  */
-class AppClusterDAOTest : BaseTest() {
+open class AppClusterDAOTest : BaseTest() {
 
   @Autowired
   private lateinit var dao: AppClusterDAO
