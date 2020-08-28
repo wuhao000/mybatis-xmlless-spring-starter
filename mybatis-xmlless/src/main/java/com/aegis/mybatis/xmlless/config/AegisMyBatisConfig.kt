@@ -17,10 +17,10 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 @EnableConfigurationProperties(AegisMyBatisConfig::class)
 @ConfigurationProperties(prefix = "mybatis.aegis")
-class AegisMyBatisConfig {
+open class AegisMyBatisConfig {
 
   @Bean
-  fun paginationInterceptor(): PaginationInterceptor {
+  open fun paginationInterceptor(): PaginationInterceptor {
     return PaginationInterceptor()
   }
 
