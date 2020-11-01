@@ -12,7 +12,7 @@ __本项目依赖于mybatis及mybatis-plus, 并使引用了mybatis-plus中的一
 > 文档中的示例代码均为kotlin代码
 
 ## 主要特性
-
+- **支持json自动映射**
 - 支持根据DAO的方法名称自动推断添加、查询、修改、删除、统计、是否存在等数据库操作
 - 支持多种形式的表达,如findById,queryById,selectById是等价的，deleteById与removeById是等价的
 - 支持根据对象结构自动解析resultMap（支持级联的对象），不再需要在xml文件中配置resultMap
@@ -21,7 +21,6 @@ __本项目依赖于mybatis及mybatis-plus, 并使引用了mybatis-plus中的一
 - 支持spring data的Pageable和Page对象，基本可以和jpa做到无缝切换
 - 支持部分jpa注解：@Table、@Transient、@Id、@GeneratedValue，作用于持久化对象
 - 支持自增主键回填，需要在主键属性上添加jpa注解@GeneratedValue
-
 ## 使用方法
 
 第一步： 添加maven仓库
@@ -69,6 +68,17 @@ XmlLessMapper接口没有任何默认的方法，不会影响原有代码
 表名称支持jpa注解__@Table__，原mybatis-plus的@TableName注解仍然有效，但@Table注解的优先级更高
 
 主键属性支持jpa注解__@Id__
+
+支持json字段和返回json对象自动转换
+
+## json字段映射
+
+### 持久化对象中的字段序列化为json以及反序列化支持
+
+在需要映射为json的字段上添加**@JsonMappingProperty**注解
+
+### 返回json字段
+在返回的对象上添加 @JsonMappingProperty 注解或在映射的mapper方法上添加@JsonResult注解
 
 ## sql推断说明
 

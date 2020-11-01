@@ -1,6 +1,11 @@
 package com.aegis.mybatis.xmlless.config.paginition
 
+import com.aegis.jackson.createObjectMapper
+import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
+import com.aegis.mybatis.xmlless.annotations.JsonResult
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods
+import com.aegis.mybatis.xmlless.model.JsonWrapper
+import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.baomidou.mybatisplus.core.metadata.IPage
 import org.apache.ibatis.binding.MapperMethod
 import org.apache.ibatis.mapping.SqlCommandType
@@ -19,22 +24,25 @@ import java.lang.reflect.Method
  * @author 吴昊
  * @since 0.0.4
  */
-class XmlLessPageMapperMethod(mapperInterface: Class<*>,
-                              requestMethod: Method,
-                              config: Configuration) :
-    MapperMethod(mapperInterface, requestMethod, config) {
+class XmlLessPageMapperMethod(
+    mapperInterface: Class<*>,
+    val requestMethod: Method,
+    config: Configuration
+) : MapperMethod(mapperInterface, requestMethod, config) {
 
-  private val command = MapperMethod.SqlCommand(config, mapperInterface, requestMethod)
-  private val method = MapperMethod.MethodSignature(config, mapperInterface, requestMethod)
+  private val command = SqlCommand(config, mapperInterface, requestMethod)
+  private val method = MethodSignature(config, mapperInterface, requestMethod)
 
-  init {
+  companion object {
+    val mapper = createObjectMapper()
   }
 
   @Suppress("UNCHECKED_CAST")
   override fun execute(sqlSession: SqlSession, args: Array<out Any?>?): Any? {
     var result: Any? = null
     if (command.type == SqlCommandType.SELECT && args != null
-        && Page::class.java.isAssignableFrom(method.returnType)) {
+        && Page::class.java.isAssignableFrom(method.returnType)
+    ) {
       val list = executeForMany<Any>(sqlSession, args) as List<Any>
       val pageArg = findIPageArg(args) as IPage<*>?
       result = if (pageArg != null) {
@@ -57,7 +65,58 @@ class XmlLessPageMapperMethod(mapperInterface: Class<*>,
         throw e
       }
     }
+    if (result == null) {
+      return result
+    }
+    val returnClass = QueryResolver.resolveReturnType(requestMethod)
+    val forceSingleValue = forceSingleValue(requestMethod)
+    val type = QueryResolver.resolveJavaType(requestMethod, forceSingleValue)
+    if (requestMethod.isAnnotationPresent(JsonResult::class.java)
+        || returnClass.isAnnotationPresent(JsonMappingProperty::class.java)
+    ) {
+      if (forceSingleValue) {
+        val size = (result as MutableCollection<Any?>).size
+        if (size > 1) {
+          throw XmlLessException("Need result size to be 1, but got [$size]")
+        } else if (size == 0){
+          return null
+        } else {
+          val value = result.first()
+          val json = extractJson(value)
+          return when (json) {
+            null -> null
+            else -> mapper.readValue<Any?>(json, type)
+          }
+        }
+      }
+      if (result is MutableCollection<*>) {
+        val list = arrayListOf<Any?>()
+        list.addAll(result as Collection<Any?>)
+        result.clear()
+        (result as MutableCollection<Any?>).addAll(
+            list.map {
+              val json = extractJson(it)
+              when (json) {
+                null -> null
+                else -> mapper.readValue<Any?>(json, type)
+              }
+            }
+        )
+      } else {
+        val json = (result as JsonWrapper).json ?: return null
+        result = mapper.readValue<Any?>(json, type)
+      }
+    }
     return result
+  }
+
+  private fun extractJson(it: Any?): String? {
+    return when (it) {
+      null           -> null
+      is String      -> it
+      is JsonWrapper -> it.json
+      else           -> it.toString()
+    }
   }
 
   private fun <E> executeForMany(sqlSession: SqlSession, args: Array<out Any?>?): Any {
@@ -82,6 +141,11 @@ class XmlLessPageMapperMethod(mapperInterface: Class<*>,
     return args.filterNotNull().firstOrNull {
       IPage::class.java.isAssignableFrom(it.javaClass)
     }
+  }
+
+  private fun forceSingleValue(requestMethod: Method): Boolean {
+    return requestMethod.isAnnotationPresent(JsonResult::class.java)
+        && requestMethod.getAnnotation(JsonResult::class.java).forceSingleValue
   }
 
 }

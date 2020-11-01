@@ -14,16 +14,22 @@ import com.baomidou.mybatisplus.core.metadata.TableInfo
  * @since 0.0.1
  */
 @Suppress("ArrayInDataClass")
-data class FieldMappings(val mappings: List<FieldMapping>,
-                         val tableInfo: TableInfo,
-                         val modelClass: Class<*>,
-                         val mapUnderscore: Boolean = true) {
+data class FieldMappings(
+    val mappings: List<FieldMapping>,
+    val tableInfo: TableInfo,
+    val modelClass: Class<*>,
+    val mapUnderscore: Boolean = true
+) {
 
   /**
    * 获取from后的表名称及join信息的语句
    * 例如： t_student LEFT JOIN t_score ON t_score.student_id = t_student.id
    */
-  fun fromDeclaration(properties: List<String>, includedTableAlias: List<String>, onlyIncludesTables: List<String>?): String {
+  fun fromDeclaration(
+      properties: Properties,
+      includedTableAlias: List<String>,
+      onlyIncludesTables: List<String>?
+  ): String {
     val joins = selectJoins(1, properties, includedTableAlias, null, onlyIncludesTables)
     return if (joins.isNotBlank()) {
       tableInfo.tableName + "\n" + selectJoins(1, properties, includedTableAlias)
@@ -36,8 +42,8 @@ data class FieldMappings(val mappings: List<FieldMapping>,
    * 获取插入的列名称语句, join属性自动被过滤
    * 例如： t_student.id, t_student.name
    */
-  fun insertFields(selectedProperties: List<String>): List<String> {
-    return if (selectedProperties.isNotEmpty()) {
+  fun insertFields(selectedProperties: Properties): List<String> {
+    return if (selectedProperties.isIncludeNotEmpty()) {
       mappings.filter {
         !it.insertIgnore
             && it.property in selectedProperties
@@ -45,7 +51,8 @@ data class FieldMappings(val mappings: List<FieldMapping>,
         ColumnsResolver.wrapColumn(it.column)
       }
     } else {
-      mappings.filter { !it.insertIgnore }.map {
+      mappings.filter { !it.insertIgnore
+          && it.property !in selectedProperties.excludes}.map {
         ColumnsResolver.wrapColumn(it.column)
       }
     }
@@ -55,15 +62,14 @@ data class FieldMappings(val mappings: List<FieldMapping>,
    * 获取插入的对象属性语句，例如：
    * #{name}, #{age}, #{details,typeHandler=com.aegis.project.mybatis.handler.DetailsHandler}
    */
-  fun insertProperties(prefix: String? = null, insertProperties: List<String>? = null): List<String> {
+  fun insertProperties(prefix: String? = null, insertProperties: Properties = Properties()): List<String> {
     return when {
-      insertProperties != null
-          && insertProperties.isNotEmpty() ->
-        mappings.filter { !it.insertIgnore && it.property in insertProperties }.map {
+      insertProperties.isIncludeNotEmpty() ->
+        mappings.filter { !it.insertIgnore && it.property in insertProperties.includes }.map {
           it.getPropertyExpression(prefix)
         }
-      else                                 ->
-        mappings.filter { !it.insertIgnore }.map {
+      else                          ->
+        mappings.filter { !it.insertIgnore && it.property !in insertProperties.excludes }.map {
           it.getPropertyExpression(prefix)
         }
     }
@@ -84,14 +90,18 @@ data class FieldMappings(val mappings: List<FieldMapping>,
           mappings.firstOrNull {
             it.joinInfo is ObjectJoinInfo && it.property == objectProperty
           }?.let {
-            return listOf(SelectColumn(it.joinInfo!!.joinTable.alias,
-                joinProperty.toUnderlineCase().toLowerCase(),
-                if (it.joinInfo is ObjectJoinInfo && !it.joinInfo.associationPrefix.isNullOrBlank()) {
-                  it.joinInfo.associationPrefix + joinProperty.toUnderlineCase().toLowerCase()
-                } else {
-                  null
-                },
-                it.joinInfo.javaType))
+            return listOf(
+                SelectColumn(
+                    it.joinInfo!!.joinTable.alias,
+                    joinProperty.toUnderlineCase().toLowerCase(),
+                    if (it.joinInfo is ObjectJoinInfo && !it.joinInfo.associationPrefix.isNullOrBlank()) {
+                      it.joinInfo.associationPrefix + joinProperty.toUnderlineCase().toLowerCase()
+                    } else {
+                      null
+                    },
+                    it.joinInfo.javaType
+                )
+            )
           }
         }
         else                          -> throw IllegalStateException("暂不支持多级连接属性：$property")
@@ -123,27 +133,35 @@ data class FieldMappings(val mappings: List<FieldMapping>,
   /**
    * 获取select查询的列名称语句
    */
-  fun selectFields(): List<SelectColumn> {
-    return mappings.filter { !it.selectIgnore }.map { mapping ->
+  fun selectFields(properties: Properties): List<SelectColumn> {
+    if (properties.isIncludeNotEmpty()) {
+      return properties.includes.map {
+        resolveColumnByPropertyName(it)
+      }.flatten()
+    }
+    return mappings.asSequence().filter { !it.selectIgnore
+        && it.property !in properties.excludes}.map { mapping ->
       when {
         mapping.joinInfo != null -> mapping.joinInfo.selectFields(1)
         else                     -> listOf(SelectColumn(tableInfo.tableName, mapping.column))
       }
-    }.flatten().filter { it.column.isNotBlank() }.distinctBy { it.toSql() }
+    }.flatten().filter { it.column.isNotBlank() }.distinctBy { it.toSql() }.toList()
   }
 
   /**
    * select查询中的join语句
    */
-  fun selectJoins(level: Int, selectedProperties: List<String>? = null,
-                  includedTableAlias: List<String> = listOf(),
-                  joinTableName: TableName? = null,
-                  onlyIncludesTables: List<String>? = null): String {
+  fun selectJoins(
+      level: Int, selectedProperties: Properties = Properties(),
+      includedTableAlias: List<String> = listOf(),
+      joinTableName: TableName? = null,
+      onlyIncludesTables: List<String>? = null
+  ): String {
     return mappings.filter {
       !it.selectIgnore && it.joinInfo != null && (
           when {
-            selectedProperties != null && selectedProperties.isNotEmpty() -> it.property in selectedProperties
-            else                                                          -> true
+            selectedProperties.isIncludeNotEmpty() -> it.property in selectedProperties
+            else                            -> true
           }) || (it.joinInfo != null && it.joinInfo.joinTable.alias in includedTableAlias)
     }.mapNotNull { it.joinInfo }
         .distinctBy { it.joinTable.alias }
@@ -151,7 +169,7 @@ data class FieldMappings(val mappings: List<FieldMapping>,
         .joinToString("\n") { joinInfo ->
           val joinProperty = joinInfo.getJoinProperty(tableInfo)
           val col = mappings.firstOrNull { it.property == joinProperty }?.column
-              ?: throw BuildSQLException("无法解析join属性$joinProperty")
+            ?: throw BuildSQLException("无法解析join属性$joinProperty")
           val joinTable = joinInfo.joinTable
           when (joinInfo) {
             is PropertyJoinInfo -> (String.format(
@@ -199,8 +217,12 @@ data class FieldMappings(val mappings: List<FieldMapping>,
       val maybeJoinPropertyPascal = property.replaceFirst(bestObjectJoinMapping.property, "")
       if (maybeJoinPropertyPascal.isNotBlank() && maybeJoinPropertyPascal.first() in 'A'..'Z') {
         val maybeJoinProperty = maybeJoinPropertyPascal.toCamelCase()
-        return listOf(SelectColumn(bestObjectJoinMapping.joinInfo!!.joinTable.alias, bestObjectJoinMapping.joinInfo
-            .resolveColumnProperty(maybeJoinProperty), null, null))
+        return listOf(
+            SelectColumn(
+                bestObjectJoinMapping.joinInfo!!.joinTable.alias, bestObjectJoinMapping.joinInfo
+                .resolveColumnProperty(maybeJoinProperty), null, null
+            )
+        )
       }
     }
     // 如果持久化对象中找不到这个属性，在关联的对象中匹配同名属性，但是该属性名称必须唯一，即不能在多个关联对象中都存在该名称的属性
@@ -212,11 +234,17 @@ data class FieldMappings(val mappings: List<FieldMapping>,
       mapping.joinInfo?.getJoinTableInfo()?.fieldList?.firstOrNull { it.property == property } != null
     }.map { it.joinInfo as ObjectJoinInfo }
     return when {
-      matchedJoinInfos.size > 1  -> throw BuildSQLException("在${matchedJoinInfos.joinToString(",") { it.realType().simpleName }}发现了相同的属性$property, " +
-          "无法确定属性对应的表及字段")
-      matchedJoinInfos.size == 1 -> listOf(SelectColumn(matchedJoinInfos.first().joinTable.alias,
-          matchedJoinInfos.first().resolveColumnProperty(property), null, null))
-      else                       -> listOf()
+      matchedJoinInfos.size > 1 -> throw BuildSQLException(
+          "在${matchedJoinInfos.joinToString(",") { it.realType().simpleName }}发现了相同的属性$property, " +
+              "无法确定属性对应的表及字段"
+      )
+      matchedJoinInfos.size == 1 -> listOf(
+          SelectColumn(
+              matchedJoinInfos.first().joinTable.alias,
+              matchedJoinInfos.first().resolveColumnProperty(property), null, null
+          )
+      )
+      else -> listOf()
     }
   }
 
@@ -230,8 +258,10 @@ data class FieldMappings(val mappings: List<FieldMapping>,
     }
     if (matchedMapping?.joinInfo != null) {
       val joinInfo = matchedMapping.joinInfo as PropertyJoinInfo
-      return SelectColumn(joinInfo.joinTable.alias,
-          joinInfo.propertyColumn.name, null, joinInfo.javaType)
+      return SelectColumn(
+          joinInfo.joinTable.alias,
+          joinInfo.propertyColumn.name, null, joinInfo.javaType
+      )
     }
     return null
   }

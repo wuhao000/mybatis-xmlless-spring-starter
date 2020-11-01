@@ -1,15 +1,18 @@
 package com.aegis.mybatis.xmlless.resolver
 
+import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
+import com.aegis.mybatis.xmlless.annotations.JsonResult
 import com.aegis.mybatis.xmlless.config.MappingResolver
-import com.aegis.mybatis.xmlless.model.FieldMapping
-import com.aegis.mybatis.xmlless.model.ObjectJoinInfo
-import com.aegis.mybatis.xmlless.model.PropertyJoinInfo
-import com.aegis.mybatis.xmlless.model.Query
+import com.aegis.mybatis.xmlless.model.*
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.apache.ibatis.builder.ResultMapResolver
 import org.apache.ibatis.mapping.ResultFlag
 import org.apache.ibatis.mapping.ResultMapping
+import org.apache.ibatis.type.JdbcType
+import org.apache.ibatis.type.StringTypeHandler
+import kotlin.reflect.KFunction
+import kotlin.reflect.full.findAnnotation
 
 /**
  *
@@ -20,8 +23,26 @@ import org.apache.ibatis.mapping.ResultMapping
  */
 object ResultMapResolver {
 
-  fun resolveResultMap(id: String, builderAssistant: MapperBuilderAssistant,
-                       modelClass: Class<*>, query: Query? = null, optionalProperties: List<String> = listOf()): String? {
+  fun isJsonType(
+      modelClass: Class<*>,
+      query: Query?,
+      function: KFunction<*>?
+  ): Boolean {
+    if (function != null && function.findAnnotation<JsonResult>() != null) {
+      return true
+    }
+    return (modelClass.isAnnotationPresent(JsonMappingProperty::class.java)
+        && query != null && query.properties.includes.size == 1)
+  }
+
+  fun resolveResultMap(
+      id: String,
+      builderAssistant: MapperBuilderAssistant,
+      modelClass: Class<*>,
+      query: Query? = null,
+      optionalProperties: Properties = Properties(),
+      function: KFunction<*>? = null
+  ): String? {
     if (modelClass.name.startsWith("java.lang") || modelClass.isEnum) {
       return null
     }
@@ -30,25 +51,30 @@ object ResultMapResolver {
       return copyId
     }
     val mappings = MappingResolver.getMappingCache(modelClass)
-    val resultMap = ResultMapResolver(builderAssistant, copyId,
-        modelClass, null, null,
-        mappings?.mappings?.mapNotNull { mapping ->
-          when {
-            query != null && query.properties.isNotEmpty()
-                && !isMappingPropertyInQuery(mapping, query) -> null
-            optionalProperties.isNotEmpty()
-                && mapping.property !in optionalProperties   -> null
-            else                                             -> buildByMapping(copyId, builderAssistant, mapping, mappings.tableInfo, modelClass)
-          }
-        } ?: listOf(), true).resolve()
+    val isJsonType = isJsonType(modelClass, query, function)
+    val resultMap = ResultMapResolver(
+        builderAssistant, copyId,
+        if (isJsonType) {
+          JsonWrapper::class.java
+        } else {
+          modelClass
+        }, null, null,
+        resolveResultMappings(
+            mappings, query,
+            optionalProperties, builderAssistant, modelClass,
+            copyId, function
+        ), true
+    ).resolve()
     if (!builderAssistant.configuration.hasResultMap(resultMap.id)) {
       builderAssistant.configuration.addResultMap(resultMap)
     }
     return copyId
   }
 
-  private fun buildByMapping(id: String, builderAssistant: MapperBuilderAssistant,
-                             mapping: FieldMapping, tableInfo: TableInfo, modelClass: Class<*>): ResultMapping? {
+  private fun buildByMapping(
+      id: String, builderAssistant: MapperBuilderAssistant,
+      mapping: FieldMapping, tableInfo: TableInfo, modelClass: Class<*>
+  ): ResultMapping? {
     if (mapping.selectIgnore) {
       return null
     }
@@ -85,36 +111,45 @@ object ResultMapResolver {
           }
           builder.javaType(joinInfo.rawType())
           val mappedType = joinInfo.realType()
-          builder.nestedResultMapId(when (mappedType) {
-            modelClass -> id
-            else       -> resolveResultMap(id + "_" + mapping.property, builderAssistant,
-                mappedType, null, joinInfo.selectProperties
-            )
-          })
+          builder.nestedResultMapId(
+              when (mappedType) {
+                modelClass -> id
+                else       -> resolveResultMap(
+                    id + "_" + mapping.property, builderAssistant,
+                    mappedType, null, joinInfo.selectProperties
+                )
+              }
+          )
         }
       }
     } else {
       builder.javaType(mapping.tableFieldInfo.propertyType)
       builder.column(mapping.column)
     }
-    builder.typeHandler(mapping.typeHandler?.newInstance())
+    builder.typeHandler(mapping.typeHandler)
     return builder.build()
   }
 
-  private fun createSinglePropertyResultMap(id: String, builderAssistant: MapperBuilderAssistant, realType: Class<*>,
-                                            column: String): String {
+  private fun createSinglePropertyResultMap(
+      id: String,
+      builderAssistant: MapperBuilderAssistant,
+      realType: Class<*>,
+      column: String
+  ): String {
     val copyId = id.replace(".", "_")
     if (builderAssistant.configuration.hasResultMap(copyId)) {
       return copyId
     }
-    val resultMap = ResultMapResolver(builderAssistant, copyId,
+    val resultMap = ResultMapResolver(
+        builderAssistant, copyId,
         realType, null, null,
         listOf(
             ResultMapping.Builder(
                 builderAssistant.configuration,
                 null, column, Object::class.java
             ).build()
-        ), true).resolve()
+        ), true
+    ).resolve()
 
     if (!builderAssistant.configuration.hasResultMap(resultMap.id)) {
       builderAssistant.configuration.addResultMap(resultMap)
@@ -123,14 +158,54 @@ object ResultMapResolver {
   }
 
   private fun isMappingPropertyInQuery(mapping: FieldMapping, query: Query): Boolean {
-    if (mapping.property in query.properties) {
+    if (query.properties.isIncludeNotEmpty() && mapping.property in query.properties) {
       return true
     }
     if (mapping.joinInfo != null && mapping.joinInfo is ObjectJoinInfo) {
-      return query.properties.filter { it.contains('.') }
+      return query.properties.includes.filter { it.contains('.') && it !in query.properties.excludes }
           .map { it.split('.')[0] }.contains(mapping.property)
     }
     return false
+  }
+
+  private fun resolveResultMappings(
+      mappings: FieldMappings?,
+      query: Query?,
+      optionalProperties: Properties,
+      builderAssistant: MapperBuilderAssistant,
+      modelClass: Class<*>,
+      copyId: String,
+      function: KFunction<*>?
+  ): List<ResultMapping> {
+    if (isJsonType(modelClass, query, function)) {
+      val column = query!!.mappings.mappings
+          .first { it.property == query.properties.includes[0] }.column
+      return listOf(
+          ResultMapping.Builder(
+              builderAssistant.configuration,
+              null, column, String::class.java
+          ).typeHandler(StringTypeHandler())
+              .flags(arrayListOf(ResultFlag.CONSTRUCTOR))
+              .jdbcType(JdbcType.VARCHAR)
+              .build()
+      )
+    }
+    return mappings?.mappings?.mapNotNull { mapping ->
+      when {
+        query != null && ((query.properties.isIncludeNotEmpty()
+            && !isMappingPropertyInQuery(mapping, query))) -> null
+        (optionalProperties.isIncludeNotEmpty()
+            && mapping.property !in optionalProperties)
+            || mapping.property in optionalProperties.excludes -> null
+        else                                             -> buildByMapping(
+            copyId,
+            builderAssistant,
+            mapping,
+            mappings.tableInfo,
+            modelClass
+        )
+      }
+    } ?: listOf()
   }
 
 }

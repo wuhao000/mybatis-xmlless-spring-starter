@@ -2,29 +2,30 @@
 
 package com.aegis.mybatis.xmlless.resolver
 
+import com.aegis.mybatis.xmlless.annotations.ExcludeProperties
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.config.MappingResolver
+import com.aegis.mybatis.xmlless.config.paginition.XmlLessPageMapperMethod
 import com.aegis.mybatis.xmlless.constant.PAGEABLE_SORT
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.split
 import com.aegis.mybatis.xmlless.kotlin.toCamelCase
 import com.aegis.mybatis.xmlless.kotlin.toWords
-import com.aegis.mybatis.xmlless.model.Limitation
-import com.aegis.mybatis.xmlless.model.Query
-import com.aegis.mybatis.xmlless.model.QueryType
-import com.aegis.mybatis.xmlless.model.ResolvedQuery
+import com.aegis.mybatis.xmlless.model.*
 import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
-import com.baomidou.mybatisplus.core.toolkit.StringPool
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
+import com.fasterxml.jackson.databind.JavaType
 import org.apache.ibatis.annotations.ResultMap
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
+import java.lang.reflect.Method
 import java.lang.reflect.ParameterizedType
+import java.lang.reflect.Type
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.isSuperclassOf
@@ -40,6 +41,7 @@ import kotlin.reflect.jvm.jvmErasure
 object QueryResolver {
 
   private val QUERY_CACHE = hashMapOf<String, ResolvedQuery>()
+  private val SPECIAL_NAME_PART = listOf("OrUpdate", "OrUpdateAll")
 
   @Suppress("unused")
   fun getQueryCache(key: String): ResolvedQuery? {
@@ -54,9 +56,11 @@ object QueryResolver {
     QUERY_CACHE[mapperClass.name + DOT + function.name] = query
   }
 
-  fun resolve(function: KFunction<*>, tableInfo: TableInfo,
-              modelClass: Class<*>, mapperClass: Class<*>,
-              builderAssistant: MapperBuilderAssistant): ResolvedQuery {
+  fun resolve(
+      function: KFunction<*>, tableInfo: TableInfo,
+      modelClass: Class<*>, mapperClass: Class<*>,
+      builderAssistant: MapperBuilderAssistant
+  ): ResolvedQuery {
     if (getQueryCache(function, mapperClass) != null) {
       return getQueryCache(function, mapperClass)!!
     }
@@ -71,7 +75,8 @@ object QueryResolver {
       val conditions = CriteriaResolver.resolveConditions(resolvePropertiesResult.conditionWords, function, mappings)
       val query = Query(
           resolveTypeResult.type,
-          resolvePropertiesResult.properties,
+          Properties(resolvePropertiesResult.properties, resolvePropertiesResult.excludeProperties,
+              resolvePropertiesResult.updateExcludeProperties),
           conditions,
           resolveSortsResult.sorts,
           function,
@@ -87,18 +92,27 @@ object QueryResolver {
           query.extraSortScript = String.format(PAGEABLE_SORT, paramName, paramName)
         }
       }
-      val returnType = resolveReturnType(function)
+      val returnType = resolveReturnType(function.javaMethod!!)
       val resolvedQuery = ResolvedQuery(
-          query, resolveResultMap(function, query,
-          mapperClass, returnType, builderAssistant), returnType, function
+          query, resolveResultMap(
+          function, query,
+          mapperClass, returnType, builderAssistant
+      ), returnType, function
       )
       putQueryCache(function, mapperClass, resolvedQuery)
       return resolvedQuery
     } catch (e: Exception) {
-      if (e !is BuildSQLException) {
-        e.printStackTrace()
-      }
+      e.printStackTrace()
       return ResolvedQuery(null, null, null, function, e.message)
+    }
+  }
+
+  fun resolveJavaType(function: Method, forceSingleValue: Boolean = false): JavaType? {
+    return if (!forceSingleValue && Collection::class.java.isAssignableFrom(function.returnType)) {
+      val type = (function.genericReturnType as ParameterizedType).actualTypeArguments[0]
+      toJavaType(type)
+    } else {
+      toJavaType(function.returnType)
     }
   }
 
@@ -124,35 +138,53 @@ object QueryResolver {
     } else {
       listOf()
     }
+    var excludeProperties = listOf<String>()
+    var updateExcludeProperties = listOf<String>()
     // 如果方法指定了要查询或者更新的属性，从方法名称解析的字段无效
     if (function.findAnnotation<SelectedProperties>() != null) {
       properties = function.findAnnotation<SelectedProperties>()!!.properties.toList()
     }
-    return ResolvePropertiesResult(properties, conditionWords)
+    if (function.findAnnotation<ExcludeProperties>() != null) {
+      excludeProperties = function.findAnnotation<ExcludeProperties>()!!.properties.toList()
+      updateExcludeProperties = function.findAnnotation<ExcludeProperties>()!!.update.toList()
+    }
+    return ResolvePropertiesResult(properties, conditionWords, excludeProperties, updateExcludeProperties)
   }
 
-  fun resolveResultMap(function: KFunction<*>, query: Query,
-                       mapperClass: Class<*>, returnType: Class<*>, builderAssistant: MapperBuilderAssistant): String? {
+  fun resolveResultMap(
+      function: KFunction<*>, query: Query,
+      mapperClass: Class<*>, returnType: Class<*>, builderAssistant: MapperBuilderAssistant
+  ): String? {
     val resultMap = function.findAnnotation<ResultMap>()?.value?.firstOrNull()
     if (resultMap == null && query.type == QueryType.Select) {
       // 如果没有指定resultMap，则自动生成resultMap
-      return ResultMapResolver.resolveResultMap(mapperClass.name + StringPool.DOT + function.name,
-          builderAssistant, returnType, query)
+      return ResultMapResolver.resolveResultMap(
+          mapperClass.name + DOT + function.name,
+          builderAssistant, returnType, query, Properties(), function
+      )
     }
     return resultMap
   }
 
-  fun resolveReturnType(function: KFunction<*>): Class<*> {
+  fun resolveReturnType(function: Method): Class<*> {
     return if (listOf(Collection::class, Page::class, IPage::class)
-            .any { it.java.isAssignableFrom(function.javaMethod!!.returnType) }) {
-      val type = (function.javaMethod!!.genericReturnType as ParameterizedType).actualTypeArguments[0]
+            .any { it.java.isAssignableFrom(function.returnType) }
+    ) {
+      val type = (function.genericReturnType as ParameterizedType).actualTypeArguments[0]
       if (type is Class<*>) {
         type
+      } else if (type is ParameterizedType) {
+        val rawType = type.rawType
+        if (rawType is Class<*>) {
+          rawType
+        } else {
+          function.returnType
+        }
       } else {
-        function.javaMethod!!.returnType
+        function.returnType
       }
     } else {
-      function.javaMethod!!.returnType
+      function.returnType
     }
   }
 
@@ -196,8 +228,16 @@ object QueryResolver {
       in listOf("Insert", "Save")          -> QueryType.Insert
       else                                 -> null
     } ?: throw BuildSQLException("无法解析SQL类型，解析的名称为$name")
-    val remainWords = wordsWithoutSort.drop(1)
-    return ResolveTypeResult(type, remainWords, typeWord)
+    val remainWords = wordsWithoutSort.drop(1).toMutableList()
+    if (remainWords.joinToString("") in SPECIAL_NAME_PART) {
+      remainWords.clear()
+    }
+    return ResolveTypeResult(type, remainWords.toList(), typeWord)
+  }
+
+  fun toJavaType(type: Type): JavaType? {
+    val typeFactory = XmlLessPageMapperMethod.mapper.typeFactory
+    return typeFactory.constructType(type)
   }
 
   private fun getResolvedName(function: KFunction<*>): String {
@@ -213,7 +253,12 @@ object QueryResolver {
    * @author 吴昊
    * @since 0.0.2
    */
-  data class ResolvePropertiesResult(val properties: List<String>, val conditionWords: List<String>)
+  data class ResolvePropertiesResult(
+      val properties: List<String>,
+      val conditionWords: List<String>,
+      val excludeProperties: List<String>,
+      val updateExcludeProperties: List<String>
+  )
 
   /**
    * 从方法名中解析出的排序属性结果

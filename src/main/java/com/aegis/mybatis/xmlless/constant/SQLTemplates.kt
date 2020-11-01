@@ -19,6 +19,19 @@ VALUES
 </script>
 """
 
+internal const val BATCH_INSERT_OR_UPDATE = """<script>
+INSERT INTO
+  %s(%s)
+VALUES
+  <foreach collection="list" item="item" separator=",">
+    (%s)
+  </foreach>
+ON DUPLICATE KEY UPDATE
+  %s 
+</script>
+"""
+
+
 /**  删除语句模板 */
 internal const val DELETE = """<script>
 DELETE FROM
@@ -27,10 +40,18 @@ DELETE FROM
 </script>"""
 
 /**  单条数据插入语句模板 */
-internal const val INSERT = """INSERT INTO
+internal const val INSERT = """<script>INSERT INTO
   %s(%s)
 VALUES
-  (%s)"""
+  (%s)</script>"""
+
+/**  单条数据插入或更新语句模板 */
+internal const val INSERT_OR_UPDATE = """<script>INSERT INTO
+  %s(%s)
+VALUES 
+  (%s)
+ON DUPLICATE KEY UPDATE
+  %s</script>"""
 
 /**  join表达式模板 */
 internal const val JOIN = """

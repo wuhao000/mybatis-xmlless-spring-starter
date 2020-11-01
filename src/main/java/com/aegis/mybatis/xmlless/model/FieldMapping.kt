@@ -1,10 +1,18 @@
 package com.aegis.mybatis.xmlless.model
 
+import com.aegis.mybatis.xmlless.annotations.*
+import com.aegis.mybatis.xmlless.config.TmpHandler
+import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.HANDLER_PREFIX
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.PROPERTY_PREFIX
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.PROPERTY_SUFFIX
+import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import org.apache.ibatis.type.TypeHandler
+import org.springframework.core.annotation.AnnotationUtils
+import java.lang.reflect.Field
+import javax.persistence.GeneratedValue
+import javax.persistence.Transient
 
 /**
  *
@@ -12,17 +20,33 @@ import org.apache.ibatis.type.TypeHandler
  * @since 0.0.1
  */
 data class FieldMapping(
-    /**  持久化类的属性名称 */
-    val property: String,
-    /**  对应数据库表的列名称 */
-    val column: String,
-    /**  mybatis的字段处理器 */
-    val typeHandler: Class<out TypeHandler<*>>?,
+    val field: Field,
     val tableFieldInfo: TableFieldInfo,
-    val insertIgnore: Boolean,
-    val updateIgnore: Boolean,
-    val selectIgnore: Boolean,
-    val joinInfo: JoinInfo?) {
+    val joinInfo: JoinInfo?
+) {
+
+  /**  对应数据库表的列名称 */
+  val column: String = tableFieldInfo.column ?: field.name.toUnderlineCase().toLowerCase()
+  val insertIgnore: Boolean
+  val isJsonObject: Boolean = field.isAnnotationPresent(JsonMappingProperty::class.java)
+  val isJsonArray: Boolean = isJsonObject && Collection::class.java.isAssignableFrom(field.type)
+  /**  持久化类的属性名称 */
+  val property: String = field.name
+  val selectIgnore: Boolean
+  val type: Class<*> = field.type
+  /**  mybatis的字段处理器 */
+  val typeHandler: TypeHandler<*>?
+  val updateIgnore: Boolean
+
+  init {
+    val transient = field.getDeclaredAnnotation(Transient::class.java)
+    insertIgnore = transient != null || AnnotationUtils.findAnnotation(field, InsertIgnore::class.java) != null
+        || AnnotationUtils.findAnnotation(field, GeneratedValue::class.java) != null
+    updateIgnore = transient != null || AnnotationUtils.findAnnotation(field, UpdateIgnore::class.java) != null
+    selectIgnore = transient != null || AnnotationUtils.findAnnotation(field, SelectIgnore::class.java) != null
+    typeHandler = resolveTypeHandler(field)
+  }
+
 
   fun getPropertyExpression(prefix: String? = null, wrap: Boolean = true): String {
     val template = if (wrap) {
@@ -30,11 +54,24 @@ data class FieldMapping(
     } else {
       """%s%s%s"""
     }
-    return String.format(template, prefix ?: "", property, if (typeHandler != null) {
-      ", $HANDLER_PREFIX" + typeHandler.name
+    return String.format(
+        template, prefix ?: "", property, if (typeHandler != null) {
+      ", $HANDLER_PREFIX${typeHandler::class.java.name}"
     } else {
       ""
-    })
+    }
+    )
+  }
+
+  private fun resolveTypeHandler(field: Field): TypeHandler<*>? {
+    val handlerAnno = field.getDeclaredAnnotation(Handler::class.java)
+    if (handlerAnno != null) {
+      return handlerAnno.value.java.newInstance()
+    }
+    if (field.isAnnotationPresent(JsonMappingProperty::class.java)) {
+      return TmpHandler(QueryResolver.toJavaType(field.genericType))
+    }
+    return null
   }
 
 }

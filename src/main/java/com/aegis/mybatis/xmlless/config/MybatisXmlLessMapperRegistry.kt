@@ -28,7 +28,6 @@ import java.util.*
  * 继承至MapperRegistry
  *
  *
- * @author Caratacus hubin
  * @since 2017-04-19
  */
 @Suppress("UNCHECKED_CAST")
@@ -36,10 +35,14 @@ class MybatisXmlLessMapperRegistry(private val config: Configuration) : MapperRe
 
   private val knownMappers = HashMap<Class<*>, XmlLessPageMapperProxyFactory<*>>()
 
+  fun <T> addXMlLessMapper(type: Class<T>) {
+    addMapper(type)
+  }
+
   override fun <T> addMapper(type: Class<T>) {
     if (type.isInterface) {
       if (hasMapper(type)) {
-        // TODO 如果之前注入 直接返回
+        // 如果之前注入 直接返回
         return
         // throw new BindingException("Type " + type +
         // " is already known to the MybatisPlusMapperRegistry.");
@@ -50,7 +53,7 @@ class MybatisXmlLessMapperRegistry(private val config: Configuration) : MapperRe
         // It's important that the type is added before the parser is run
         // otherwise the binding may automatically be attempted by the
         // mapper parser. If the type is already known, it won't try.
-        // TODO 自定义无 XML 注入
+        // 自定义无 XML 注入
         val parser = MybatisXmlLessMapperAnnotationBuilder(config, type)
         parser.parse()
         loadCompleted = true
@@ -60,6 +63,10 @@ class MybatisXmlLessMapperRegistry(private val config: Configuration) : MapperRe
         }
       }
     }
+  }
+
+  fun <T> getXmlLessMapper(type: Class<T>, sqlSession: SqlSession): T {
+    return getMapper(type, sqlSession)
   }
 
   override fun <T> getMapper(type: Class<T>, sqlSession: SqlSession): T {
@@ -80,6 +87,10 @@ class MybatisXmlLessMapperRegistry(private val config: Configuration) : MapperRe
 
   override fun <T> hasMapper(type: Class<T>): Boolean {
     return knownMappers.containsKey(type)
+  }
+
+  fun <T> hasXmlLessMapper(type: Class<T>): Boolean {
+    return hasMapper(type)
   }
 
 }

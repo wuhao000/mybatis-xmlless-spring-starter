@@ -2,12 +2,15 @@ package com.aegis.mybatis.dao.tests
 
 import com.aegis.mybatis.bean.Score
 import com.aegis.mybatis.bean.Student
+import com.aegis.mybatis.bean.StudentDetail
 import com.aegis.mybatis.dao.ScoreDAO
 import com.aegis.mybatis.dao.StudentDAO
 import org.junit.Test
+import org.springframework.beans.BeanUtils
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 /**
@@ -21,8 +24,10 @@ class StudentDAOTest : BaseTest() {
   val id = "061251170"
   val mobile = "17705184916"
   val name = "张三"
+
   @Autowired
   private lateinit var scoreDAO: ScoreDAO
+
   @Autowired
   private lateinit var studentDAO: StudentDAO
 
@@ -41,11 +46,13 @@ class StudentDAOTest : BaseTest() {
   @Test
   fun deleteById() {
     if (!studentDAO.existsById(deleteId)) {
-      studentDAO.save(Student(
-          deleteId,
-          "wuhao",
-          "18005184916", 1
-      ))
+      studentDAO.save(
+          Student(
+              deleteId,
+              "wuhao",
+              "18005184916", 1
+          )
+      )
     }
     assert(studentDAO.existsById(deleteId))
     studentDAO.deleteById(deleteId)
@@ -58,7 +65,7 @@ class StudentDAOTest : BaseTest() {
   @Test
   fun deleteByName() {
     val id = "testDeleteByName"
-    val name = "nameOfTestDeleteByName"
+    val name = "张三"
     if (!studentDAO.existsById(id)) {
       studentDAO.save(
           Student(id, name, "18005184918", 1)
@@ -103,21 +110,24 @@ class StudentDAOTest : BaseTest() {
   fun findAllPageable() {
     insertStudents()
     studentDAO.findAllPageable(
-        PageRequest.of(0, 20, Sort.Direction.DESC, "name")).apply {
+        PageRequest.of(0, 20)
+    ).apply {
       this.content.map {
         it.name + " / ${it.id}"
       }.forEach { println(it) }
       println(this.content.first().name.compareTo(this.content.last().name))
     }
     studentDAO.findAllPageable(
-        PageRequest.of(0, 20, Sort(Sort.Direction.DESC, "name"))).apply {
+        PageRequest.of(0, 20, Sort(Sort.Direction.DESC, "name"))
+    ).apply {
       this.content.map {
         it.name + " / ${it.id}"
       }.forEach { println(it) }
       println(this.content.first().name.compareTo(this.content.last().name))
     }
     studentDAO.findAllPageable(
-        PageRequest.of(0, 20, Sort.by("name"))).apply {
+        PageRequest.of(0, 20, Sort.by("name"))
+    ).apply {
       this.content.map {
         it.name + " / ${it.id}"
       }.forEach { println(it) }
@@ -140,9 +150,11 @@ class StudentDAOTest : BaseTest() {
   @Test
   fun findById() {
     if (!studentDAO.existsById(id)) {
-      studentDAO.save(Student(
-          id, "wuhao", "18005184916", 1
-      ))
+      studentDAO.save(
+          Student(
+              id, "wuhao", "18005184916", 1
+          )
+      )
     }
     val student = studentDAO.findById(id)
     assertNotNull(student)
@@ -195,9 +207,17 @@ class StudentDAOTest : BaseTest() {
   fun findPage() {
     val page = studentDAO.findAllPage(
         null, null,
-        PageRequest.of(0, 20))
+        PageRequest.of(0, 20)
+    )
     println(page.content.size)
     println(page.totalElements)
+  }
+
+  @Test
+  fun getJsonObject() {
+    val s = studentDAO.findDetail()
+    assertEquals(s.size, 2)
+    println(s)
   }
 
   /**
@@ -211,8 +231,15 @@ class StudentDAOTest : BaseTest() {
         id,
         "wuhao",
         "18005184916", 1
-    ))
+    ).apply {
+      detail = StudentDetail(172)
+      favorites = listOf("旅游", "登山")
+    })
+    val bean = studentDAO.findById(id)
+    assertNotNull(bean?.detail)
+    assertEquals(bean?.detail?.height, 172)
     assert(studentDAO.existsById(id))
+    println(bean?.favorites)
   }
 
   /**
@@ -230,10 +257,14 @@ class StudentDAOTest : BaseTest() {
     }
     studentDAO.saveAll(
         listOf(
-            Student(id1,
-                "zs", "123", 1),
-            Student(id2,
-                "zs", "123", 1)
+            Student(
+                id1,
+                "zs", "123", 1
+            ),
+            Student(
+                id2,
+                "zs", "123", 1
+            )
         )
     )
     assert(studentDAO.existsById(id1))
@@ -241,6 +272,50 @@ class StudentDAOTest : BaseTest() {
     studentDAO.deleteByIds(listOf("saveAll1", "saveAll2"))
     assert(!studentDAO.existsById(id1))
     assert(!studentDAO.existsById(id2))
+  }
+
+  /**
+   * 测试新增或更新
+   */
+  @Test
+  fun saveOrUpdate() {
+    studentDAO.saveOrUpdate(Student(
+        id,
+        "wuhao",
+        "18005184916", 1
+    ).apply {
+      detail = StudentDetail(172)
+      favorites = listOf("旅游", "登山")
+    })
+  }
+
+  /**
+   * 测试新增或更新
+   */
+  @Test
+  fun saveOrUpdateAll() {
+    val student1 = Student(
+        id, "李四", "18012345678", 1
+    ).apply {
+      email = "aaa@a.com"
+      detail = StudentDetail(172)
+      favorites = listOf("旅游", "登山")
+    }
+    val student3 = Student(
+        "aaa", "王五", "18055555555", 2
+    )
+    val student2 = Student()
+    BeanUtils.copyProperties(student1, student2)
+    student2.name = "张三"
+    student2.email = null
+    studentDAO.save(student1)
+    studentDAO.saveOrUpdateAll(listOf(student2, student3))
+    val student4 = studentDAO.findById(id)
+    assertNotNull(student4)
+    assertEquals(student1.name, student4.name)
+    println(student4.email)
+    val student5 = studentDAO.findById(student3.id)
+    assertNotNull(student5)
   }
 
   /**

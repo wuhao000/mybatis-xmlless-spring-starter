@@ -4,6 +4,7 @@ import com.aegis.mybatis.bean.Score
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.StudentDAO
 import com.aegis.mybatis.xmlless.annotations.UpdateIgnore
+import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import org.junit.Test
@@ -43,7 +44,7 @@ class StudentDAOResolverTest : BaseResolverTest(
   @Test
   fun resolveColumns() {
     val mappings = MappingResolver.getMappingCache(Student::class.java)
-    val cols = ColumnsResolver.resolve(mappings!!, listOf())
+    val cols = ColumnsResolver.resolve(mappings!!, Properties())
     cols.map {
       it.toSql()
     }.forEach {

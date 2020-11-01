@@ -114,9 +114,9 @@ object CriteriaResolver {
       props.size == 2 -> {
         // 解决剩余的名称为aInB的情况
         val parts = props[1].split("In")
-        when {
-          parts.size == 2 -> parts[1].joinToString("").toCamelCase()
-          else            -> props[1].joinToString("").toCamelCase()
+        when (parts.size) {
+          2    -> parts[1].joinToString("").toCamelCase()
+          else -> props[1].joinToString("").toCamelCase()
         }
       }
       else            -> null

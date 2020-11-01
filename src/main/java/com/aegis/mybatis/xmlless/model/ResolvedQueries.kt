@@ -55,7 +55,6 @@ class ResolvedQueries(private val mapperClass: Class<*>,
       sb.append("以下方法未能成功解析:")
       unResolved.sortedBy { it.function.name }.forEach {
         sb.append("\n\t\t- " + it.function.name)
-        sb.append("\n\t\t\t\t $it")
       }
       log.error("\n\n" + sb.toString() + "\n")
     }

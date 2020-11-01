@@ -14,7 +14,11 @@ import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.springframework.core.annotation.AnnotationUtils
 import java.lang.reflect.Field
-import javax.persistence.*
+import javax.persistence.Column
+import javax.persistence.GeneratedValue
+import javax.persistence.Id
+import javax.persistence.Table
+import javax.persistence.Transient
 
 /**
  *
@@ -41,7 +45,11 @@ fun TableInfo.fieldInfoMap(modelClass: Class<*>): MutableMap<String, TableFieldI
  * @param annotation2
  */
 private fun Field.annotationIncompatible(annotation1: Class<out Annotation>, annotation2: Class<out Annotation>) {
-  if (AnnotationUtils.findAnnotation(this, annotation1) != null && AnnotationUtils.findAnnotation(this, annotation2) != null) {
+  if (AnnotationUtils.findAnnotation(this, annotation1) != null && AnnotationUtils.findAnnotation(
+          this,
+          annotation2
+      ) != null
+  ) {
     throw IllegalStateException(
         "注解$annotation1 和 $annotation2 不能同时出现在 $this 上"
     )
@@ -57,11 +65,39 @@ private fun Field.annotationIncompatible(annotation1: Class<out Annotation>, ann
  */
 object MappingResolver {
 
+  private val instance: MappingResolverProxy = MappingResolverProxy()
+
+  fun fixTableInfo(
+      modelClass: Class<*>, tableInfo: TableInfo,
+      builderAssistant: MapperBuilderAssistant
+  ) {
+    instance.fixTableInfo(modelClass, tableInfo, builderAssistant)
+  }
+
+  fun getAllMappings(): List<FieldMappings> {
+    return instance.getAllMappings()
+  }
+
+  fun getMappingCache(modelClass: Class<*>): FieldMappings? {
+    return instance.getMappingCache(modelClass)
+  }
+
+  fun resolve(modelClass: Class<*>, tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant): FieldMappings {
+    return instance.resolve(modelClass, tableInfo, builderAssistant)
+  }
+
+  fun resolveFields(modelClass: Class<*>): List<Field> {
+    return instance.resolveFields(modelClass)
+  }
+
+}
+
+class MappingResolverProxy {
+
   private val FIXED_CLASSES = hashSetOf<Class<*>>()
   private val MAPPING_CACHE = hashMapOf<String, FieldMappings>()
 
-  fun fixTableInfo(modelClass: Class<*>, tableInfo: TableInfo,
-                   builderAssistant: MapperBuilderAssistant) {
+  fun fixTableInfo(modelClass: Class<*>, tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant) {
     if (FIXED_CLASSES.contains(modelClass)) {
       return
     }
@@ -77,7 +113,7 @@ object MappingResolver {
         }
       }
     }
-    val allFields = resolveFields(modelClass)
+    val allFields = MappingResolver.resolveFields(modelClass)
     val keyField = if (tableInfo.keyColumn == null || tableInfo.keyProperty == null) {
       allFields.firstOrNull {
         it.isAnnotationPresent(Id::class.java) || it.isAnnotationPresent(TableId::class.java)
@@ -85,23 +121,15 @@ object MappingResolver {
     } else {
       allFields.firstOrNull { it.name == tableInfo.keyProperty }
     }
-    allFields.forEach { field ->
-      if (field.isAnnotationPresent(Column::class.java)) {
-        val column = field.getDeclaredAnnotation(Column::class.java)
-        if (column.name.isNotBlank()) {
-          tableInfo.fieldList.firstOrNull { it.property == field.name }?.apply {
-            val columnField = TableFieldInfo::class.java.declaredFields.first { it.name == "column" }
-            columnField.isAccessible = true
-            columnField.set(this, column.name)
-          }
-        }
-      }
-    }
     allFields.filter { it.isAnnotationPresent(JoinObject::class.java) }.forEach {
       val fieldType = TypeResolver.resolveRealType(it.genericType)
       // 防止无限循环
       if (fieldType != modelClass) {
-        fixTableInfo(fieldType, TableInfoHelper.initTableInfo(builderAssistant, fieldType), builderAssistant)
+        MappingResolver.fixTableInfo(
+            fieldType,
+            TableInfoHelper.initTableInfo(builderAssistant, fieldType),
+            builderAssistant
+        )
       }
     }
     allFields.filter {
@@ -143,17 +171,15 @@ object MappingResolver {
   }
 
   fun resolve(modelClass: Class<*>, tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant): FieldMappings {
-    if (getMappingCache(modelClass) != null) {
-      return getMappingCache(modelClass)!!
+    if (MappingResolver.getMappingCache(modelClass) != null) {
+      return MappingResolver.getMappingCache(modelClass)!!
     }
-    fixTableInfo(modelClass, tableInfo, builderAssistant)
+    MappingResolver.fixTableInfo(modelClass, tableInfo, builderAssistant)
     val fieldInfoMap = tableInfo.fieldInfoMap(modelClass)
-    val fields = resolveFields(modelClass).filter {
+    val fields = MappingResolver.resolveFields(modelClass).filter {
       it.name in fieldInfoMap
     }
     val mapping = FieldMappings(fields.map { field ->
-      val isTransient = field.getDeclaredAnnotation(Transient::class.java) != null
-          && field.getDeclaredAnnotation(TableField::class.java) == null
       val fieldInfo = fieldInfoMap[field.name]!!
       field.annotationIncompatible(Transient::class.java, SelectIgnore::class.java)
       field.annotationIncompatible(Transient::class.java, UpdateIgnore::class.java)
@@ -164,19 +190,10 @@ object MappingResolver {
         val joinTableInfo = TableInfoHelper.getTableInfo(joinInfo.realType())
         // 防止无限循环
         if (joinTableInfo != null && joinClass != modelClass) {
-          resolve(joinClass, joinTableInfo, builderAssistant)
+          MappingResolver.resolve(joinClass, joinTableInfo, builderAssistant)
         }
       }
-      FieldMapping(field.name,
-          fieldInfo.column ?: field.name.toUnderlineCase().toLowerCase(),
-          field.getDeclaredAnnotation(Handler::class.java)?.value?.java,
-          fieldInfo,
-          isTransient || AnnotationUtils.findAnnotation(field, InsertIgnore::class.java) != null
-              || AnnotationUtils.findAnnotation(field, GeneratedValue::class.java) != null,
-          isTransient || AnnotationUtils.findAnnotation(field, UpdateIgnore::class.java) != null,
-          isTransient || AnnotationUtils.findAnnotation(field, SelectIgnore::class.java) != null,
-          joinInfo
-      )
+      FieldMapping(field, fieldInfo, joinInfo)
     }, tableInfo, modelClass, builderAssistant.configuration.isMapUnderscoreToCamelCase)
     MAPPING_CACHE[modelClass.name] = mapping
     return mapping
@@ -196,31 +213,39 @@ object MappingResolver {
     return when {
       joinProperty != null -> joinProperty.let {
         val targetTableName = TableName.resolve(it.targetTable)
-        PropertyJoinInfo(ColumnName(joinProperty.selectColumn, field.name),
+        PropertyJoinInfo(
+            ColumnName(joinProperty.selectColumn, field.name),
             targetTableName,
             it.joinType,
             it.joinProperty,
             it.targetColumn,
-            field.genericType)
+            field.genericType
+        )
       }
       joinObject != null   -> joinObject.let {
         val targetTableName = TableName.resolve(it.targetTable, joinObject.associationPrefix)
-        ObjectJoinInfo(joinObject.selectProperties.toList(),
+        ObjectJoinInfo(
+            Properties(
+                joinObject.selectProperties.toList()
+            ),
             targetTableName,
             it.joinType,
             it.joinProperty, it.targetColumn,
             joinObject.associationPrefix,
-            field.genericType)
+            field.genericType
+        )
       }
       count != null        -> {
         val targetTableName = TableName.resolve(count.targetTable)
-        PropertyJoinInfo(ColumnName("COUNT(${targetTableName.alias}.${count.countColumn})", field.name),
+        PropertyJoinInfo(
+            ColumnName("COUNT(${targetTableName.alias}.${count.countColumn})", field.name),
             targetTableName,
             count.joinType,
             count.joinProperty,
             count.targetColumn,
             field.genericType,
-            "${targetTableName.alias}.${count.countColumn}")
+            "${targetTableName.alias}.${count.countColumn}"
+        )
       }
       else                 -> null
     }

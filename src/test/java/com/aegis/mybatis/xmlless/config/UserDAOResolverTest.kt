@@ -5,6 +5,7 @@ import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.bean.User
 import com.aegis.mybatis.dao.UserDAO
 import com.aegis.mybatis.xmlless.annotations.UpdateIgnore
+import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import org.junit.Test
@@ -47,7 +48,7 @@ class UserDAOResolverTest : BaseResolverTest(
   @Test
   fun resolveColumns() {
     val mappings = MappingResolver.getMappingCache(Student::class.java)
-    val cols = ColumnsResolver.resolve(mappings!!, listOf())
+    val cols = ColumnsResolver.resolve(mappings!!, Properties())
     println(cols)
   }
 

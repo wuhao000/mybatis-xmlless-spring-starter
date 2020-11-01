@@ -1,8 +1,16 @@
 package com.aegis
 
+import com.aegis.mybatis.xmlless.config.MappingResolver
+import org.apache.ibatis.type.BaseTypeHandler
+import org.apache.ibatis.type.JdbcType
 import org.junit.Test
-import org.springframework.data.domain.PageRequest
-import org.springframework.data.domain.Sort
+import org.springframework.cglib.proxy.Enhancer
+import org.springframework.cglib.proxy.MethodInterceptor
+import org.springframework.cglib.proxy.MethodProxy
+import java.lang.reflect.Method
+import java.sql.CallableStatement
+import java.sql.PreparedStatement
+import java.sql.ResultSet
 
 /**
  * Created by 吴昊 on 2018/12/13.
@@ -10,16 +18,53 @@ import org.springframework.data.domain.Sort
 class SomeTest {
 
   @Test
-  fun test() {
-    val pageable = PageRequest.of(0, 20, Sort.by("name"))
-    println(pageable.sort
-        .get()
-        .toArray())
+  fun test2() {
+    class MyMethodInterceptor : MethodInterceptor {
+
+      @Throws(Throwable::class)
+      override fun intercept(obj: Any?, method: Method?, args: Array<Any?>?, proxy: MethodProxy): Any {
+        //return "1"
+//        return proxy.invokeSuper(obj, args)
+        println("before")
+//        val res: Any = proxy.invokeSuper(obj, args)
+        println("after")
+        return "proxy name"
+      }
+
+    }
+
+
+    val enhancer = Enhancer()
+    enhancer.setSuperclass(TestInter::class.java)
+    enhancer.setCallback(MyMethodInterceptor())
+    val a = enhancer.create()
+    println((a as TestInter).name())
+    val clazz = a::class.java
+    val b = clazz.getConstructor().newInstance()
+    println((b as TestInter).name())
+
   }
 
-  @Test
-  fun test2() {
+}
 
+open class TestInter {
+
+  /**
+   *
+   * @return
+   */
+  fun name(): String {
+    return "a"
+  }
+
+}
+
+open class TestInterImpl {
+
+  fun name(): String {
+    println("222")
+    println("say hello")
+    return "say hello"
   }
 
 }
