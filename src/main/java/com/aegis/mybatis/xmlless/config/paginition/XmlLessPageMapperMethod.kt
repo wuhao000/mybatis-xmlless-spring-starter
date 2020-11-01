@@ -26,7 +26,7 @@ import java.lang.reflect.Method
  */
 class XmlLessPageMapperMethod(
     mapperInterface: Class<*>,
-    val requestMethod: Method,
+    private val requestMethod: Method,
     config: Configuration
 ) : MapperMethod(mapperInterface, requestMethod, config) {
 
@@ -40,20 +40,29 @@ class XmlLessPageMapperMethod(
   @Suppress("UNCHECKED_CAST")
   override fun execute(sqlSession: SqlSession, args: Array<out Any?>?): Any? {
     var result: Any? = null
-    if (command.type == SqlCommandType.SELECT && args != null
-        && Page::class.java.isAssignableFrom(method.returnType)
-    ) {
-      val list = executeForMany<Any>(sqlSession, args) as List<Any>
-      val pageArg = findIPageArg(args) as IPage<*>?
-      result = if (pageArg != null) {
-        PageImpl(list, PageRequest.of((pageArg.current - 1).toInt(), pageArg.size.toInt()), pageArg.total)
-      } else {
-        val pageableArg = args.firstOrNull { it is Pageable } as Pageable?
-        val total = executeForTotal(sqlSession, args)
-        if (pageableArg != null) {
-          PageImpl(list, pageableArg, total)
+    if (command.type == SqlCommandType.SELECT && args != null) {
+      if (Page::class.java.isAssignableFrom(method.returnType)) {
+        val list = executeForMany<Any>(sqlSession, args) as List<Any>
+        val pageArg = findIPageArg(args) as IPage<*>?
+        result = if (pageArg != null) {
+          PageImpl(list, PageRequest.of((pageArg.current - 1).toInt(), pageArg.size.toInt()), pageArg.total)
         } else {
-          PageImpl(list, PageRequest.of(0, list.size), total)
+          val pageableArg = args.firstOrNull { it is Pageable } as Pageable?
+          val total = executeForTotal(sqlSession, args)
+          if (pageableArg != null) {
+            PageImpl(list, pageableArg, total)
+          } else {
+            PageImpl(list, PageRequest.of(0, list.size), total)
+          }
+        }
+      } else if (IPage::class.java.isAssignableFrom(method.returnType)) {
+        val list = executeForMany<Any>(sqlSession, args) as List<Any>
+        val pageArg = findIPageArg(args) as IPage<*>?
+        result = if (pageArg != null) {
+          pageArg.records = list
+          pageArg
+        } else {
+          null
         }
       }
     }

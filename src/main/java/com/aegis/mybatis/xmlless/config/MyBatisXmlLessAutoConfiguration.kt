@@ -12,7 +12,6 @@ import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean
 import org.apache.ibatis.mapping.DatabaseIdProvider
 import org.apache.ibatis.plugin.Interceptor
 import org.apache.ibatis.session.SqlSessionFactory
-import org.apache.ibatis.type.TypeHandlerRegistry
 import org.mybatis.spring.SqlSessionFactoryBean
 import org.mybatis.spring.SqlSessionTemplate
 import org.mybatis.spring.boot.autoconfigure.MybatisProperties
@@ -46,13 +45,15 @@ import javax.sql.DataSource
 @EnableConfigurationProperties(MybatisPlusProperties::class)
 @AutoConfigureAfter(DataSourceAutoConfiguration::class)
 @AutoConfigureBefore(MybatisPlusAutoConfiguration::class)
-class MyBatisXmlLessAutoConfiguration(private var properties: MybatisPlusProperties,
-                                      mybatisProperties: MybatisProperties,
-                                      interceptorsProvider: ObjectProvider<Array<Interceptor>>,
-                                      private var resourceLoader: ResourceLoader,
-                                      databaseIdProvider: ObjectProvider<DatabaseIdProvider>,
-                                      configurationCustomizersProvider: ObjectProvider<List<ConfigurationCustomizer>>,
-                                      private var applicationContext: ApplicationContext) {
+class MyBatisXmlLessAutoConfiguration(
+    private var properties: MybatisPlusProperties,
+    mybatisProperties: MybatisProperties,
+    interceptorsProvider: ObjectProvider<Array<Interceptor>>,
+    private var resourceLoader: ResourceLoader,
+    databaseIdProvider: ObjectProvider<DatabaseIdProvider>,
+    configurationCustomizersProvider: ObjectProvider<List<ConfigurationCustomizer>>,
+    private var applicationContext: ApplicationContext
+) {
 
   private var configurationCustomizers: List<ConfigurationCustomizer>? = configurationCustomizersProvider.ifAvailable
   private var databaseIdProvider: DatabaseIdProvider? = databaseIdProvider.ifAvailable
@@ -99,20 +100,29 @@ class MyBatisXmlLessAutoConfiguration(private var properties: MybatisPlusPropert
     }
     val globalConfig = this.properties.globalConfig
     //注入填充器
-    if (this.applicationContext.getBeanNamesForType(MetaObjectHandler::class.java,
-            false, false).isNotEmpty()) {
+    if (this.applicationContext.getBeanNamesForType(
+            MetaObjectHandler::class.java,
+            false, false
+        ).isNotEmpty()
+    ) {
       val metaObjectHandler = this.applicationContext.getBean(MetaObjectHandler::class.java)
       globalConfig.metaObjectHandler = metaObjectHandler
     }
     //注入主键生成器
-    if (this.applicationContext.getBeanNamesForType(IKeyGenerator::class.java, false,
-            false).isNotEmpty()) {
+    if (this.applicationContext.getBeanNamesForType(
+            IKeyGenerator::class.java, false,
+            false
+        ).isNotEmpty()
+    ) {
       val keyGenerator = this.applicationContext.getBean(IKeyGenerator::class.java)
       globalConfig.dbConfig.keyGenerator = keyGenerator
     }
     //注入sql注入器
-    if (this.applicationContext.getBeanNamesForType(ISqlInjector::class.java, false,
-            false).isNotEmpty()) {
+    if (this.applicationContext.getBeanNamesForType(
+            ISqlInjector::class.java, false,
+            false
+        ).isNotEmpty()
+    ) {
       val iSqlInjector = this.applicationContext.getBean(ISqlInjector::class.java)
       globalConfig.sqlInjector = iSqlInjector
     }
@@ -145,6 +155,7 @@ class MyBatisXmlLessAutoConfiguration(private var properties: MybatisPlusPropert
       }
       BeanUtils.copyProperties(configuration, xmlLessConfiguration)
     }
+    xmlLessConfiguration.objectFactory = MyObjectFactory()
     factory.setConfiguration(xmlLessConfiguration)
   }
 

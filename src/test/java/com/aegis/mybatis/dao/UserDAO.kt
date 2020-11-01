@@ -7,6 +7,7 @@ import com.aegis.mybatis.bean.UserSimple
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.config.XmlLessMapper
+import com.baomidou.mybatisplus.core.mapper.BaseMapper
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param
 import org.springframework.data.domain.Page
@@ -18,7 +19,7 @@ import org.springframework.data.domain.Pageable
  * @since 0.0.1
  */
 @Mapper
-interface UserDAO : XmlLessMapper<User> {
+interface UserDAO : XmlLessMapper<User>, BaseMapper<User> {
 
   /**
    *

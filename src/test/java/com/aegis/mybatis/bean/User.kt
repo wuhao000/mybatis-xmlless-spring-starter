@@ -28,6 +28,7 @@ data class User(
    * 临时字段，忽略
    */
   @Transient
+  @TableField(exist = false)
   var count: Int = 0
 
 }
