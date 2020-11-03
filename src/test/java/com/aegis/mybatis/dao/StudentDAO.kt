@@ -12,6 +12,7 @@ import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import java.time.LocalDate
 
 /**
  *
@@ -33,6 +34,8 @@ interface StudentDAO : XmlLessMapper<Student> {
    */
   fun count(): Int
 
+  @SelectedProperties(properties = ["id", "name", "birthday"])
+  fun findByBirthday(date: LocalDate): List<Student>
   /**
    *
    * @param id

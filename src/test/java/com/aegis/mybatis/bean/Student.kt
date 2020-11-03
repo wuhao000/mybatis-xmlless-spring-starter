@@ -6,6 +6,7 @@ import org.apache.ibatis.type.JdbcType
 import java.sql.CallableStatement
 import java.sql.PreparedStatement
 import java.sql.ResultSet
+import java.time.LocalDate
 import javax.persistence.Column
 import javax.persistence.Id
 
@@ -75,6 +76,7 @@ class Student() {
   var id: String = ""
   var name: String = ""
   var email: String? = null
+  var birthday: LocalDate? = null
 
   @Handler(StringTypeHandler::class)
   var phoneNumber: String = ""
@@ -105,6 +107,7 @@ class Student() {
       | graduated=$graduated,
       | scores=$scores
       | favorites=$favorites
+      | birthday=$birthday
       |)""".trimMargin()
   }
 

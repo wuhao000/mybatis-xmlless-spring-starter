@@ -10,6 +10,7 @@ import org.springframework.beans.BeanUtils
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
+import java.time.LocalDate
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -38,6 +39,15 @@ class StudentDAOTest : BaseTest() {
   fun count() {
     insertStudents()
     assert(studentDAO.count() > 0)
+  }
+
+  @Test
+  fun findByBirthday() {
+    val students = studentDAO.findByBirthday(
+        LocalDate.of(2020, 11, 3)
+    )
+    println(studentDAO.findAll())
+    assertEquals(1, students.size)
   }
 
   /**
