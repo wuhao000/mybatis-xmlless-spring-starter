@@ -1,6 +1,7 @@
 package com.aegis.mybatis.xmlless.config
 
 import com.baomidou.mybatisplus.extension.plugins.PaginationInterceptor
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
@@ -20,6 +21,7 @@ import org.springframework.context.annotation.Configuration
 class AegisMyBatisConfig {
 
   @Bean
+  @ConditionalOnMissingBean
   fun paginationInterceptor(): PaginationInterceptor {
     return PaginationInterceptor()
   }
