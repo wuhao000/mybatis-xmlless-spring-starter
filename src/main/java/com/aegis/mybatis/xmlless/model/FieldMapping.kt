@@ -40,10 +40,13 @@ data class FieldMapping(
 
   init {
     val transient = field.getDeclaredAnnotation(Transient::class.java)
-    insertIgnore = transient != null || AnnotationUtils.findAnnotation(field, InsertIgnore::class.java) != null
+    insertIgnore = transient != null
+        || AnnotationUtils.findAnnotation(field, InsertIgnore::class.java) != null
         || AnnotationUtils.findAnnotation(field, GeneratedValue::class.java) != null
-    updateIgnore = transient != null || AnnotationUtils.findAnnotation(field, UpdateIgnore::class.java) != null
-    selectIgnore = transient != null || AnnotationUtils.findAnnotation(field, SelectIgnore::class.java) != null
+    updateIgnore = transient != null
+        || AnnotationUtils.findAnnotation(field, UpdateIgnore::class.java) != null
+    selectIgnore = transient != null
+        || AnnotationUtils.findAnnotation(field, SelectIgnore::class.java) != null
     typeHandler = resolveTypeHandler(field)
   }
 

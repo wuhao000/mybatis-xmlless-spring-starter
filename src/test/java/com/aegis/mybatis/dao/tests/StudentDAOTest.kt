@@ -128,7 +128,7 @@ class StudentDAOTest : BaseTest() {
       println(this.content.first().name.compareTo(this.content.last().name))
     }
     studentDAO.findAllPageable(
-        PageRequest.of(0, 20, Sort(Sort.Direction.DESC, "name"))
+        PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "name"))
     ).apply {
       this.content.map {
         it.name + " / ${it.id}"
