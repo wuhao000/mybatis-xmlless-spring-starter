@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <parent>
+    <artifactId>aegis-starter-mybatis-parent</artifactId>
+    <groupId>com.aegis</groupId>
+    <version>3.4.3</version>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+  <version>3.4.3</version>
+  <packaging>jar</packaging>
+  <artifactId>mybatis-xmlless</artifactId>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-maven-plugin</artifactId>
+        <version>${kotlin.version}</version>
+        <configuration>
+          <compilerPlugins>
+            <plugin>spring</plugin>
+            <plugin>no-arg</plugin>
+            <plugin>jpa</plugin>
+          </compilerPlugins>
+        </configuration>
+        <dependencies>
+          <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-maven-allopen -->
+          <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-maven-allopen</artifactId>
+            <version>${kotlin.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-maven-noarg</artifactId>
+            <version>${kotlin.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.0.1</version>
+        <configuration>
+          <attach>true</attach>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>compile</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

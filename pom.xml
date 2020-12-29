@@ -5,9 +5,13 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.aegis</groupId>
-  <artifactId>aegis-starter-mybatis</artifactId>
-  <version>3.3.8</version>
-  <packaging>jar</packaging>
+  <artifactId>aegis-starter-mybatis-parent</artifactId>
+  <version>3.4.3</version>
+  <modules>
+    <module>mybatis-xmlless</module>
+    <module>mybatis-xmlless-spring-boot-starter</module>
+  </modules>
+  <packaging>pom</packaging>
 
   <name>mybatis-xmlless</name>
   <description>mybatis无xml化增强</description>
@@ -18,6 +22,7 @@
     <version>2.1.6.RELEASE</version>
     <relativePath/> <!-- lookup parent from repository -->
   </parent>
+
 
   <properties>
     <kotlin.version>1.3.31</kotlin.version>
@@ -78,12 +83,6 @@
       <groupId>org.jetbrains.kotlin</groupId>
       <artifactId>kotlin-test-junit</artifactId>
       <version>${kotlin.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>junit</groupId>
-          <artifactId>junit</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -95,12 +94,6 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>junit</groupId>
-          <artifactId>junit</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
@@ -119,109 +112,11 @@
       <version>3.1.4</version>
     </dependency>
   </dependencies>
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.mybatis.spring.boot</groupId>
-        <artifactId>mybatis-spring-boot-starter-test</artifactId>
-        <version>${mybatis-starter.version}</version>
-        <scope>test</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
   <distributionManagement>
     <repository>
       <id>nexus</id>
       <url>http://nexus.aegis-info.com/repository/maven-releases/</url>
     </repository>
   </distributionManagement>
-  <build>
-    <defaultGoal>clean install deploy</defaultGoal>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.19.1</version>
-        <configuration>
-          <skipTests>true</skipTests>    <!--默认关掉单元测试 -->
-        </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-source-plugin</artifactId>
-        <version>3.0.1</version>
-        <configuration>
-          <attach>true</attach>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>compile</phase>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.jetbrains.kotlin</groupId>
-        <artifactId>kotlin-maven-plugin</artifactId>
-        <version>${kotlin.version}</version>
-        <configuration>
-          <compilerPlugins>
-            <plugin>spring</plugin>
-            <plugin>no-arg</plugin>
-            <plugin>jpa</plugin>
-          </compilerPlugins>
-        </configuration>
-        <dependencies>
-          <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-maven-allopen -->
-          <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-maven-allopen</artifactId>
-            <version>${kotlin.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-maven-noarg</artifactId>
-            <version>${kotlin.version}</version>
-          </dependency>
-        </dependencies>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.5.1</version>
-        <configuration>
-          <compilerArgument>-parameters</compilerArgument>
-        </configuration>
-        <executions>
-          <!-- Replacing default-compile as it is treated specially by maven -->
-          <execution>
-            <id>default-compile</id>
-            <phase>none</phase>
-          </execution>
-          <!-- Replacing default-testCompile as it is treated specially by maven -->
-          <execution>
-            <id>default-testCompile</id>
-            <phase>none</phase>
-          </execution>
-          <execution>
-            <id>java-compile</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>java-test-compile</id>
-            <phase>test-compile</phase>
-            <goals>
-              <goal>testCompile</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
-
 </project>
 
