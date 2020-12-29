@@ -14,25 +14,21 @@ import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.springframework.core.annotation.AnnotationUtils
 import java.lang.reflect.Field
-import javax.persistence.Column
-import javax.persistence.GeneratedValue
-import javax.persistence.Id
-import javax.persistence.Table
-import javax.persistence.Transient
+import javax.persistence.*
 
 /**
  *
  * @param modelClass
  * @return
  */
-fun TableInfo.fieldInfoMap(modelClass: Class<*>): MutableMap<String, TableFieldInfo> {
+fun TableInfo.getFieldInfoMap(modelClass: Class<*>): MutableMap<String, TableFieldInfo> {
   val fieldInfoMap = this.fieldList.associateBy {
     it.property
   }.toMutableMap()
   if (!fieldInfoMap.containsKey(this.keyProperty)) {
-    MappingResolver.resolveFields(modelClass).firstOrNull { it.name == this.keyProperty }?.apply {
-      fieldInfoMap[this@fieldInfoMap.keyProperty] = TableFieldInfo(
-          GlobalConfigUtils.defaults().dbConfig, this@fieldInfoMap, this
+    MappingResolver.resolveFields(modelClass).firstOrNull { it.name == this.keyProperty }?.also {
+      fieldInfoMap[this.keyProperty] = TableFieldInfo(
+          GlobalConfigUtils.defaults().dbConfig, this, it
       )
     }
   }
@@ -98,21 +94,11 @@ class MappingResolverProxy {
   private val MAPPING_CACHE = hashMapOf<String, FieldMappings>()
 
   fun fixTableInfo(modelClass: Class<*>, tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant) {
+    // 防止重复处理
     if (FIXED_CLASSES.contains(modelClass)) {
       return
     }
-    if (modelClass.isAnnotationPresent(Table::class.java)) {
-      val table = modelClass.getDeclaredAnnotation(Table::class.java)
-      if (table.name.isNotBlank()) {
-        val field = TableInfo::class.java.getDeclaredField("tableName")
-        field.isAccessible = true
-        if (table.schema.isNotBlank()) {
-          field.set(tableInfo, table.schema + "." + table.name)
-        } else {
-          field.set(tableInfo, table.name)
-        }
-      }
-    }
+    fixTableName(modelClass, tableInfo)
     val allFields = MappingResolver.resolveFields(modelClass)
     val keyField = if (tableInfo.keyColumn == null || tableInfo.keyProperty == null) {
       allFields.firstOrNull {
@@ -132,6 +118,7 @@ class MappingResolverProxy {
         )
       }
     }
+    // 使用@Column注解修正字段信息，注意不要覆盖mybatis-plus自带@TableField注解
     allFields.filter {
       it.isAnnotationPresent(Column::class.java) && !it.isAnnotationPresent(TableField::class.java)
     }.forEach { field ->
@@ -144,13 +131,14 @@ class MappingResolverProxy {
       }
     }
     if (keyField != null) {
+      // 自增主键回填
       if (keyField.isAnnotationPresent(GeneratedValue::class.java)) {
         val field = TableInfo::class.java.getDeclaredField("idType")
         field.isAccessible = true
         field.set(tableInfo, IdType.AUTO)
       }
       if (tableInfo.keyColumn == null || tableInfo.keyProperty == null) {
-        val keyColumn = keyField.name?.toUnderlineCase()?.toLowerCase()
+        val keyColumn = keyField.name.toUnderlineCase().toLowerCase()
         val field = TableInfo::class.java.getDeclaredField("keyProperty")
         field.isAccessible = true
         field.set(tableInfo, keyField.name)
@@ -160,6 +148,25 @@ class MappingResolverProxy {
       }
     }
     FIXED_CLASSES.add(modelClass)
+  }
+
+  /**
+   * 如果使用了jpa注解@Table，使用@Table注解的表名称
+   */
+  private fun fixTableName(modelClass: Class<*>, tableInfo: TableInfo) {
+    if (modelClass.isAnnotationPresent(Table::class.java)) {
+      val table = modelClass.getDeclaredAnnotation(Table::class.java)
+      if (table.name.isNotBlank()) {
+        // 因为TableInfo的name属性以及schema属性都是通过构造函数初始化的，所以只能通过反射修改
+        val field = TableInfo::class.java.getDeclaredField("tableName")
+        field.isAccessible = true
+        if (table.schema.isNotBlank()) {
+          field.set(tableInfo, table.schema + "." + table.name)
+        } else {
+          field.set(tableInfo, table.name)
+        }
+      }
+    }
   }
 
   fun getAllMappings(): List<FieldMappings> {
@@ -175,7 +182,7 @@ class MappingResolverProxy {
       return MappingResolver.getMappingCache(modelClass)!!
     }
     MappingResolver.fixTableInfo(modelClass, tableInfo, builderAssistant)
-    val fieldInfoMap = tableInfo.fieldInfoMap(modelClass)
+    val fieldInfoMap = tableInfo.getFieldInfoMap(modelClass)
     val fields = MappingResolver.resolveFields(modelClass).filter {
       it.name in fieldInfoMap
     }

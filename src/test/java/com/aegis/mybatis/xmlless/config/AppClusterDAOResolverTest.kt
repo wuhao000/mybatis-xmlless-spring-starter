@@ -3,7 +3,7 @@ package com.aegis.mybatis.xmlless.config
 import com.aegis.mybatis.bean.AppCluster
 import com.aegis.mybatis.dao.AppClusterDAO
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import kotlin.reflect.full.declaredFunctions
 
 

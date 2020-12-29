@@ -2,7 +2,7 @@ package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.bean.Server
 import com.aegis.mybatis.dao.ServerDAO
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 
 /**

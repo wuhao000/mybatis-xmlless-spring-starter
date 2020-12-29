@@ -14,22 +14,22 @@ ALTER TABLE t_student
 -- create table t_server --
 create table t_server
 (
-	id int auto_increment
-		primary key,
-	name varchar(40) not null,
-	ip varchar(20) not null,
-	parent_id int null,
-	provider_id int not null
+  id int auto_increment
+    primary key,
+  name varchar(40) not null,
+  ip varchar(20) not null,
+  parent_id int null,
+  provider_id int not null
 );
 
 
 -- create table t_server_provider --
 create table t_server_provider
 (
-	id int auto_increment,
-	name VARCHAR(40) not null,
-	constraint t_server_provider_id_pk
-		primary key (id)
+  id int auto_increment,
+  name VARCHAR(40) not null,
+  constraint t_server_provider_id_pk
+    primary key (id)
 );
 
 create unique index t_server_provider_name_uindex

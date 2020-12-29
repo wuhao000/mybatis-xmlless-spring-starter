@@ -1,7 +1,7 @@
 package com.aegis
 
 import org.apache.ibatis.jdbc.SQL
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 
 /**

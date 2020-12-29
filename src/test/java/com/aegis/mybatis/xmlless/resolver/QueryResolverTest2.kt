@@ -2,7 +2,7 @@ package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.dao.StudentDetailDAO
 import com.aegis.mybatis.xmlless.config.paginition.XmlLessPageMapperMethod
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import kotlin.reflect.full.functions
 import kotlin.reflect.jvm.javaMethod
 

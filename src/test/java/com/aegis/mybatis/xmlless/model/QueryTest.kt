@@ -2,7 +2,7 @@ package com.aegis.mybatis.xmlless.model
 
 import com.aegis.mybatis.xmlless.config.BaseResolverTest
 import com.aegis.mybatis.xmlless.config.XmlLessMapper
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import javax.persistence.GeneratedValue
 import javax.persistence.Id
 import kotlin.test.assertEquals

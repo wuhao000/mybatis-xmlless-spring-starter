@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component
 
 
 /**
+ * SQL注入
  *
  * Created by 吴昊 on 2018/11/6.
  *

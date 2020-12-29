@@ -1,17 +1,9 @@
 package com.aegis.mybatis.dao.tests
 
-import com.aegis.mybatis.bean.Score
 import com.aegis.mybatis.bean.Student
-import com.aegis.mybatis.bean.StudentDetail
 import com.aegis.mybatis.dao.BaseStudentDAO
-import com.aegis.mybatis.dao.ScoreDAO
-import com.aegis.mybatis.dao.StudentDAO
-import org.junit.Test
-import org.springframework.beans.BeanUtils
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.data.domain.PageRequest
-import org.springframework.data.domain.Sort
-import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 /**

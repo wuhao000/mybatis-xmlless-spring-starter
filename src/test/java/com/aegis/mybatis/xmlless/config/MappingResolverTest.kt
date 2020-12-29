@@ -1,7 +1,7 @@
 package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.bean.Student
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 /**
  * Created by 吴昊 on 2018/12/12.

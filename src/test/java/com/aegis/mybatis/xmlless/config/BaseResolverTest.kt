@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.MybatisConfiguration
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import org.apache.ibatis.builder.MapperBuilderAssistant
-import org.junit.Before
+import org.junit.jupiter.api.BeforeAll
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.declaredFunctions
 
@@ -28,7 +28,7 @@ open class BaseResolverTest(val modelClass: Class<*>,
   protected lateinit var tableInfo: TableInfo
 
 
-  @Before
+  @BeforeAll
   fun init() {
     tableInfo = createTableInfo(modelClass)
     queries = getFunctions()

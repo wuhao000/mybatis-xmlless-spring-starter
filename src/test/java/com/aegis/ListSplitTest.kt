@@ -1,7 +1,7 @@
 package com.aegis
 
 import com.aegis.mybatis.xmlless.kotlin.split
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 /**
  * 列表分割测试类

@@ -1,6 +1,6 @@
 package com.aegis.mybatis.xmlless.config
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import java.lang.reflect.ParameterizedType
 
 

@@ -8,7 +8,7 @@ import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.kotlin.toWords
 import com.aegis.mybatis.xmlless.model.FieldMappings
 import com.aegis.mybatis.xmlless.model.QueryCriteria
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.declaredFunctions
 

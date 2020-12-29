@@ -1,7 +1,7 @@
 package com.aegis.mybatis.dao.tests
 
 import com.aegis.mybatis.dao.ProjectDAO
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 
 

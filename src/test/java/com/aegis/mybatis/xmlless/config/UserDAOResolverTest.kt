@@ -8,7 +8,7 @@ import com.aegis.mybatis.xmlless.annotations.UpdateIgnore
 import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import org.springframework.core.annotation.AnnotationUtils
 import kotlin.reflect.full.declaredFunctions
 

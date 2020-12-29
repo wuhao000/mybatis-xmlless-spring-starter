@@ -3,7 +3,7 @@ package com.aegis
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import org.apache.ibatis.type.BaseTypeHandler
 import org.apache.ibatis.type.JdbcType
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import org.springframework.cglib.proxy.Enhancer
 import org.springframework.cglib.proxy.MethodInterceptor
 import org.springframework.cglib.proxy.MethodProxy
