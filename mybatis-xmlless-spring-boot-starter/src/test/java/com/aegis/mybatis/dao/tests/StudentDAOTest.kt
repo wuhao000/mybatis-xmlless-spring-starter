@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -27,12 +29,10 @@ class StudentDAOTest : BaseTest() {
   val id = "061251170"
   val mobile = "17705184916"
   val name = "张三"
-
+  @Autowired
+  private lateinit var dao: StudentDAO
   @Autowired
   private lateinit var scoreDAO: ScoreDAO
-
-  @Autowired
-  private lateinit var studentDAO: StudentDAO
 
   /**
    * 测试统计全部
@@ -40,27 +40,7 @@ class StudentDAOTest : BaseTest() {
   @Test
   fun count() {
     insertStudents()
-    assert(studentDAO.count() > 0)
-  }
-
-  @Test
-  fun findByState() {
-    val list = studentDAO.findByStateIn(listOf(StudentState.normal))
-    assert(list.isNotEmpty())
-  }
-
-  @Test
-  fun findByBirthday() {
-    studentDAO.save(
-        Student().apply {
-          id = "abc"
-          birthday = LocalDate.of(2020, 11, 3)
-        }
-    )
-    val students = studentDAO.findByBirthday(
-        LocalDate.of(2020, 11, 3)
-    )
-    assertEquals(1, students.size)
+    assert(dao.count() > 0)
   }
 
   /**
@@ -68,8 +48,8 @@ class StudentDAOTest : BaseTest() {
    */
   @Test
   fun deleteById() {
-    if (!studentDAO.existsById(deleteId)) {
-      studentDAO.save(
+    if (!dao.existsById(deleteId)) {
+      dao.save(
           Student(
               deleteId,
               "wuhao",
@@ -77,9 +57,9 @@ class StudentDAOTest : BaseTest() {
           )
       )
     }
-    assert(studentDAO.existsById(deleteId))
-    studentDAO.deleteById(deleteId)
-    assert(!studentDAO.existsById(deleteId))
+    assert(dao.existsById(deleteId))
+    dao.deleteById(deleteId)
+    assert(!dao.existsById(deleteId))
   }
 
   /**
@@ -89,14 +69,14 @@ class StudentDAOTest : BaseTest() {
   fun deleteByName() {
     val id = "testDeleteByName"
     val name = "张三"
-    if (!studentDAO.existsById(id)) {
-      studentDAO.save(
+    if (!dao.existsById(id)) {
+      dao.save(
           Student(id, name, "18005184918", 1)
       )
     }
-    assert(studentDAO.existsByName(name))
-    studentDAO.deleteByName(name)
-    assert(!studentDAO.existsByName(name))
+    assert(dao.existsByName(name))
+    dao.deleteByName(name)
+    assert(!dao.existsByName(name))
   }
 
   /**
@@ -105,8 +85,8 @@ class StudentDAOTest : BaseTest() {
   @Test
   fun existsById() {
     insertStudents()
-    assert(!studentDAO.existsById("4321"))
-    assert(studentDAO.existsById(id))
+    assert(!dao.existsById("4321"))
+    assert(dao.existsById(id))
   }
 
   /**
@@ -114,12 +94,12 @@ class StudentDAOTest : BaseTest() {
    */
   @Test
   fun findAll() {
-    if (!studentDAO.existsById(id)) {
-      studentDAO.save(Student(id, "王五", mobile, 22))
+    if (!dao.existsById(id)) {
+      dao.save(Student(id, "王五", mobile, 22))
     }
     val score = Score(80, id, 1)
     scoreDAO.save(score)
-    val list = studentDAO.findAll()
+    val list = dao.findAll()
     assert(scoreDAO.findByStudentId(id).isNotEmpty())
     val spec = list.first { it.id == id }
     assert(spec.scores != null && spec.scores!!.isNotEmpty())
@@ -132,7 +112,7 @@ class StudentDAOTest : BaseTest() {
   @Test
   fun findAllPageable() {
     insertStudents()
-    studentDAO.findAllPageable(
+    dao.findAllPageable(
         PageRequest.of(0, 20)
     ).apply {
       this.content.map {
@@ -140,7 +120,7 @@ class StudentDAOTest : BaseTest() {
       }.forEach { println(it) }
       println(this.content.first().name.compareTo(this.content.last().name))
     }
-    studentDAO.findAllPageable(
+    dao.findAllPageable(
         PageRequest.of(0, 20, Sort(Sort.Direction.DESC, "name"))
     ).apply {
       this.content.map {
@@ -148,7 +128,7 @@ class StudentDAOTest : BaseTest() {
       }.forEach { println(it) }
       println(this.content.first().name.compareTo(this.content.last().name))
     }
-    studentDAO.findAllPageable(
+    dao.findAllPageable(
         PageRequest.of(0, 20, Sort.by("name"))
     ).apply {
       this.content.map {
@@ -158,12 +138,113 @@ class StudentDAOTest : BaseTest() {
     }
   }
 
+  @Test
+  fun findByAgeBetween() {
+    dao.saveAll(
+        listOf(
+            Student().apply {
+              id = "a"
+              age = 20
+              birthday = LocalDate.of(2020, 11, 3)
+            },
+            Student().apply {
+              id = "b"
+              age = 21
+              birthday = LocalDate.of(2020, 11, 3)
+            },
+            Student().apply {
+              id = "c"
+              age = 16
+              birthday = LocalDate.of(2020, 11, 3)
+            },
+            Student().apply {
+              id = "D"
+              age = 24
+              birthday = LocalDate.of(2020, 11, 3)
+            }
+        )
+    )
+    val list = dao.findByAgeBetweenMinAndMax(18, 22)
+    assertEquals(2, list.size)
+  }
+
+  @Test
+  fun findByAgeGte() {
+    dao.saveAll(
+        listOf(
+            Student().apply {
+              id = "a"
+              age = 20
+              birthday = LocalDate.of(2020, 11, 3)
+            },
+            Student().apply {
+              id = "b"
+              age = 21
+              birthday = LocalDate.of(2020, 11, 3)
+            },
+            Student().apply {
+              id = "c"
+              age = 16
+              birthday = LocalDate.of(2020, 11, 3)
+            }
+        )
+    )
+    val list = dao.findByAgeGte(18)
+    assertEquals(2, list.size)
+  }
+
+  @Test
+  fun findByBirthday() {
+    dao.save(
+        Student().apply {
+          id = "abc"
+          birthday = LocalDate.of(2020, 11, 3)
+        }
+    )
+    val students = dao.findByBirthday(
+        LocalDate.of(2020, 11, 3)
+    )
+    assertEquals(1, students.size)
+  }
+
+  @Test
+  fun findByCreateTimeBetween() {
+    dao.saveAll(
+        listOf(
+            Student().apply {
+              id = "a"
+              age = 20
+              createTime = LocalDateTime.of(2021, 1, 3, 12, 0, 0)
+            },
+            Student().apply {
+              id = "b"
+              age = 21
+              createTime = LocalDateTime.of(2021, 1, 4, 12, 0, 0)
+            },
+            Student().apply {
+              id = "c"
+              age = 16
+              createTime = LocalDateTime.of(2021, 1, 5, 12, 0, 0)
+            }
+        )
+    )
+    val c1 = dao.findByCreateTimeBetweenStartTimeAndEndTime(LocalDateTime.of(2021,1,3,0,0,0),
+        LocalDateTime.of(2021,1,4,13,0,0))
+    val c2 = dao.findByCreateTimeBetweenStartTimeAndEndTime(LocalDateTime.of(2021,1,4,0,0,0), null)
+    val c3 = dao.findByCreateTimeBetweenStartTimeAndEndTime(null, LocalDateTime.of(2021,1,4,0,0,0))
+    val c4 = dao.findByCreateTimeBetweenStartTimeAndEndTime(null, null)
+    println(c1.size)
+    println(c2.size)
+    println(c3.size)
+    println(c4.size)
+  }
+
   /**
    * 测试指定值查询
    */
   @Test
   fun findByGraduatedEqTrue() {
-    val list = studentDAO.findByGraduatedEqTrue()
+    val list = dao.findByGraduatedEqTrue()
     println(list)
   }
 
@@ -172,14 +253,14 @@ class StudentDAOTest : BaseTest() {
    */
   @Test
   fun findById() {
-    if (!studentDAO.existsById(id)) {
-      studentDAO.save(
+    if (!dao.existsById(id)) {
+      dao.save(
           Student(
               id, "wuhao", "18005184916", 1
           )
       )
     }
-    val student = studentDAO.findById(id)
+    val student = dao.findById(id)
     assertNotNull(student)
     println(student.count)
     student.scores?.forEach {
@@ -194,10 +275,10 @@ class StudentDAOTest : BaseTest() {
   @Test
   fun findByPhoneNumberLikeLeft() {
     insertStudents()
-    assert(studentDAO.findByPhoneNumberLikeLeft(mobile.substring(0, 4)).isNotEmpty())
-    assert(studentDAO.findByPhoneNumberLikeLeft(mobile.substring(2, 6)).isEmpty())
-    assert(studentDAO.findByPhoneNumberLikeRight(mobile.substring(mobile.length - 6, mobile.length)).isNotEmpty())
-    assert(studentDAO.findByPhoneNumberLikeRight(mobile.substring(2, 6)).isEmpty())
+    assert(dao.findByPhoneNumberLikeLeft(mobile.substring(0, 4)).isNotEmpty())
+    assert(dao.findByPhoneNumberLikeLeft(mobile.substring(2, 6)).isEmpty())
+    assert(dao.findByPhoneNumberLikeRight(mobile.substring(mobile.length - 6, mobile.length)).isNotEmpty())
+    assert(dao.findByPhoneNumberLikeRight(mobile.substring(2, 6)).isEmpty())
   }
 
   /**
@@ -205,11 +286,23 @@ class StudentDAOTest : BaseTest() {
    */
   @Test
   fun findByPhoneNumberLikeRight() {
-    studentDAO.save(
+    dao.save(
         Student("1", "李四", "17705184916", 22)
     )
-    assert(studentDAO.findByPhoneNumberLikeRight("4916").isNotEmpty())
-    assert(studentDAO.findByPhoneNumberLikeRight("180").isEmpty())
+    assert(dao.findByPhoneNumberLikeRight("4916").isNotEmpty())
+    assert(dao.findByPhoneNumberLikeRight("180").isEmpty())
+  }
+
+  @Test
+  fun findByState() {
+    dao.saveAll(
+        listOf(
+            Student("a", "张三", "17705184916", 22, StudentState.abnormal),
+            Student("b", "李四", "17705184916", 22)
+        )
+    )
+    val list = dao.findByStateIn(listOf(StudentState.normal))
+    assertEquals(1, list.size)
   }
 
   /**
@@ -218,7 +311,7 @@ class StudentDAOTest : BaseTest() {
   @Test
   fun findBySubjectId() {
     insertStudents()
-    val students = studentDAO.findBySubjectId(1)
+    val students = dao.findBySubjectId(1)
     println(students)
     assert(students.isNotEmpty())
   }
@@ -228,7 +321,7 @@ class StudentDAOTest : BaseTest() {
    */
   @Test
   fun findPage() {
-    val page = studentDAO.findAllPage(
+    val page = dao.findAllPage(
         null, null,
         PageRequest.of(0, 20)
     )
@@ -238,12 +331,12 @@ class StudentDAOTest : BaseTest() {
 
   @Test
   fun getJsonObject() {
-    studentDAO.save(
+    dao.save(
         Student("1", "李四", "17705184916", 22).apply {
           detail = StudentDetail(170)
         }
     )
-    val s = studentDAO.findDetail()
+    val s = dao.findDetail()
     assertEquals(s.size, 1)
     println(s)
   }
@@ -253,9 +346,9 @@ class StudentDAOTest : BaseTest() {
    */
   @Test
   fun save() {
-    studentDAO.deleteById(id)
-    assert(!studentDAO.existsById(id))
-    studentDAO.save(Student(
+    dao.deleteById(id)
+    assert(!dao.existsById(id))
+    dao.save(Student(
         id,
         "wuhao",
         "18005184916", 1
@@ -263,10 +356,10 @@ class StudentDAOTest : BaseTest() {
       detail = StudentDetail(172)
       favorites = listOf("旅游", "登山")
     })
-    val bean = studentDAO.findById(id)
+    val bean = dao.findById(id)
     assertNotNull(bean?.detail)
     assertEquals(bean?.detail?.height, 172)
-    assert(studentDAO.existsById(id))
+    assert(dao.existsById(id))
     println(bean?.favorites)
   }
 
@@ -277,13 +370,13 @@ class StudentDAOTest : BaseTest() {
   fun saveAllAndDeleteAll() {
     val id1 = "saveAll1"
     val id2 = "saveAll2"
-    if (studentDAO.existsById(id1)) {
-      studentDAO.deleteById(id1)
+    if (dao.existsById(id1)) {
+      dao.deleteById(id1)
     }
-    if (studentDAO.existsById(id2)) {
-      studentDAO.deleteById(id2)
+    if (dao.existsById(id2)) {
+      dao.deleteById(id2)
     }
-    studentDAO.saveAll(
+    dao.saveAll(
         listOf(
             Student(
                 id1,
@@ -295,11 +388,11 @@ class StudentDAOTest : BaseTest() {
             )
         )
     )
-    assert(studentDAO.existsById(id1))
-    assert(studentDAO.existsById(id2))
-    studentDAO.deleteByIds(listOf("saveAll1", "saveAll2"))
-    assert(!studentDAO.existsById(id1))
-    assert(!studentDAO.existsById(id2))
+    assert(dao.existsById(id1))
+    assert(dao.existsById(id2))
+    dao.deleteByIds(listOf("saveAll1", "saveAll2"))
+    assert(!dao.existsById(id1))
+    assert(!dao.existsById(id2))
   }
 
   /**
@@ -307,7 +400,7 @@ class StudentDAOTest : BaseTest() {
    */
   @Test
   fun saveOrUpdate() {
-    studentDAO.saveOrUpdate(Student(
+    dao.saveOrUpdate(Student(
         id,
         "wuhao",
         "18005184916", 1
@@ -336,13 +429,13 @@ class StudentDAOTest : BaseTest() {
     BeanUtils.copyProperties(student1, student2)
     student2.name = "张三"
     student2.email = null
-    studentDAO.save(student1)
-    studentDAO.saveOrUpdateAll(listOf(student2, student3))
-    val student4 = studentDAO.findById(id)
+    dao.save(student1)
+    dao.saveOrUpdateAll(listOf(student2, student3))
+    val student4 = dao.findById(id)
     assertNotNull(student4)
     assertEquals(student1.name, student4.name)
     println(student4.email)
-    val student5 = studentDAO.findById(student3.id)
+    val student5 = dao.findById(student3.id)
     assertNotNull(student5)
   }
 
@@ -353,7 +446,7 @@ class StudentDAOTest : BaseTest() {
   fun update() {
     insertStudents()
     assert(
-        studentDAO.update(
+        dao.update(
             Student(
                 id, "zhangsan",
                 "17712345678",
@@ -371,30 +464,30 @@ class StudentDAOTest : BaseTest() {
     val id = "testUpdateNameById"
     val oldName = "oldName"
     val newName = "newName"
-    if (studentDAO.existsById(id)) {
-      studentDAO.deleteById(id)
+    if (dao.existsById(id)) {
+      dao.deleteById(id)
     }
-    studentDAO.save(
+    dao.save(
         Student(
             id,
             oldName,
             "18005184916", 1
         )
     )
-    println(studentDAO.findById(id))
-    assert(studentDAO.findById(id)?.name == oldName)
-    assert(studentDAO.updateNameById(newName, id) == 1)
-    assert(studentDAO.findById(id)?.name == newName)
-    studentDAO.deleteById(id)
+    println(dao.findById(id))
+    assert(dao.findById(id)?.name == oldName)
+    assert(dao.updateNameById(newName, id) == 1)
+    assert(dao.findById(id)?.name == newName)
+    dao.deleteById(id)
   }
 
   private fun insertStudents() {
-    studentDAO.saveAll(
+    dao.saveAll(
         (0..10).map {
           Student("${it}00$it", "$it", "$it", 1)
         }
     )
-    studentDAO.save(
+    dao.save(
         Student(id, name, mobile, 1)
     )
     val score = Score(80, id, 1)

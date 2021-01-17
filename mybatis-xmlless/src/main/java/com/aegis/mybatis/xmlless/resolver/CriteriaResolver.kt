@@ -27,11 +27,13 @@ import kotlin.reflect.jvm.javaField
  */
 object CriteriaResolver {
 
-  fun resolveConditions(allConditionWords: List<String>,
-                        function: KFunction<*>,
-                        mappings: FieldMappings): List<QueryCriteria> {
+  fun resolveConditions(
+      allConditionWords: List<String>,
+      function: KFunction<*>,
+      mappings: FieldMappings
+  ): List<QueryCriteria> {
     val nameConditions = if (allConditionWords.isNotEmpty()) {
-      allConditionWords.split("And").map { addPropertiesWords ->
+      splitAndConditionKeywords(allConditionWords).map { addPropertiesWords ->
         // 解析形如 nameEq 或者 nameLikeKeywords 的表达式
         // nameEq 解析为 name = #{name}
         // nameLikeKeywords 解析为 name  LIKE concat('%',#{keywords},'%')
@@ -53,7 +55,7 @@ object CriteriaResolver {
       } else if (ParameterResolver.isComplexParameter(parameter)) {
         TypeResolver.resolveRealType(parameter.type).declaredMemberProperties.forEach { property ->
           val propertyCriteria = property.javaField!!.getDeclaredAnnotation(Criteria::class.java)
-              ?: property.findAnnotation<Criteria>()
+            ?: property.findAnnotation<Criteria>()
           if (propertyCriteria != null) {
             parameterConditions.add(
                 resolveCriteriaFromProperty(propertyCriteria, property, paramNames[index], function, mappings)
@@ -65,24 +67,42 @@ object CriteriaResolver {
     return nameConditions + parameterConditions
   }
 
-  private fun resolveCriteria(criteria: Criteria, parameter: KParameter, paramName: String,
-                              function: KFunction<*>, mappings: FieldMappings):
+  private fun splitAndConditionKeywords(allConditionWords: List<String>): List<List<String>> {
+    val list = arrayListOf<List<String>>()
+    allConditionWords.split("And").forEach {
+      if (list.isNotEmpty() && list.last().contains(Operations.Between.name)) {
+        list[list.size - 1] = list.last() + "" + it
+      } else {
+        list.add(it)
+      }
+    }
+    return list
+  }
+
+  private fun resolveCriteria(
+      criteria: Criteria, parameter: KParameter, paramName: String,
+      function: KFunction<*>, mappings: FieldMappings
+  ):
       QueryCriteria {
     val property = when {
       criteria.property.isNotBlank() -> criteria.property
       else                           -> paramName
     }
-    return QueryCriteria(property, criteria.operator, Append.AND,
-        paramName, parameter,
+    return QueryCriteria(
+        property, criteria.operator, Append.AND,
+        listOf(Pair(paramName, parameter)),
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == paramName
         },
-        mappings)
+        mappings
+    )
   }
 
-  private fun resolveCriteria(singleConditionWords: List<String>,
-                              function: KFunction<*>,
-                              mappings: FieldMappings): QueryCriteria {
+  private fun resolveCriteria(
+      singleConditionWords: List<String>,
+      function: KFunction<*>,
+      mappings: FieldMappings
+  ): QueryCriteria {
     // 获取表示条件表达式操作符的单词
     val singleConditionString = singleConditionWords.joinToString("").toCamelCase()
     val opWordsList = Operations.nameWords().filter {
@@ -95,10 +115,10 @@ object CriteriaResolver {
           singleConditionString.indexOf(it.joinToString(""))
         }
     val props = when {
-      opWords != null -> singleConditionWords.split(opWords)
+      opWords != null -> singleConditionWords.split(opWords).map { it.split("") }.flatten()
       else            -> listOf(singleConditionWords)
     }
-    if (props.size !in 1..2) {
+    if (props.size !in 1..3) {
       throw IllegalStateException("无法从${singleConditionWords.joinToString("")}中解析查询条件")
     }
     // 解析条件表达式的二元操作符 = > < >= <= != in like 等
@@ -110,46 +130,61 @@ object CriteriaResolver {
       op != null -> props.first().joinToString("").toCamelCase()
       else       -> singleConditionWords.joinToString("").toCamelCase()
     }
-    val paramName = when {
+    val paramNames = when {
+      props.size == 3 -> {
+        listOf(
+            props[1].joinToString("").toCamelCase(),
+            props[2].joinToString("").toCamelCase()
+        )
+      }
       props.size == 2 -> {
         // 解决剩余的名称为aInB的情况
         val parts = props[1].split("In")
         when (parts.size) {
-          2    -> parts[1].joinToString("").toCamelCase()
-          else -> props[1].joinToString("").toCamelCase()
+          2 -> listOf(parts[1].joinToString("").toCamelCase())
+          else -> listOf(props[1].joinToString("").toCamelCase())
         }
       }
-      else            -> null
-    } ?: property
-    val parameterData: MatchedParameter? = ParameterResolver.resolve(paramName, function)
-    val parameter = when {
-      parameterData != null -> parameterData.property ?: parameterData.parameter
-      else                  -> null
+      else            -> listOf(property)
     }
-    // 如果条件参数是方法参数中的属性，则需要加上方法参数名称前缀
-    val finalParamName = when {
-      parameterData?.property != null -> parameterData.paramName + DOT + paramName
-      else                            -> paramName
+    val parameters = paramNames.map { paramName->
+      val parameterData: MatchedParameter? = ParameterResolver.resolve(paramName, function)
+      val parameter = when {
+        parameterData != null -> parameterData.property ?: parameterData.parameter
+        else                  -> null
+      }
+      // 如果条件参数是方法参数中的属性，则需要加上方法参数名称前缀
+      val finalParamName = when {
+        parameterData?.property != null -> parameterData.paramName + DOT + paramName
+        else                            -> paramName
+      }
+      Pair(finalParamName, parameter)
     }
-    return QueryCriteria(property, op ?: Operations.EqDefault, Append.OR,
-        finalParamName, parameter,
+
+    return QueryCriteria(
+        property, op ?: Operations.EqDefault, Append.OR,
+        parameters,
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == property
         },
-        mappings)
+        mappings
+    )
   }
 
-  private fun resolveCriteriaFromProperty(criteria: Criteria, property: KProperty1<out Any, Any?>,
-                                          paramName: String, function: KFunction<*>, mappings: FieldMappings): QueryCriteria {
+  private fun resolveCriteriaFromProperty(
+      criteria: Criteria, property: KProperty1<out Any, Any?>,
+      paramName: String, function: KFunction<*>, mappings: FieldMappings
+  ): QueryCriteria {
     val propertyName = when {
       criteria.property.isNotBlank() -> criteria.property
       else                           -> property.name
     }
     return QueryCriteria(propertyName, criteria.operator, Append.AND,
-        paramName + "." + property.name, property,
+        listOf(Pair(paramName + "." + property.name, property)),
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == paramName
-        }, mappings)
+        }, mappings
+    )
   }
 
 }

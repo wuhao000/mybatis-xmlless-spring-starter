@@ -18,6 +18,7 @@ enum class Operations(val operator: String) {
   EqTrue(" = TRUE"),
   Gt("&gt;"),
   Gte("&gt;="),
+  Between("BETWEEN"),
   In("IN"),
   IsNotNull("IS NOT NULL"),
   IsNull("IS NULL"),
@@ -58,6 +59,7 @@ enum class Operations(val operator: String) {
       In                           -> IN_TEMPLATE
       in listOf(NotNull, IsNotNull,
           IsNull, EqTrue, EqFalse) -> NO_VALUE
+      Between -> "%s %s $valueHolder AND $valueHolder"
       else                         -> "%s %s $valueHolder"
     }
   }

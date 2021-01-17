@@ -8,6 +8,8 @@ import java.sql.CallableStatement
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.util.*
 import javax.persistence.Column
 import javax.persistence.Id
 
@@ -54,6 +56,8 @@ class StringTypeHandler : BaseTypeHandler<String>() {
 @Suppress("MemberVisibilityCanBePrivate")
 class Student() {
 
+  var age: Int = 0
+  var birthday: LocalDate? = null
   @Count(
       targetTable = "t_score",
       targetColumn = "student_id",
@@ -61,27 +65,21 @@ class Student() {
   )
   @Transient
   var count: Int = 0
-
+  var createTime: LocalDateTime? = null
   @JsonMappingProperty
   var detail: StudentDetail? = null
-
   @JsonMappingProperty
   var education: List<EducationInfo>? = null
-
+  var email: String? = null
   @JsonMappingProperty
   var favorites: List<String> = listOf()
-
   @Column(name = "sex")
   @TableField("sex")
   var gender: Int = 1
   var graduated: Boolean = false
-
   @Id
   var id: String = ""
   var name: String = ""
-  var email: String? = null
-  var birthday: LocalDate? = null
-
   @JsonMappingProperty
   var nickNames: List<String>? = null
 
@@ -99,12 +97,13 @@ class Student() {
   var scores: MutableList<Score>? = null
   var state: StudentState = StudentState.normal
 
-  constructor(id: String, name: String, phoneNumber: String, gender: Int)
-      : this() {
+  constructor(id: String, name: String, phoneNumber: String,
+              gender: Int, state: StudentState = StudentState.normal) : this() {
     this.id = id
     this.name = name
     this.phoneNumber = phoneNumber
     this.gender = gender
+    this.state = state
   }
 
   override fun toString(): String {
@@ -123,7 +122,7 @@ class Student() {
 
 enum class StudentState {
 
-  normal,
-  abnormal;
+  abnormal,
+  normal;
 
 }

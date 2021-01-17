@@ -8,7 +8,6 @@ import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.enums.TestType
 import com.aegis.mybatis.xmlless.resolver.AnnotationResolver
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
-import java.lang.IllegalStateException
 import kotlin.reflect.KAnnotatedElement
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty
@@ -25,8 +24,7 @@ data class QueryCriteria(
     val property: String,
     val operator: Operations,
     var append: Append = Append.AND,
-    val paramName: String?,
-    val parameter: KAnnotatedElement?,
+    var parameters: List<Pair<String, KAnnotatedElement?>>,
     val specificValue: ValueAssign?,
     private val mappings: FieldMappings
 ) {
@@ -45,6 +43,7 @@ data class QueryCriteria(
   }
 
   fun hasExpression(): Boolean {
+    val parameter = getOnlyParameter()
     if (parameter != null) {
       val criteria = parameter.findAnnotation<Criteria>()
       if (criteria != null && criteria.expression.isNotBlank()) {
@@ -60,6 +59,7 @@ data class QueryCriteria(
   }
 
   fun toSqlWithoutTest(mappings: FieldMappings): String {
+    val parameter = getOnlyParameter()
     if (parameter != null) {
       val criteria = parameter.findAnnotation<Criteria>()
       if (criteria != null && criteria.expression.isNotBlank()) {
@@ -69,50 +69,32 @@ data class QueryCriteria(
     val columnResult = columns.joinToString(",\n\t") { it.toSql() }
     val value = resolveValue()
     val mapping = mappings.mappings.firstOrNull { it.property == property }
-
     return when {
       // 条件变量为确定的值时
-      value != null                                                       -> String.format(
+      value != null                                -> String.format(
           operator.getValueTemplate(),
           columnResult, operator.operator, value
       ) + " " + append
-      mapping != null && mapping.isJsonArray -> buildJsonQuery(columnResult, operator)
+      mapping != null && mapping.isJsonArray       -> buildJsonQuery(columnResult, operator)
       operator == Operations.In
-          && mapping?.joinInfo is PropertyJoinInfo       -> String.format(
+          && mapping?.joinInfo is PropertyJoinInfo -> String.format(
           operator.getTemplate(),
           mappings.tableInfo.tableName + "." + mappings.tableInfo.keyColumn,
-          operator.operator, scriptParam(mapping)
+          operator.operator, *scriptParams(mapping).toTypedArray()
       ) + " " + append
-      else                                                                -> {
+      else                                         -> {
         String.format(
             operator.getTemplate(),
-            columnResult, operator.operator, scriptParam()
+            columnResult, operator.operator, *scriptParams().toTypedArray()
         ) + " " + append
       }
     }
   }
 
-  private fun buildJsonQuery(
-      columnResult: String,
-      operator: Operations
-  ): String {
-    if (operator in listOf(Operations.Eq, Operations.EqDefault)) {
-      return String.format(
-          "JSON_CONTAINS(%s -> '\$[*]', " +
-              "'\"\${%s}\"', '\$')",
-          columnResult, scriptParam()
-      )
-    } else if (operator in listOf(Operations.In)) {
-      return String.format(FOREACH, realParam(), "item", " OR ",
-          "JSON_CONTAINS(${columnResult} -> '\$[*]', '\"\${item}\"', '\$')")
-    }
-    throw IllegalStateException("暂不支持${operator.operator}的json查询")
-  }
-
   override fun toString(): String {
     return String.format(
         operator.getTemplate(),
-        property, operator.operator, scriptParam()
+        property, operator.operator, *scriptParams().toTypedArray()
     )
   }
 
@@ -124,7 +106,35 @@ data class QueryCriteria(
     return sql
   }
 
+  private fun buildJsonQuery(
+      columnResult: String,
+      operator: Operations
+  ): String {
+    if (operator in listOf(Operations.Eq, Operations.EqDefault)) {
+      return String.format(
+          "JSON_CONTAINS(%s -> '\$[*]', " +
+              "'\"\${%s}\"', '\$')",
+          columnResult, *scriptParams().toTypedArray()
+      )
+    } else if (operator in listOf(Operations.In)) {
+      return String.format(
+          FOREACH, realParams()[0], "item", " OR ",
+          "JSON_CONTAINS(${columnResult} -> '\$[*]', '\"\${item}\"', '\$')"
+      )
+    }
+    throw IllegalStateException("暂不支持${operator.operator}的json查询")
+  }
+
+  private fun getOnlyParameter(): KAnnotatedElement? {
+    return parameters.firstOrNull()?.second
+  }
+
+  private fun getOnlyParameterName(): String? {
+    return parameters.firstOrNull()?.first
+  }
+
   private fun getTests(): String {
+    val parameter = getOnlyParameter()
     if (parameter != null) {
       val parameterTest = AnnotationResolver.resolve(parameter)
         ?: AnnotationResolver.resolve<Criteria>(parameter)?.test
@@ -142,12 +152,18 @@ data class QueryCriteria(
     }
   }
 
-  private fun realParam(): String {
-    return paramName ?: property
+  private fun realParams(): List<String> {
+    if (parameters.isEmpty()) {
+      return listOf(property)
+    }
+    return parameters.map {
+      it.first
+    }
   }
 
   private fun resolveTests(parameterTest: TestExpression): String {
-    val realParam = realParam()
+    val parameter = getOnlyParameter()
+    val realParams = realParams()
     val clazz = if (parameter is KParameter) {
       parameter.type.jvmErasure
     } else {
@@ -156,7 +172,7 @@ data class QueryCriteria(
     }.java
 
     val tests = parameterTest.value.joinToString(Strings.TESTS_CONNECTOR) {
-      realParam + if (it != TestType.NotEmpty) {
+      realParams[0] + if (it != TestType.NotEmpty) {
         it.expression
       } else {
         when {
@@ -178,46 +194,49 @@ data class QueryCriteria(
   }
 
   private fun resolveTestsFromType(type: KType): List<String> {
-    val realParam = realParam()
+    val realParams = realParams()
     val tests = ArrayList<String>()
     if (type.isMarkedNullable) {
-      tests.add("$realParam != null")
+      tests.addAll(realParams.map { "$it != null" })
     }
     if (type.jvmErasure == String::class) {
-      tests.add("$realParam.length() " + TestType.GtZero.expression)
+      tests.addAll(realParams.map { "$it.length() " + TestType.GtZero.expression })
     }
     if (Collection::class.java.isAssignableFrom(type.jvmErasure.java)) {
-      tests.add("$realParam.size() " + TestType.GtZero.expression)
+      tests.addAll(realParams.map { "$it.size() " + TestType.GtZero.expression })
     }
     return tests
   }
 
   private fun resolveValue(): String? {
+    val paramName = getOnlyParameterName()
     return when {
       specificValue != null -> when {
         specificValue.stringValue.isNotBlank() -> "'" + specificValue.stringValue + "'"
         else                                   -> specificValue.nonStringValue
       }
       paramName != null     -> when {
-        paramName.matches("\\d+".toRegex())        -> paramName
-        paramName == "true" || paramName == "true" -> paramName.toUpperCase()
-        else                                       -> null
+        paramName.matches("\\d+".toRegex()) -> paramName
+        paramName == "true"                 -> paramName.toUpperCase()
+        else                                -> null
       }
       else                  -> null
     }
   }
 
-  private fun scriptParam(propertyMapping: FieldMapping? = null): String {
-    val realParam = realParam()
+  private fun scriptParams(propertyMapping: FieldMapping? = null): List<String> {
+    val realParams = realParams()
     // 如果存在realParam未 xxInXx的情况
     if (operator == Operations.In) {
       if (propertyMapping != null && propertyMapping.joinInfo is PropertyJoinInfo) {
-        return "(SELECT ${propertyMapping.joinInfo.targetColumn} FROM ${propertyMapping.joinInfo.joinTable.name} WHERE " +
-            "${propertyMapping.joinInfo.propertyColumn.name} = #{$realParam})"
+        return listOf(
+            "(SELECT ${propertyMapping.joinInfo.targetColumn} FROM ${propertyMapping.joinInfo.joinTable.name} WHERE " +
+                "${propertyMapping.joinInfo.propertyColumn.name} = #{${realParams[0]}})"
+        )
       }
-      return String.format(FOREACH, realParam, "item", ", ", "#{item}")
+      return listOf(String.format(FOREACH, realParams[0], "item", ", ", "#{item}"))
     }
-    return realParam
+    return realParams
   }
 
 }

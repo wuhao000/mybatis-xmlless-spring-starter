@@ -160,7 +160,7 @@ data class Query(
           } else {
             result.add(QueryCriteriaGroup(
                 (tmp.criterion.map {
-                  QueryCriteria(it.property, criteria.operator, it.append, criteria.paramName, criteria.parameter, it
+                  QueryCriteria(it.property, criteria.operator, it.append, criteria.parameters, it
                       .specificValue, mappings)
                 }.toMutableList() + criteria).toMutableList()
             ))

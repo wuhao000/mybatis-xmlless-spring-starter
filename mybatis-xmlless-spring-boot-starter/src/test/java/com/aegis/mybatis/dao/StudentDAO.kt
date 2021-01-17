@@ -14,6 +14,8 @@ import org.apache.ibatis.annotations.Param
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.util.*
 
 /**
  *
@@ -25,20 +27,12 @@ import java.time.LocalDate
 @Mapper
 interface StudentDAO : XmlLessMapper<Student> {
 
-  fun findDetail(): List<StudentDetail>
-
-  fun findId(): List<String>
-
-  fun findByStateIn(@Param("state") state: List<StudentState>): List<Student>
-
   /**
    *
    * @return
    */
   fun count(): Int
 
-  @SelectedProperties(properties = ["id", "name", "birthday"])
-  fun findByBirthday(date: LocalDate): List<Student>
   /**
    *
    * @param id
@@ -90,7 +84,8 @@ interface StudentDAO : XmlLessMapper<Student> {
   fun findAllPage(
       @TestExpression([TestType.NotNull, TestType.NotEmpty]) name: String?,
       subjectId: Int?,
-      @Param("pageable") page: Pageable): Page<Student>
+      @Param("pageable") page: Pageable
+  ): Page<Student>
 
   /**
    *
@@ -99,6 +94,33 @@ interface StudentDAO : XmlLessMapper<Student> {
    */
   @ResolvedName("findAll")
   fun findAllPageable(@Param("pageable") pageable: Pageable): Page<Student>
+
+  /**
+   *
+   * @param min
+   * @param max
+   * @return
+   */
+  fun findByAgeBetweenMinAndMax(@Param("min") min: Int, @Param("max") max: Int): List<Student>
+
+  fun findByCreateTimeBetweenStartTimeAndEndTime(
+      @Param("startTime") startTime: LocalDateTime?, @Param("endTime") endTime: LocalDateTime?
+  ): List<Student>
+
+  /**
+   *
+   * @param age
+   * @return
+   */
+  fun findByAgeGte(@Param("age") age: Int): List<Student>
+
+  /**
+   *
+   * @param date
+   * @return
+   */
+  @SelectedProperties(properties = ["id", "name", "birthday"])
+  fun findByBirthday(date: LocalDate): List<Student>
 
   /**
    *
@@ -129,6 +151,13 @@ interface StudentDAO : XmlLessMapper<Student> {
 
   /**
    *
+   * @param state
+   * @return
+   */
+  fun findByStateIn(@Param("state") state: List<StudentState>): List<Student>
+
+  /**
+   *
    * @param subJectId
    * @return
    * @param subjectId
@@ -137,21 +166,40 @@ interface StudentDAO : XmlLessMapper<Student> {
 
   /**
    *
+   * @return
+   */
+  fun findDetail(): List<StudentDetail>
+
+  /**
+   *
+   * @return
+   */
+  fun findId(): List<String>
+
+  /**
+   *
    * @param student
    */
   fun save(student: Student)
-
-
-  fun saveOrUpdate(student: Student)
-
-  @ExcludeProperties(update = ["name"])
-  fun saveOrUpdateAll(list: List<Student>)
 
   /**
    *
    * @param list
    */
   fun saveAll(list: List<Student>)
+
+  /**
+   *
+   * @param student
+   */
+  fun saveOrUpdate(student: Student)
+
+  /**
+   *
+   * @param list
+   */
+  @ExcludeProperties(update = ["name"])
+  fun saveOrUpdateAll(list: List<Student>)
 
   /**
    *
