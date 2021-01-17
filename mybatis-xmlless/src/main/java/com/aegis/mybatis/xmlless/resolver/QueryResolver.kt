@@ -11,6 +11,7 @@ import com.aegis.mybatis.xmlless.constant.PAGEABLE_SORT
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.split
 import com.aegis.mybatis.xmlless.kotlin.toCamelCase
+import com.aegis.mybatis.xmlless.kotlin.toPascalCase
 import com.aegis.mybatis.xmlless.kotlin.toWords
 import com.aegis.mybatis.xmlless.model.*
 import com.baomidou.mybatisplus.core.metadata.IPage
@@ -75,8 +76,10 @@ object QueryResolver {
       val conditions = CriteriaResolver.resolveConditions(resolvePropertiesResult.conditionWords, function, mappings)
       val query = Query(
           resolveTypeResult.type,
-          Properties(resolvePropertiesResult.properties, resolvePropertiesResult.excludeProperties,
-              resolvePropertiesResult.updateExcludeProperties),
+          Properties(
+              resolvePropertiesResult.properties, resolvePropertiesResult.excludeProperties,
+              resolvePropertiesResult.updateExcludeProperties
+          ),
           conditions,
           resolveSortsResult.sorts,
           function,
@@ -243,7 +246,12 @@ object QueryResolver {
   private fun getResolvedName(function: KFunction<*>): String {
     val resolvedNameAnnotation = function.findAnnotation<ResolvedName>()
     return when {
-      resolvedNameAnnotation != null -> resolvedNameAnnotation.name + resolvedNameAnnotation.partNames.joinToString("And")
+      resolvedNameAnnotation != null -> when {
+        resolvedNameAnnotation.name.isBlank() -> ""
+        else                                  -> "${resolvedNameAnnotation.name}And"
+      } + resolvedNameAnnotation.partNames.joinToString("And") {
+        it.toPascalCase()
+      }
       else                           -> function.name
     }
   }

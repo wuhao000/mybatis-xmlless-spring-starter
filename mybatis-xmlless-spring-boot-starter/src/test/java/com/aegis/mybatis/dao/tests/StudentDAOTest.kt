@@ -208,6 +208,11 @@ class StudentDAOTest : BaseTest() {
   }
 
   @Test
+  fun findByAge() {
+    dao.findByAge(12, "a")
+  }
+
+  @Test
   fun findByCreateTimeBetween() {
     dao.saveAll(
         listOf(
