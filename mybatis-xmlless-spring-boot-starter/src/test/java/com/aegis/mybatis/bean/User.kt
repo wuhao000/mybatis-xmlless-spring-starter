@@ -18,7 +18,7 @@ data class User(
     @Id
     @TableField()
     @InsertIgnore
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.AUTO)
     var id: Int? = null,
     @TableField()
     var name: String? = null,

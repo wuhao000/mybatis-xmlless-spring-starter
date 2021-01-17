@@ -7,7 +7,7 @@ import com.aegis.mybatis.bean.StudentDetail
 import com.aegis.mybatis.bean.StudentState
 import com.aegis.mybatis.dao.ScoreDAO
 import com.aegis.mybatis.dao.StudentDAO
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import org.springframework.beans.BeanUtils
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
@@ -53,6 +53,7 @@ class StudentDAOTest : BaseTest() {
   fun findByBirthday() {
     studentDAO.save(
         Student().apply {
+          id = "abc"
           birthday = LocalDate.of(2020, 11, 3)
         }
     )
@@ -237,6 +238,11 @@ class StudentDAOTest : BaseTest() {
 
   @Test
   fun getJsonObject() {
+    studentDAO.save(
+        Student("1", "李四", "17705184916", 22).apply {
+          detail = StudentDetail(170)
+        }
+    )
     val s = studentDAO.findDetail()
     assertEquals(s.size, 1)
     println(s)

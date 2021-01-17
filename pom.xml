@@ -6,7 +6,7 @@
 
   <groupId>com.aegis</groupId>
   <artifactId>aegis-starter-mybatis-parent</artifactId>
-  <version>3.4.3</version>
+  <version>3.4.4</version>
   <modules>
     <module>mybatis-xmlless</module>
     <module>mybatis-xmlless-spring-boot-starter</module>
@@ -94,6 +94,12 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>junit</groupId>
+          <artifactId>junit</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
