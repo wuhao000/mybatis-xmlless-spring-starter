@@ -1,21 +1,9 @@
-package com.aegis.mybatis.xmlless.config
+package com.aegis.mybatis.xmlless.starter
 
+import com.aegis.mybatis.xmlless.config.MybatisXmlLessMapperRegistry
 import com.baomidou.mybatisplus.core.MybatisConfiguration
-import com.baomidou.mybatisplus.core.metadata.IPage
 import org.apache.ibatis.binding.MapperRegistry
-import org.apache.ibatis.reflection.factory.DefaultObjectFactory
 import org.apache.ibatis.session.SqlSession
-
-class MyObjectFactory : DefaultObjectFactory() {
-
-  override fun <T : Any?> isCollection(type: Class<T>?): Boolean {
-    if (type == IPage::class.java) {
-      return true
-    }
-    return super.isCollection(type)
-  }
-
-}
 
 /**
  * Created by 吴昊 on 2018/12/13.

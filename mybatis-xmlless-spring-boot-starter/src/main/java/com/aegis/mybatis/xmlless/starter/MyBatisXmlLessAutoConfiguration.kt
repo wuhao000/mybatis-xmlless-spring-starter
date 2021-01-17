@@ -1,7 +1,5 @@
 package com.aegis.mybatis.xmlless.starter
 
-import com.aegis.mybatis.xmlless.config.MyObjectFactory
-import com.aegis.mybatis.xmlless.config.MybatisXmlLessConfiguration
 import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusProperties

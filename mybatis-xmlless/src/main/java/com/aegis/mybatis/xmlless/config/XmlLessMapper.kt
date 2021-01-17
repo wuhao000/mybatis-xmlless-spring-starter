@@ -1,5 +1,7 @@
 package com.aegis.mybatis.xmlless.config
 
+import com.baomidou.mybatisplus.core.mapper.Mapper
+
 /**
  *
  * Created by 吴昊 on 2018/12/13.
@@ -8,4 +10,4 @@ package com.aegis.mybatis.xmlless.config
  * @since 0.0.4
  */
 @Suppress("unused")
-interface XmlLessMapper<T>
+interface XmlLessMapper<T> : Mapper<T>
