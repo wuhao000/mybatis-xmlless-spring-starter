@@ -13,7 +13,7 @@ import org.apache.ibatis.annotations.Param
  * @since 0.0.4
  */
 @Mapper
-interface DogDAO : XmlLessMapper<Dog>, BaseDAO<Dog> {
+interface DogDAO : XmlLessMapper<Dog>, BaseDAO<Dog, Int> {
 
 
 

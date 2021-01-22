@@ -14,13 +14,13 @@ import org.apache.ibatis.annotations.Param
  * @since 0.0.4
  */
 @Mapper
-interface BaseDAO<T> {
+interface BaseDAO<T, ID> {
 
   /**
    *
    * @param id
    */
-  fun findById(@Param("id") id: Int): T?
+  fun findById(@Param("id") id: ID): T?
 
 
 }

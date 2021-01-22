@@ -6,6 +6,7 @@ import com.aegis.mybatis.dao.DogDAO
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
+import kotlin.test.assertNotNull
 
 
 /**
@@ -17,8 +18,9 @@ open class DogDAOTest : BaseTest() {
   private lateinit var dao: DogDAO
 
   @Test
-  fun findAllPageable() {
-    dao.findById(1)
+  fun findById() {
+    val dog = dao.findById(1)
+    assertNotNull(dog)
   }
 
 }

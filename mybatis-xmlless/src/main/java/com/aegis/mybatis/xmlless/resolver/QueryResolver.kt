@@ -20,12 +20,14 @@ import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import com.fasterxml.jackson.databind.JavaType
 import org.apache.ibatis.annotations.ResultMap
 import org.apache.ibatis.builder.MapperBuilderAssistant
+import org.springframework.core.ResolvableType
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import java.lang.reflect.Method
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
+import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.isSuperclassOf
@@ -107,12 +109,12 @@ object QueryResolver {
     }
   }
 
-  fun resolveJavaType(function: Method, forceSingleValue: Boolean = false): JavaType? {
+  fun resolveJavaType(function: Method, clazz: Class<*>, forceSingleValue: Boolean = false): JavaType? {
     return if (!forceSingleValue && Collection::class.java.isAssignableFrom(function.returnType)) {
       val type = (function.genericReturnType as ParameterizedType).actualTypeArguments[0]
       toJavaType(type)
     } else {
-      toJavaType(function.returnType)
+      toJavaType(ResolvableType.forMethodReturnType(function, clazz).resolve())
     }
   }
 
@@ -166,9 +168,17 @@ object QueryResolver {
     return resultMap
   }
 
+  fun resolveReturnType(function: KFunction<*>): Class<*> {
+
+    val type = resolveReturnType(function.javaMethod!!)
+    if (type == Object::class.java) {
+      return (function.returnType.classifier as KClass<*>).java
+    }
+    return type
+  }
+
   fun resolveReturnType(function: Method): Class<*> {
-    return if (listOf(Collection::class, Page::class, IPage::class)
-            .any { it.java.isAssignableFrom(function.returnType) }
+    return if (listOf(Collection::class, Page::class, IPage::class).any { it.java.isAssignableFrom(function.returnType) }
     ) {
       val type = (function.genericReturnType as ParameterizedType).actualTypeArguments[0]
       if (type is Class<*>) {

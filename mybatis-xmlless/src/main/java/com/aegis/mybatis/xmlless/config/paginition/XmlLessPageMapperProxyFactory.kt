@@ -17,6 +17,9 @@ package com.aegis.mybatis.xmlless.config.paginition
 
 import org.apache.ibatis.binding.MapperProxyFactory
 import org.apache.ibatis.session.SqlSession
+import org.springframework.core.ResolvableType
+import kotlin.reflect.KClass
+import kotlin.reflect.KType
 
 /**
  *

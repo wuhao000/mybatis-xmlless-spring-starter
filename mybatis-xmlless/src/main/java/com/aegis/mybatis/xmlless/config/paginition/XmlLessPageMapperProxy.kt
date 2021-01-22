@@ -58,7 +58,6 @@ class XmlLessPageMapperProxy<T>(private val sqlSession: SqlSession,
     } catch (t: Throwable) {
       throw ExceptionUtil.unwrapThrowable(t)
     }
-
     val mapperMethod = cachedMapperMethod(method)
     return mapperMethod.execute(sqlSession, args)
   }
