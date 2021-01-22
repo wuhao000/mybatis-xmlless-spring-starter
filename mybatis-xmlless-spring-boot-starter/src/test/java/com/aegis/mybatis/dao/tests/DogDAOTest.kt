@@ -6,6 +6,7 @@ import com.aegis.mybatis.dao.DogDAO
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 
@@ -21,6 +22,12 @@ open class DogDAOTest : BaseTest() {
   fun findById() {
     val dog = dao.findById(1)
     assertNotNull(dog)
+  }
+
+  @Test
+  fun findAll(){
+    val list = dao.findAll()
+    assertEquals(1, list.size)
   }
 
 }

@@ -77,7 +77,7 @@ class XmlLessPageMapperMethod(
     if (result == null) {
       return result
     }
-    val returnClass = QueryResolver.resolveReturnType(requestMethod)
+    val returnClass = QueryResolver.resolveReturnType(requestMethod, mapperInterface)
     val forceSingleValue = forceSingleValue(requestMethod)
     val type = QueryResolver.resolveJavaType(requestMethod, mapperInterface, forceSingleValue)
     if (requestMethod.isAnnotationPresent(JsonResult::class.java)

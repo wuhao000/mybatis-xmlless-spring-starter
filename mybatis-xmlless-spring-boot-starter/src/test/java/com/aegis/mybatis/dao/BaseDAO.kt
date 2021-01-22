@@ -22,5 +22,6 @@ interface BaseDAO<T, ID> {
    */
   fun findById(@Param("id") id: ID): T?
 
+  fun findAll(): List<T>
 
 }

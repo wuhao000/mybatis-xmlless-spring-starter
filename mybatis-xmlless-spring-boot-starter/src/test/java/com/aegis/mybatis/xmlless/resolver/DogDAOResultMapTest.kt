@@ -1,11 +1,15 @@
 package com.aegis.mybatis.xmlless.resolver
 
+import com.aegis.mybatis.bean.Dog
 import com.aegis.mybatis.bean.Student
+import com.aegis.mybatis.dao.DogDAO
 import com.aegis.mybatis.dao.StudentDetailDAO
 import com.aegis.mybatis.xmlless.config.BaseResolverTest
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import kotlin.reflect.full.functions
 import kotlin.reflect.jvm.javaMethod
+import kotlin.test.assertEquals
 
 /**
  * TODO
@@ -15,9 +19,9 @@ import kotlin.reflect.jvm.javaMethod
  * @since 3.1.2 TODO
  * @version 1.0
  */
-class QueryResolverTest : BaseResolverTest(
-    Student::class.java, StudentDetailDAO::class.java,
-    "findFavorites",
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class DogDAOResultMapTest : BaseResolverTest(
+    Dog::class.java, DogDAO::class.java,
     "findAll"
 ) {
 
@@ -32,7 +36,7 @@ class QueryResolverTest : BaseResolverTest(
           .getResultMap(rmId)
       println(query)
       println(rmId)
-      println(rm)
+      println(rm.type)
     }
   }
 
@@ -40,7 +44,7 @@ class QueryResolverTest : BaseResolverTest(
   fun resolveReturnType() {
     val fn = StudentDetailDAO::class.functions
         .first { it.name == "findEducation" }
-    val type = QueryResolver.resolveReturnType(fn.javaMethod!!)
+    val type = QueryResolver.resolveReturnType(fn.javaMethod!!, StudentDetailDAO::class.java)
     println(type)
   }
 

@@ -6,9 +6,11 @@ import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.bean.StudentDetail
 import com.aegis.mybatis.dao.StudentDAO
 import com.aegis.mybatis.dao.StudentDetailDAO
+import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.core.ResolvableType
 import kotlin.test.assertEquals
 
 
@@ -20,30 +22,9 @@ import kotlin.test.assertEquals
 class StudentDetailDAOTest : BaseTest() {
 
   @Autowired
-  private lateinit var studentDAO: StudentDetailDAO
-
-  @Autowired
   private lateinit var dao: StudentDAO
-
-  @Test
-  @DisplayName("数组值等于查询")
-  fun findByFavorites() {
-    val s = studentDAO.findByFavorites("登山")
-    println(s)
-  }
-
-  @Test
-  fun findNickNamesById() {
-    val s = studentDAO.findNickNamesById("a")
-    println(s)
-  }
-
-  @Test
-  @DisplayName("数组值包含查询")
-  fun findByFavoritesIn() {
-    val s = studentDAO.findByFavoritesIn(listOf("登山"))
-    println(s)
-  }
+  @Autowired
+  private lateinit var studentDAO: StudentDetailDAO
 
   @Test
   @DisplayName("属性为对象数组")
@@ -55,6 +36,26 @@ class StudentDetailDAOTest : BaseTest() {
         assert(it is EducationInfo)
       }
     }
+  }
+
+  @Test
+  @DisplayName("数组值等于查询")
+  fun findByFavorites() {
+    val s = studentDAO.findByFavorites("登山")
+    println(s)
+  }
+
+  @Test
+  @DisplayName("数组值包含查询")
+  fun findByFavoritesIn() {
+    val s = studentDAO.findByFavoritesIn(listOf("登山"))
+    println(s)
+  }
+
+  @Test
+  fun findNickNamesById() {
+    val s = studentDAO.findNickNamesById("a")
+    println(s)
   }
 
   @Test
