@@ -24,7 +24,7 @@ object ParameterResolver {
   private val PARAMETER_NAMES_CACHE = HashMap<KFunction<*>, Array<String>>()
 
   fun isComplexParameter(parameter: KParameter): Boolean {
-    val realType = TypeResolver.resolveRealType(parameter.type.javaType)
+    val realType = TypeResolver.resolveRealType(parameter.type).java
     return (!realType.name.startsWith("java.")
         && !realType.isPrimitive
         && !realType.isArray

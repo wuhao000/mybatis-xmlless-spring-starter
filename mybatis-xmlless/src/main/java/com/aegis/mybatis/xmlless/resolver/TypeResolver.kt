@@ -1,7 +1,9 @@
 package com.aegis.mybatis.xmlless.resolver
 
+import sun.reflect.generics.reflectiveObjects.TypeVariableImpl
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
+import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
