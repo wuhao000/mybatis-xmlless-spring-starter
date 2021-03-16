@@ -15,11 +15,11 @@
  */
 package com.aegis.mybatis.xmlless.config.paginition
 
-import org.apache.ibatis.binding.MapperProxyFactory
+import org.apache.ibatis.binding.MapperMethod
 import org.apache.ibatis.session.SqlSession
-import org.springframework.core.ResolvableType
-import kotlin.reflect.KClass
-import kotlin.reflect.KType
+import java.lang.reflect.Method
+import java.lang.reflect.Proxy
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  *
@@ -31,12 +31,16 @@ import kotlin.reflect.KType
  * @author miemie
  * @since 2018-06-09
  */
-class XmlLessPageMapperProxyFactory<T>(mapperInterface: Class<T>)
-  : MapperProxyFactory<T>(mapperInterface) {
+class XmlLessPageMapperProxyFactory<T>(val mapperInterface: Class<T>) {
+  private val methodCache: MutableMap<Method, MapperMethod> = ConcurrentHashMap()
 
-  override fun newInstance(sqlSession: SqlSession): T {
+  fun newInstance(sqlSession: SqlSession): T {
     val mapperProxy = XmlLessPageMapperProxy(sqlSession, mapperInterface, methodCache)
     return newInstance(mapperProxy)
+  }
+
+  protected fun newInstance(mapperProxy: XmlLessPageMapperProxy<T>?): T {
+    return Proxy.newProxyInstance(mapperInterface.classLoader, arrayOf<Class<*>>(mapperInterface), mapperProxy) as T
   }
 
 }

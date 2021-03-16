@@ -9,7 +9,6 @@ import com.aegis.mybatis.xmlless.constant.Strings.SCRIPT_START
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
-import com.baomidou.mybatisplus.annotation.DbType
 import com.baomidou.mybatisplus.annotation.FieldFill
 import com.baomidou.mybatisplus.annotation.FieldStrategy
 import com.baomidou.mybatisplus.core.toolkit.StringPool
@@ -50,8 +49,7 @@ data class Query(
     val mappings: FieldMappings,
     /**  limit信息 */
     var limitation: Limitation? = null,
-    val resolvedNameAnnotation: ResolvedName?,
-    val dbType: DbType
+    val resolvedNameAnnotation: ResolvedName?
 ) {
 
   /**  来自Page参数的排序条件 */
@@ -181,10 +179,7 @@ data class Query(
 
   fun resolveLimit(): String {
     if (limitation != null) {
-      return when (dbType) {
-        DbType.H2 -> String.format(LIMIT_H2, limitation?.offsetParam, limitation?.offsetParam + limitation?.sizeParam)
-        else      -> String.format(LIMIT, limitation?.offsetParam, limitation?.sizeParam)
-      }
+      return String.format(LIMIT, limitation?.offsetParam, limitation?.sizeParam)
     }
     return ""
   }
@@ -304,8 +299,8 @@ data class Query(
   private fun hasCollectionJoinProperty(): Boolean {
     return when {
       this.properties.isIncludeNotEmpty() -> this.mappings.mappings
-          .filter { it.property in this.properties}
-      else                         -> this.mappings.mappings.filter {
+          .filter { it.property in this.properties }
+      else                                -> this.mappings.mappings.filter {
         it.property !in this.properties.excludes
       }
     }.filter {
@@ -340,7 +335,7 @@ data class Query(
     val mappingList = when {
       properties.isIncludeNotEmpty() -> mappings.mappings
           .filter { it.property in properties }
-      else                    -> mappings.mappings.filter { it.property !in properties.excludes }
+      else                           -> mappings.mappings.filter { it.property !in properties.excludes }
     }
     val groupProperties = mappingList.mapNotNull { it.joinInfo }
         .filter { it is PropertyJoinInfo }
@@ -406,4 +401,3 @@ data class Query(
   }
 
 }
-

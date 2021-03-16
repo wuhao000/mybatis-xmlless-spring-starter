@@ -83,8 +83,7 @@ object QueryResolver {
           function,
           mappings,
           null,
-          resolvedNameAnnotation,
-          GlobalConfigUtils.getDbType(builderAssistant.configuration)
+          resolvedNameAnnotation
       )
       function.valueParameters.forEachIndexed { index, param ->
         if (Pageable::class.isSuperclassOf(param.type.jvmErasure)) {
