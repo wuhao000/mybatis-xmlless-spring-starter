@@ -16,11 +16,11 @@
 package com.aegis.mybatis.xmlless.config.paginition
 
 import org.apache.ibatis.binding.MapperMethod
-import org.apache.ibatis.binding.MapperProxy
 import org.apache.ibatis.lang.UsesJava7
 import org.apache.ibatis.reflection.ExceptionUtil
 import org.apache.ibatis.session.SqlSession
 import java.lang.invoke.MethodHandles
+import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
@@ -36,15 +36,14 @@ import java.lang.reflect.Modifier
  */
 class XmlLessPageMapperProxy<T>(private val sqlSession: SqlSession,
                                 private val mapperInterface: Class<T>,
-                                private val methodCache: MutableMap<Method, MapperMethod>)
-  : MapperProxy<T>(sqlSession, mapperInterface, methodCache) {
+                                private val methodCache: MutableMap<Method, MapperMethod>) : InvocationHandler {
 
   companion object {
     private const val serialVersionUID = -6424540398559729838L
   }
 
   @Throws(Throwable::class)
-  override operator fun invoke(proxy: Any, method: Method, args: Array<Any>?): Any? {
+  override fun invoke(proxy: Any, method: Method, args: Array<Any>?): Any? {
     try {
       if (Any::class.java == method.declaringClass) {
         return if (args != null) {
@@ -58,7 +57,6 @@ class XmlLessPageMapperProxy<T>(private val sqlSession: SqlSession,
     } catch (t: Throwable) {
       throw ExceptionUtil.unwrapThrowable(t)
     }
-
     val mapperMethod = cachedMapperMethod(method)
     return mapperMethod.execute(sqlSession, args)
   }
@@ -101,4 +99,8 @@ class XmlLessPageMapperProxy<T>(private val sqlSession: SqlSession,
     return method.modifiers and (Modifier.ABSTRACT or Modifier.PUBLIC or Modifier.STATIC) == Modifier.PUBLIC && method.declaringClass.isInterface
   }
 
+  interface MapperMethodInvoker {
+    @Throws(Throwable::class)
+    operator fun invoke(var1: Any?, var2: Method?, var3: Array<Any?>?, var4: SqlSession?): Any?
+  }
 }

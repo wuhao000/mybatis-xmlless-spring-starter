@@ -16,7 +16,8 @@ import org.apache.ibatis.mapping.SqlCommandType
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import kotlin.reflect.KFunction
-import kotlin.reflect.full.declaredFunctions
+import kotlin.reflect.full.functions
+import kotlin.reflect.jvm.javaMethod
 
 
 /**
@@ -48,9 +49,13 @@ class XmlLessMethods : AbstractMethod() {
     // 修正表信息，主要是针对一些JPA注解的支持以及本项目中自定义的一些注解的支持，
     MappingResolver.fixTableInfo(modelClass, tableInfo, builderAssistant)
     // 判断Mapper方法是否已经定义了sql声明，如果没有定义才进行注入，这样如果存在Mapper方法在xml文件中有定义则会优先使用，如果没有定义才会进行推断
-    val unmappedFunctions = mapperClass.kotlin.declaredFunctions.filter {
-      !configuration.hasStatement("${mapperClass.name}$DOT${it.name}")
-    }
+    val unmappedFunctions = mapperClass.kotlin
+        .functions.filter {
+          it.javaMethod?.declaringClass != Object::class.java
+        }
+        .filter {
+          !configuration.hasStatement("${mapperClass.name}$DOT${it.name}")
+        }
     // 解析未定义的方法，进行sql推断
     val resolvedQueries = ResolvedQueries(mapperClass, unmappedFunctions)
     unmappedFunctions.forEach { function ->
@@ -90,7 +95,7 @@ class XmlLessMethods : AbstractMethod() {
             QueryType.Select,
             QueryType.Exists,
             QueryType.Count
-        ) -> {
+        )                -> {
           val returnType = resolvedQuery.returnType ?: throw BuildSQLException("无法解析方法${function}的返回类型")
           val resultMap = resolvedQuery.resultMap
           // addSelectMappedStatement这个方法中会使用默认的resultMap，该resultMap映射的类型和modelClass一致，所以如果当前方法的返回值和modelClass

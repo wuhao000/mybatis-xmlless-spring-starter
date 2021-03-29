@@ -21,6 +21,7 @@ import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import com.fasterxml.jackson.databind.JavaType
 import org.apache.ibatis.annotations.ResultMap
 import org.apache.ibatis.builder.MapperBuilderAssistant
+import org.springframework.core.ResolvableType
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
@@ -85,8 +86,7 @@ object QueryResolver {
           function,
           mappings,
           null,
-          resolvedNameAnnotation,
-          GlobalConfigUtils.getDbType(builderAssistant.configuration)
+          resolvedNameAnnotation
       )
       function.valueParameters.forEachIndexed { index, param ->
         if (Pageable::class.isSuperclassOf(param.type.jvmErasure)) {
@@ -95,13 +95,12 @@ object QueryResolver {
           query.extraSortScript = String.format(PAGEABLE_SORT, paramName, paramName)
         }
       }
-      val returnType = resolveReturnType(function.javaMethod!!)
+      val returnType = resolveReturnType(function.javaMethod!!, mapperClass)
       val resolvedQuery = ResolvedQuery(
           query, resolveResultMap(
           function, query,
           mapperClass, returnType, builderAssistant
-      ), returnType, function
-      )
+      ), returnType, function)
       putQueryCache(function, mapperClass, resolvedQuery)
       return resolvedQuery
     } catch (e: Exception) {
@@ -110,12 +109,12 @@ object QueryResolver {
     }
   }
 
-  fun resolveJavaType(function: Method, forceSingleValue: Boolean = false): JavaType? {
+  fun resolveJavaType(function: Method, clazz: Class<*>, forceSingleValue: Boolean = false): JavaType? {
     return if (!forceSingleValue && Collection::class.java.isAssignableFrom(function.returnType)) {
-      val type = (function.genericReturnType as ParameterizedType).actualTypeArguments[0]
-      toJavaType(type)
+      val type = ResolvableType.forMethodReturnType(function, clazz).generics[0].resolve()
+      toJavaType(type!!)
     } else {
-      toJavaType(function.returnType)
+      toJavaType(ResolvableType.forMethodReturnType(function, clazz).resolve()!!)
     }
   }
 
@@ -169,11 +168,9 @@ object QueryResolver {
     return resultMap
   }
 
-  fun resolveReturnType(function: Method): Class<*> {
-    return if (listOf(Collection::class, Page::class, IPage::class)
-            .any { it.java.isAssignableFrom(function.returnType) }
-    ) {
-      val type = (function.genericReturnType as ParameterizedType).actualTypeArguments[0]
+  fun resolveReturnType(function: Method, clazz: Class<*>): Class<*> {
+    return if (listOf(Collection::class, Page::class, IPage::class).any { it.java.isAssignableFrom(function.returnType) }) {
+      val type = ResolvableType.forMethodReturnType(function, clazz).generics[0].resolve()
       if (type is Class<*>) {
         type
       } else if (type is ParameterizedType) {
@@ -187,7 +184,7 @@ object QueryResolver {
         function.returnType
       }
     } else {
-      function.returnType
+      ResolvableType.forMethodReturnType(function, clazz).resolve()!!
     }
   }
 

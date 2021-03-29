@@ -3,7 +3,9 @@ package com.aegis.mybatis.xmlless.config
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods
 import com.baomidou.mybatisplus.core.injector.AbstractMethod
 import com.baomidou.mybatisplus.core.injector.AbstractSqlInjector
+import com.baomidou.mybatisplus.core.injector.DefaultSqlInjector
 import com.baomidou.mybatisplus.core.injector.methods.*
+import com.baomidou.mybatisplus.core.mapper.BaseMapper
 import org.springframework.stereotype.Component
 
 
@@ -19,27 +21,19 @@ import org.springframework.stereotype.Component
 @Component
 class MySqlInjector : AbstractSqlInjector() {
 
-  override fun getMethodList(mapperClass: Class<*>?): List<AbstractMethod> {
-    return listOf(
-        XmlLessMethods(),
-        Insert(),
-        Delete(),
-        DeleteByMap(),
-        DeleteById(),
-        DeleteBatchByIds(),
-        Update(),
-        UpdateById(),
-        SelectById(),
-        SelectBatchByIds(),
-        SelectByMap(),
-        SelectOne(),
-        SelectCount(),
-        SelectObjs(),
-        SelectMapsPage(),
-        SelectObjs(),
-        SelectList(),
-        SelectPage()
-    )
+  val defaultSqlInjector = DefaultSqlInjector()
+
+  override fun getMethodList(mapperClass: Class<*>): List<AbstractMethod> {
+    val list = arrayListOf<AbstractMethod>()
+    val mybatisPlusInjections = defaultSqlInjector.getMethodList(mapperClass)
+    if (BaseMapper::class.java.isAssignableFrom(mapperClass)) {
+      list.addAll(mybatisPlusInjections)
+      list.add(XmlLessMethods())
+    } else {
+      list.add(XmlLessMethods())
+      list.addAll(mybatisPlusInjections)
+    }
+    return list
   }
 
 }

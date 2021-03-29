@@ -25,7 +25,7 @@ import java.lang.reflect.Method
  * @since 0.0.4
  */
 class XmlLessPageMapperMethod(
-    mapperInterface: Class<*>,
+    private val mapperInterface: Class<*>,
     private val requestMethod: Method,
     config: Configuration
 ) : MapperMethod(mapperInterface, requestMethod, config) {
@@ -77,9 +77,9 @@ class XmlLessPageMapperMethod(
     if (result == null) {
       return result
     }
-    val returnClass = QueryResolver.resolveReturnType(requestMethod)
+    val returnClass = QueryResolver.resolveReturnType(requestMethod, mapperInterface)
     val forceSingleValue = forceSingleValue(requestMethod)
-    val type = QueryResolver.resolveJavaType(requestMethod, forceSingleValue)
+    val type = QueryResolver.resolveJavaType(requestMethod, mapperInterface, forceSingleValue)
     if (requestMethod.isAnnotationPresent(JsonResult::class.java)
         || returnClass.isAnnotationPresent(JsonMappingProperty::class.java)
     ) {

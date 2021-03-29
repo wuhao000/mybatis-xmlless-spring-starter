@@ -5,10 +5,9 @@
   <parent>
     <artifactId>aegis-starter-mybatis-parent</artifactId>
     <groupId>com.aegis</groupId>
-    <version>3.4.4</version>
+    <version>3.4.5</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
-  <version>3.4.4</version>
   <packaging>jar</packaging>
   <artifactId>mybatis-xmlless</artifactId>
 
