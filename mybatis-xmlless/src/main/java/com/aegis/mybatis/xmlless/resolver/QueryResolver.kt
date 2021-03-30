@@ -74,8 +74,10 @@ object QueryResolver {
       val resolveSortsResult = resolveSorts(resolvedName)
       val resolveTypeResult = resolveType(resolveSortsResult.remainName, function)
       val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords, function)
-      val conditions = CriteriaResolver.resolveConditions(resolvePropertiesResult.conditionWords,
-          function, mappings, resolveTypeResult.type)
+      val conditions = CriteriaResolver.resolveConditions(
+          resolvePropertiesResult.conditionWords,
+          function, mappings, resolveTypeResult.type
+      )
       val query = Query(
           resolveTypeResult.type,
           Properties(
@@ -199,7 +201,7 @@ object QueryResolver {
     val orderByIndex = name.indexOf("OrderBy")
     val sorts = if (orderByIndex > 0) {
       val orderByString = name.substring(orderByIndex).replace("OrderBy", "")
-      val sortStrings = orderByString.split("And")
+      val sortStrings = orderByString.split("And").filter { it.isNotBlank() }
       sortStrings.map {
         var direction = Sort.Direction.ASC
         val sortProperty = when {
@@ -256,11 +258,18 @@ object QueryResolver {
   private fun getResolvedName(function: KFunction<*>): String {
     val resolvedNameAnnotation = function.findAnnotation<ResolvedName>()
     return when {
-      resolvedNameAnnotation != null -> when {
-        resolvedNameAnnotation.name.isBlank() -> ""
-        else                                  -> "${resolvedNameAnnotation.name}And"
-      } + resolvedNameAnnotation.partNames.joinToString("And") {
-        it.toPascalCase()
+      resolvedNameAnnotation != null -> {
+        var finalName = ""
+        if (resolvedNameAnnotation.name.isNotBlank()) {
+          finalName += "${resolvedNameAnnotation.name}And"
+        }
+        val partName = resolvedNameAnnotation.partNames.joinToString("And") {
+          it.toPascalCase()
+        }
+        finalName + when {
+          partName.isNotEmpty() && finalName.isNotEmpty() -> "And$partName"
+          else                                            -> partName
+        }
       }
       else                           -> function.name
     }
