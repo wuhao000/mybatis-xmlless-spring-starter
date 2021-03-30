@@ -2,12 +2,10 @@ package com.aegis.mybatis.dao.tests
 
 import com.aegis.mybatis.BaseTest
 import com.aegis.mybatis.bean.Dog
-import com.aegis.mybatis.dao.AppClusterDAO
 import com.aegis.mybatis.dao.DogDAO
-import com.baomidou.mybatisplus.core.config.GlobalConfig
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.data.domain.PageRequest
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -21,30 +19,62 @@ open class DogDAOTest : BaseTest() {
   private lateinit var dao: DogDAO
 
   @Test
-  fun findById() {
-    val dog = dao.findById(1)
-    assertNotNull(dog)
-  }
-
-  @Test
-  fun findAll(){
-    val list = dao.findAll()
-    assertEquals(1, list.size)
-  }
-
-  @Test
+  @DisplayName("物理删除")
   fun delete() {
     dao.deleteById(1)
     assert(!dao.existsById(1))
   }
 
   @Test
+  @DisplayName("逻辑删除")
   fun deleteLogic() {
     val res = dao.deleteLogicById(1)
     println(res)
     val dog = dao.findById(1)
     assertNotNull(dog)
     assert(dog.deleteFlag)
+  }
+
+  @Test
+  @DisplayName("查询所有数据")
+  fun findAll() {
+    val list = dao.findAll()
+    assert(list.size > 1)
+  }
+
+  @Test
+  @DisplayName("查询未逻辑删除的数据")
+  fun findAllExcludeLogicDeleted() {
+    val list = dao.findNonDeleted()
+    assertEquals(2, list.size)
+  }
+
+  @Test
+  fun findById() {
+    val dog = dao.findById(1)
+    assertNotNull(dog)
+  }
+
+  @Test
+  fun findByNamesIn() {
+    val result = dao.findByNamesIn(listOf("a"))
+    result.forEach {
+      println(it.names)
+    }
+  }
+
+  @Test
+  @DisplayName("查询已删除的数据")
+  fun findDeleted() {
+    val list = dao.findDeleted()
+    assertEquals(1, list.size)
+  }
+
+  @Test
+  @DisplayName("查询未删除的数据")
+  fun findNotDeleted() {
+    val list = dao.findNonDeleted()
+    assertEquals(2, list.size)
   }
 
   @Test

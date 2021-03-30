@@ -1,5 +1,7 @@
 package com.aegis.mybatis.xmlless.model
 
+import com.aegis.mybatis.xmlless.annotations.DeleteValue
+import com.aegis.mybatis.xmlless.annotations.Logic
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.constant.*
 import com.aegis.mybatis.xmlless.constant.Strings.EMPTY
@@ -17,6 +19,7 @@ import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils.convertTrim
 import org.springframework.data.domain.Sort
 import kotlin.reflect.KFunction
+import kotlin.reflect.full.findAnnotation
 
 /**
  * 当结尾以指定字符串结束时，返回去掉结尾指定字符串的新字符串，否则返回当前字符串
@@ -295,7 +298,12 @@ data class Query(
   private fun buildLogicDeleteSql(): String {
     val mapper = this.mappings.mappings.find { it.field.isAnnotationPresent(TableLogic::class.java) }
       ?: throw IllegalStateException("缺少逻辑删除字段，请在字段上添加@TableLogic注解")
-    return "<script>UPDATE ${tableName()} SET ${mapper.column} = 1 " + resolveWhere() + "</script>"
+    val logic = function.findAnnotation<Logic>()!!
+    val value = when (logic.flag) {
+      DeleteValue.Deleted -> 1
+      else                -> 0
+    }
+    return "<script>UPDATE ${tableName()} SET ${mapper.column} = $value " + resolveWhere() + "</script>"
   }
 
   private fun buildScript(template: String, vararg args: String): String {

@@ -1,8 +1,10 @@
 package com.aegis.mybatis.xmlless.model
 
+import com.aegis.mybatis.xmlless.config.paginition.XmlLessException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import kotlin.reflect.KFunction
+import kotlin.reflect.jvm.javaMethod
 
 
 /**
@@ -54,9 +56,9 @@ class ResolvedQueries(private val mapperClass: Class<*>,
     if (unResolved.isNotEmpty()) {
       sb.append("以下方法未能成功解析:")
       unResolved.sortedBy { it.function.name }.forEach {
-        sb.append("\n\t\t- " + it.function.name)
+        sb.append("\n\t\t- ${it.function.javaMethod!!.declaringClass.name}." + it.function.name)
       }
-      log.error("\n\n" + sb.toString() + "\n")
+      throw XmlLessException(sb.toString())
     }
   }
 

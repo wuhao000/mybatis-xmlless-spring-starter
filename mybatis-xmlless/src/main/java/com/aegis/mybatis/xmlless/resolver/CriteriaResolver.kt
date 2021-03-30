@@ -1,20 +1,21 @@
 package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.xmlless.annotations.Criteria
+import com.aegis.mybatis.xmlless.annotations.DeleteValue
+import com.aegis.mybatis.xmlless.annotations.Logic
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.kotlin.split
 import com.aegis.mybatis.xmlless.kotlin.toCamelCase
-import com.aegis.mybatis.xmlless.model.Append
-import com.aegis.mybatis.xmlless.model.FieldMappings
-import com.aegis.mybatis.xmlless.model.MatchedParameter
-import com.aegis.mybatis.xmlless.model.QueryCriteria
+import com.aegis.mybatis.xmlless.model.*
+import com.baomidou.mybatisplus.annotation.TableLogic
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.full.valueParameters
 import kotlin.reflect.jvm.javaField
 
@@ -30,7 +31,8 @@ object CriteriaResolver {
   fun resolveConditions(
       allConditionWords: List<String>,
       function: KFunction<*>,
-      mappings: FieldMappings
+      mappings: FieldMappings,
+      queryType: QueryType
   ): List<QueryCriteria> {
     val nameConditions = if (allConditionWords.isNotEmpty()) {
       splitAndConditionKeywords(allConditionWords).map { addPropertiesWords ->
@@ -64,19 +66,26 @@ object CriteriaResolver {
         }
       }
     }
-    return nameConditions + parameterConditions
-  }
-
-  private fun splitAndConditionKeywords(allConditionWords: List<String>): List<List<String>> {
-    val list = arrayListOf<List<String>>()
-    allConditionWords.split("And").forEach {
-      if (list.isNotEmpty() && list.last().contains(Operations.Between.name)) {
-        list[list.size - 1] = list.last() + "" + it
-      } else {
-        list.add(it)
-      }
+    if (function.hasAnnotation<Logic>() && queryType == QueryType.Select) {
+      val logic = function.findAnnotation<Logic>()!!
+      val mapper = mappings.mappings.find { it.field.isAnnotationPresent(TableLogic::class.java) }
+        ?: throw IllegalStateException("缺少逻辑删除字段，请在字段上添加@TableLogic注解")
+      parameterConditions.add(
+          QueryCriteria(
+              mapper.property, Operations.Eq,
+              specificValue = SpecificValue(
+                  stringValue = "",
+                  nonStringValue = when (logic.flag) {
+                    DeleteValue.Deleted    -> 1
+                    DeleteValue.NotDeleted -> 0
+                  }.toString()
+              ),
+              mappings = mappings,
+              parameters = listOf()
+          )
+      )
     }
-    return list
+    return nameConditions + parameterConditions
   }
 
   private fun resolveCriteria(
@@ -93,6 +102,8 @@ object CriteriaResolver {
         listOf(Pair(paramName, parameter)),
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == paramName
+        }?.let {
+               SpecificValue(it.stringValue, it.nonStringValue)
         },
         mappings
     )
@@ -109,9 +120,9 @@ object CriteriaResolver {
       singleConditionWords.containsAll(it)
           && singleConditionWords.joinToString("").contains(it.joinToString(""))
     }.sortedByDescending { it.size }
-    val maxOpWordCount = opWordsList.map { it.size }.max()
+    val maxOpWordCount = opWordsList.map { it.size }.maxOrNull()
     val opWords = opWordsList.filter { it.size == maxOpWordCount }
-        .minBy {
+        .minByOrNull {
           singleConditionString.indexOf(it.joinToString(""))
         }
     val props = when {
@@ -141,13 +152,13 @@ object CriteriaResolver {
         // 解决剩余的名称为aInB的情况
         val parts = props[1].split("In")
         when (parts.size) {
-          2 -> listOf(parts[1].joinToString("").toCamelCase())
+          2    -> listOf(parts[1].joinToString("").toCamelCase())
           else -> listOf(props[1].joinToString("").toCamelCase())
         }
       }
       else            -> listOf(property)
     }
-    val parameters = paramNames.map { paramName->
+    val parameters = paramNames.map { paramName ->
       val parameterData: MatchedParameter? = ParameterResolver.resolve(paramName, function)
       val parameter = when {
         parameterData != null -> parameterData.property ?: parameterData.parameter
@@ -166,6 +177,8 @@ object CriteriaResolver {
         parameters,
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == property
+        }?.let {
+          SpecificValue(it.stringValue, it.nonStringValue)
         },
         mappings
     )
@@ -179,12 +192,27 @@ object CriteriaResolver {
       criteria.property.isNotBlank() -> criteria.property
       else                           -> property.name
     }
-    return QueryCriteria(propertyName, criteria.operator, Append.AND,
+    return QueryCriteria(
+        propertyName, criteria.operator, Append.AND,
         listOf(Pair(paramName + "." + property.name, property)),
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == paramName
+        }?.let {
+          SpecificValue(it.stringValue, it.nonStringValue)
         }, mappings
     )
+  }
+
+  private fun splitAndConditionKeywords(allConditionWords: List<String>): List<List<String>> {
+    val list = arrayListOf<List<String>>()
+    allConditionWords.split("And").forEach {
+      if (list.isNotEmpty() && list.last().contains(Operations.Between.name)) {
+        list[list.size - 1] = list.last() + "" + it
+      } else {
+        list.add(it)
+      }
+    }
+    return list
   }
 
 }

@@ -1,5 +1,6 @@
 package com.aegis.mybatis.bean
 
+import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
 import com.baomidou.mybatisplus.annotation.TableLogic
 import org.springframework.data.annotation.CreatedDate
 import java.util.*
@@ -16,5 +17,8 @@ class Dog {
   @GeneratedValue
   var id: Int = 0
   var name: String? = null
+
+  @JsonMappingProperty
+  var names: List<String>? = null
 
 }

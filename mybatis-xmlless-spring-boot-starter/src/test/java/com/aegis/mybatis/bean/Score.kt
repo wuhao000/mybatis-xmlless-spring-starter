@@ -22,8 +22,6 @@ class Score {
   var studentId: String = ""
   @JoinObject(
       selectProperties = ["id", "name"],
-      targetTable = "t_subject",
-      targetColumn = "id",
       joinProperty = "subjectId",
       associationPrefix = "subject_"
   )

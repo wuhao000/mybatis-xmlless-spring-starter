@@ -15,6 +15,9 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.jvm.jvmErasure
 
+
+class SpecificValue(val stringValue: String,
+                    val nonStringValue: String)
 /**
  *
  * @author 吴昊
@@ -25,7 +28,7 @@ data class QueryCriteria(
     val operator: Operations,
     var append: Append = Append.AND,
     var parameters: List<Pair<String, KAnnotatedElement?>>,
-    val specificValue: ValueAssign?,
+    val specificValue: SpecificValue?,
     private val mappings: FieldMappings
 ) {
 

@@ -7,6 +7,7 @@ import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.kotlin.toWords
 import com.aegis.mybatis.xmlless.model.FieldMappings
 import com.aegis.mybatis.xmlless.model.QueryCriteria
+import com.aegis.mybatis.xmlless.model.QueryType
 import org.junit.jupiter.api.Test
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.declaredFunctions
@@ -26,7 +27,7 @@ class ConditionResolverTest : BaseResolverTest(
     val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
     TestDAO::class.declaredFunctions.forEach { function ->
       val a = function.name.replace("findBy", "")
-      val conditions = resolveConditions(a, function, mappings)
+      val conditions = resolveConditions(a, function, mappings, QueryType.Select)
       println("${function.name} *********************")
       conditions.forEach {
         println(it)
@@ -37,10 +38,11 @@ class ConditionResolverTest : BaseResolverTest(
   private fun resolveConditions(
       conditionExpression: String,
       function: KFunction<*>,
-      mappings: FieldMappings
+      mappings: FieldMappings,
+      queryType: QueryType
   ): List<QueryCriteria> {
     return CriteriaResolver.resolveConditions(
-        conditionExpression.toWords(), function, mappings
+        conditionExpression.toWords(), function, mappings, queryType
     )
   }
 

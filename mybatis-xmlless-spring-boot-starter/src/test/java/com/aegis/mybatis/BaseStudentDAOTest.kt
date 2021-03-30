@@ -25,14 +25,6 @@ class BaseStudentDAOTest : BaseTest() {
 
   @Test
   fun selectById() {
-    if (studentDAO.selectById(id) == null) {
-      studentDAO.insert(
-          Student(
-              id, "wuhao", "18005184916", 1
-          )
-      )
-    }
-    assertNotNull(studentDAO.selectById(id))
   }
 
 }

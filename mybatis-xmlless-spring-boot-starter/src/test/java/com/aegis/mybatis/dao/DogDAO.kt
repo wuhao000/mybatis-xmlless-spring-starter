@@ -1,7 +1,8 @@
 package com.aegis.mybatis.dao
 
 import com.aegis.mybatis.bean.Dog
-import com.aegis.mybatis.xmlless.annotations.LogicDelete
+import com.aegis.mybatis.xmlless.annotations.DeleteValue
+import com.aegis.mybatis.xmlless.annotations.Logic
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.config.XmlLessMapper
 import org.apache.ibatis.annotations.Mapper
@@ -19,13 +20,15 @@ interface DogDAO : XmlLessMapper<Dog>, BaseDAO<Dog, Int> {
 
   /**
    * @param id
+   * @return
    */
   fun deleteById(@Param("id") id: Int): Int
 
   /**
    * @param id
+   * @return
    */
-  @LogicDelete
+  @Logic(DeleteValue.Deleted)
   @ResolvedName("deleteById")
   fun deleteLogicById(@Param("id") id: Int): Int
 
@@ -40,5 +43,11 @@ interface DogDAO : XmlLessMapper<Dog>, BaseDAO<Dog, Int> {
    * @return
    */
   fun findByName(@Param("name") name: String): Dog?
+
+  /**
+   * @param names
+   * @return
+   */
+  fun findByNamesIn(@Param("names") names: List<String>): List<Dog>
 
 }

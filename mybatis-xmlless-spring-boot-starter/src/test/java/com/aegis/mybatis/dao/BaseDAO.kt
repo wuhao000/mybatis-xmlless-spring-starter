@@ -1,8 +1,8 @@
 package com.aegis.mybatis.dao
 
-import com.aegis.mybatis.bean.Student
-import com.aegis.mybatis.xmlless.config.XmlLessMapper
-import com.baomidou.mybatisplus.core.mapper.BaseMapper
+import com.aegis.mybatis.xmlless.annotations.DeleteValue
+import com.aegis.mybatis.xmlless.annotations.Logic
+import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param
 
@@ -17,13 +17,31 @@ import org.apache.ibatis.annotations.Param
 interface BaseDAO<T, ID> {
 
   /**
+   * @return
+   */
+  fun findAll(): List<T>
+
+  /**
    *
    * @param id
+   * @return
    */
   fun findById(@Param("id") id: ID): T?
 
-  fun findAll(): List<T>
+  /**
+   * @return
+   */
+  @Logic(DeleteValue.NotDeleted)
+  @ResolvedName("findAll")
+  fun findNonDeleted(): List<T>
 
+  @Logic(DeleteValue.Deleted)
+  @ResolvedName("findAll")
+  fun findDeleted(): List<T>
+
+  /**
+   * @param t
+   */
   fun save(t: T)
 
 }

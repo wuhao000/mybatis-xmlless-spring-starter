@@ -1,5 +1,8 @@
 package com.aegis.mybatis.bean
 
+import javax.persistence.Entity
+import javax.persistence.Id
+
 
 /**
  *
@@ -8,4 +11,9 @@ package com.aegis.mybatis.bean
  * @author 吴昊
  * @since 0.0.9
  */
-data class Subject(var id: Int = 0, var name: String = "")
+@Entity
+data class Subject(
+    @Id
+    var id: Int = 0,
+    var name: String = ""
+)

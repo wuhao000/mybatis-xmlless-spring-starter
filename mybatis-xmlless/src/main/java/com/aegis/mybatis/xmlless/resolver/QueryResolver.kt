@@ -3,11 +3,10 @@
 package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.xmlless.annotations.ExcludeProperties
-import com.aegis.mybatis.xmlless.annotations.LogicDelete
+import com.aegis.mybatis.xmlless.annotations.Logic
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.config.MappingResolver
-import com.aegis.mybatis.xmlless.config.MybatisXmlLessConfiguration
 import com.aegis.mybatis.xmlless.config.paginition.XmlLessPageMapperMethod
 import com.aegis.mybatis.xmlless.constant.PAGEABLE_SORT
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
@@ -75,7 +74,8 @@ object QueryResolver {
       val resolveSortsResult = resolveSorts(resolvedName)
       val resolveTypeResult = resolveType(resolveSortsResult.remainName, function)
       val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords, function)
-      val conditions = CriteriaResolver.resolveConditions(resolvePropertiesResult.conditionWords, function, mappings)
+      val conditions = CriteriaResolver.resolveConditions(resolvePropertiesResult.conditionWords,
+          function, mappings, resolveTypeResult.type)
       val query = Query(
           resolveTypeResult.type,
           Properties(
@@ -232,7 +232,7 @@ object QueryResolver {
       "Count"                                        -> QueryType.Count
       "Update"                                       -> QueryType.Update
       in listOf("Delete", "Remove")                  -> {
-        if (function.findAnnotation<LogicDelete>() != null) {
+        if (function.findAnnotation<Logic>() != null) {
           QueryType.LogicDelete
         } else {
           QueryType.Delete
