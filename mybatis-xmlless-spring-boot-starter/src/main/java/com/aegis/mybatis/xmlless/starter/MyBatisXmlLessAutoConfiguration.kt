@@ -78,7 +78,7 @@ class MyBatisXmlLessAutoConfiguration(
       factory.setConfigurationProperties(this.properties.configurationProperties)
     }
     if (!this.interceptors.isNullOrEmpty()) {
-      factory.setPlugins(*this.interceptors!!)
+      factory.setPlugins(this.interceptors!!)
     }
     if (this.databaseIdProvider != null) {
       factory.databaseIdProvider = this.databaseIdProvider
@@ -96,7 +96,7 @@ class MyBatisXmlLessAutoConfiguration(
       factory.setTypeHandlersPackage(this.properties.typeHandlersPackage)
     }
     if (!this.properties.resolveMapperLocations().isNullOrEmpty()) {
-      factory.setMapperLocations(*this.properties.resolveMapperLocations())
+      factory.setMapperLocations(this.properties.resolveMapperLocations())
     }
     val globalConfig = this.properties.globalConfig
     //注入填充器

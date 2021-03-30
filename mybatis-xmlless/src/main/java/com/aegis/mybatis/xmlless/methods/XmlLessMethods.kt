@@ -32,8 +32,6 @@ class XmlLessMethods : AbstractMethod() {
   companion object {
     const val COUNT_STATEMENT_SUFFIX = "CountAllSuffix"
     const val HANDLER_PREFIX = "typeHandler="
-    const val PROPERTY_PREFIX = "#{"
-    const val PROPERTY_SUFFIX = "}"
     private val LOG: Logger = LoggerFactory.getLogger(XmlLessMethods::class.java)
     private val possibleErrors = listOf(
         "未在级联属性@ModifyIgnore注解将其标记为不需要插入或更新的字段",
@@ -133,7 +131,10 @@ class XmlLessMethods : AbstractMethod() {
               keyGenerator, tableInfo.keyProperty, tableInfo.keyColumn
           )
         }
-        QueryType.Update -> {
+        in listOf(
+            QueryType.Update,
+            QueryType.LogicDelete
+        ) -> {
           addUpdateMappedStatement(mapperClass, modelClass, function.name, sqlSource)
         }
       }

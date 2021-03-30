@@ -24,4 +24,6 @@ interface BaseDAO<T, ID> {
 
   fun findAll(): List<T>
 
+  fun save(t: T)
+
 }

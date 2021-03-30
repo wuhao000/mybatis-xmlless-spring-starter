@@ -3,9 +3,11 @@
 package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.xmlless.annotations.ExcludeProperties
+import com.aegis.mybatis.xmlless.annotations.LogicDelete
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.config.MappingResolver
+import com.aegis.mybatis.xmlless.config.MybatisXmlLessConfiguration
 import com.aegis.mybatis.xmlless.config.paginition.XmlLessPageMapperMethod
 import com.aegis.mybatis.xmlless.constant.PAGEABLE_SORT
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
@@ -16,7 +18,6 @@ import com.aegis.mybatis.xmlless.kotlin.toWords
 import com.aegis.mybatis.xmlless.model.*
 import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.metadata.TableInfo
-import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import com.fasterxml.jackson.databind.JavaType
 import org.apache.ibatis.annotations.ResultMap
@@ -72,7 +73,7 @@ object QueryResolver {
       val resolvedNameAnnotation = function.findAnnotation<ResolvedName>()
       val resolvedName = getResolvedName(function)
       val resolveSortsResult = resolveSorts(resolvedName)
-      val resolveTypeResult = resolveType(resolveSortsResult.remainName)
+      val resolveTypeResult = resolveType(resolveSortsResult.remainName, function)
       val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords, function)
       val conditions = CriteriaResolver.resolveConditions(resolvePropertiesResult.conditionWords, function, mappings)
       val query = Query(
@@ -100,7 +101,8 @@ object QueryResolver {
           query, resolveResultMap(
           function, query,
           mapperClass, returnType, builderAssistant
-      ), returnType, function)
+      ), returnType, function
+      )
       putQueryCache(function, mapperClass, resolvedQuery)
       return resolvedQuery
     } catch (e: Exception) {
@@ -169,7 +171,12 @@ object QueryResolver {
   }
 
   fun resolveReturnType(function: Method, clazz: Class<*>): Class<*> {
-    return if (listOf(Collection::class, Page::class, IPage::class).any { it.java.isAssignableFrom(function.returnType) }) {
+    return if (listOf(
+            Collection::class,
+            Page::class,
+            IPage::class
+        ).any { it.java.isAssignableFrom(function.returnType) }
+    ) {
       val type = ResolvableType.forMethodReturnType(function, clazz).generics[0].resolve()
       if (type is Class<*>) {
         type
@@ -216,17 +223,23 @@ object QueryResolver {
     return ResolveSortsResult(sorts, remainName)
   }
 
-  fun resolveType(name: String): ResolveTypeResult {
+  fun resolveType(name: String, function: KFunction<*>): ResolveTypeResult {
     val wordsWithoutSort = name.toWords()
     val typeWord = wordsWithoutSort[0]
     val type: QueryType = when (typeWord) {
-      in listOf("Find", "Select", "Query") -> QueryType.Select
-      "Exists"                             -> QueryType.Exists
-      "Count"                              -> QueryType.Count
-      "Update"                             -> QueryType.Update
-      in listOf("Delete", "Remove")        -> QueryType.Delete
-      in listOf("Insert", "Save")          -> QueryType.Insert
-      else                                 -> null
+      in listOf("Find", "Select", "Query", "Search") -> QueryType.Select
+      "Exists"                                       -> QueryType.Exists
+      "Count"                                        -> QueryType.Count
+      "Update"                                       -> QueryType.Update
+      in listOf("Delete", "Remove")                  -> {
+        if (function.findAnnotation<LogicDelete>() != null) {
+          QueryType.LogicDelete
+        } else {
+          QueryType.Delete
+        }
+      }
+      in listOf("Insert", "Save", "Add")             -> QueryType.Insert
+      else                                           -> null
     } ?: throw BuildSQLException("无法解析SQL类型，解析的名称为$name")
     val remainWords = wordsWithoutSort.drop(1).toMutableList()
     if (remainWords.joinToString("") in SPECIAL_NAME_PART) {

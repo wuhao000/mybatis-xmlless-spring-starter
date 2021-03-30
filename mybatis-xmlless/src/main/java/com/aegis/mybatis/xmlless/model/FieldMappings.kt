@@ -66,11 +66,11 @@ data class FieldMappings(
     return when {
       insertProperties.isIncludeNotEmpty() ->
         mappings.filter { !it.insertIgnore && it.property in insertProperties.includes }.map {
-          it.getPropertyExpression(prefix)
+          it.getInsertPropertyExpression(prefix)
         }
       else                          ->
         mappings.filter { !it.insertIgnore && it.property !in insertProperties.excludes }.map {
-          it.getPropertyExpression(prefix)
+          it.getInsertPropertyExpression(prefix)
         }
     }
   }

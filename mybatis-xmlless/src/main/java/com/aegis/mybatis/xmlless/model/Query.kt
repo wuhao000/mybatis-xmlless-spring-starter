@@ -11,6 +11,7 @@ import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.baomidou.mybatisplus.annotation.FieldFill
 import com.baomidou.mybatisplus.annotation.FieldStrategy
+import com.baomidou.mybatisplus.annotation.TableLogic
 import com.baomidou.mybatisplus.core.toolkit.StringPool
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils.convertTrim
@@ -63,8 +64,10 @@ data class Query(
   }
 
   fun buildUpdateSql(): String {
-    return String.format(UPDATE, tableName(), resolveUpdateProperties(false),
-        resolveUpdateWhere())
+    return String.format(
+        UPDATE, tableName(), resolveUpdateProperties(false),
+        resolveUpdateWhere()
+    )
   }
 
   fun containedTables(): List<String> {
@@ -80,9 +83,15 @@ data class Query(
     return when {
       mapping.tableFieldInfo.whereStrategy == FieldStrategy.NOT_EMPTY
           && mapping.tableFieldInfo.isCharSequence ->
-        SqlScriptUtils.convertIf(sqlScript,
-            String.format("%s != null and %s != ''", property, property), false)
-      else                                         -> SqlScriptUtils.convertIf(sqlScript, String.format("%s != null", property), false)
+        SqlScriptUtils.convertIf(
+            sqlScript,
+            String.format("%s != null and %s != ''", property, property), false
+        )
+      else                                         -> SqlScriptUtils.convertIf(
+          sqlScript,
+          String.format("%s != null", property),
+          false
+      )
     }
   }
 
@@ -102,7 +111,12 @@ data class Query(
     } else {
       sqlSet += when {
         !mapping.tableFieldInfo.update.isNullOrBlank() -> String.format(mapping.tableFieldInfo.update, column)
-        else                                           -> SqlScriptUtils.safeParam(newPrefix + mapping.getPropertyExpression(null, false))
+        else                                           -> SqlScriptUtils.safeParam(
+            newPrefix + mapping.getPropertyExpression(
+                null,
+                false
+            )
+        )
       }
     }
     sqlSet += StringPool.COMMA
@@ -143,9 +157,13 @@ data class Query(
           }
           result.add(QueryCriteriaGroup(mutableListOf(criteria)))
         }
-        tmp.isEmpty() && criteria.append == Append.AND -> result.add(QueryCriteriaGroup(mutableListOf(
-            criteria
-        )))
+        tmp.isEmpty() && criteria.append == Append.AND -> result.add(
+            QueryCriteriaGroup(
+                mutableListOf(
+                    criteria
+                )
+            )
+        )
         tmp.isEmpty()                                  -> tmp.add(criteria)
         tmp.onlyDefaultEq()
             && criteria.operator == Operations.EqDefault
@@ -156,12 +174,16 @@ data class Query(
             result.addAll(tmp.criterion.map { QueryCriteriaGroup(mutableListOf(it)) })
             result.add(QueryCriteriaGroup(mutableListOf(criteria)))
           } else {
-            result.add(QueryCriteriaGroup(
-                (tmp.criterion.map {
-                  QueryCriteria(it.property, criteria.operator, it.append, criteria.parameters, it
-                      .specificValue, mappings)
-                }.toMutableList() + criteria).toMutableList()
-            ))
+            result.add(
+                QueryCriteriaGroup(
+                    (tmp.criterion.map {
+                      QueryCriteria(
+                          it.property, criteria.operator, it.append, criteria.parameters, it
+                          .specificValue, mappings
+                      )
+                    }.toMutableList() + criteria).toMutableList()
+                )
+            )
           }
           tmp = QueryCriteriaGroup()
         }
@@ -202,21 +224,24 @@ data class Query(
 
   fun resolveUpdateWhere(): String {
     return when {
-      criterion.isEmpty() -> String.format("""
+      criterion.isEmpty() -> String.format(
+          """
         WHERE %s = #{%s}
-      """, mappings.tableInfo.keyColumn, mappings.tableInfo.keyProperty)
+      """, mappings.tableInfo.keyColumn, mappings.tableInfo.keyProperty
+      )
       else                -> resolveWhere()
     }
   }
 
   fun toSql(): String {
     return when (type) {
-      QueryType.Delete -> buildDeleteSql()
-      QueryType.Insert -> buildInsertSql()
-      QueryType.Select -> buildSelectSql()
-      QueryType.Update -> buildUpdateSql()
-      QueryType.Count  -> buildCountSql()
-      QueryType.Exists -> buildExistsSql()
+      QueryType.Delete      -> buildDeleteSql()
+      QueryType.Insert      -> buildInsertSql()
+      QueryType.Select      -> buildSelectSql()
+      QueryType.Update      -> buildUpdateSql()
+      QueryType.Count       -> buildCountSql()
+      QueryType.Exists      -> buildExistsSql()
+      QueryType.LogicDelete -> buildLogicDeleteSql()
     }
   }
 
@@ -259,10 +284,18 @@ data class Query(
     if (columns.size != values.size) {
       throw BuildSQLException("解析方法[${function}]失败，插入的字段\n$columns\n与插入的值\n$values\n数量不一致")
     }
-    return String.format(template, mappings.tableInfo.tableName,
+    return String.format(
+        template, mappings.tableInfo.tableName,
         columns.joinToString(Strings.COLUMN_SEPARATOR),
         values.joinToString(Strings.COLUMN_SEPARATOR),
-        resolveUpdateProperties(true))
+        resolveUpdateProperties(true)
+    )
+  }
+
+  private fun buildLogicDeleteSql(): String {
+    val mapper = this.mappings.mappings.find { it.field.isAnnotationPresent(TableLogic::class.java) }
+      ?: throw IllegalStateException("缺少逻辑删除字段，请在字段上添加@TableLogic注解")
+    return "<script>UPDATE ${tableName()} SET ${mapper.column} = 1 " + resolveWhere() + "</script>"
   }
 
   private fun buildScript(template: String, vararg args: String): String {
@@ -286,10 +319,13 @@ data class Query(
     val limitInSubQuery = limitInSubQuery()
     val from = resolveFrom(limitInSubQuery, whereSqlResult, limit)
     return when {
-      limitInSubQuery -> buildScript(SELECT, buildColsResult.joinToString(",\n\t") { it.toSql() }, from,
+      limitInSubQuery -> buildScript(
+          SELECT, buildColsResult.joinToString(",\n\t") { it.toSql() }, from,
           resolvedNameAnnotation?.joinAppend ?: "",
-          "", groupBy, order, "")
-      else            -> buildScript(SELECT, buildColsResult.joinToString(",\n\t") { it.toSql() }, from,
+          "", groupBy, order, ""
+      )
+      else            -> buildScript(
+          SELECT, buildColsResult.joinToString(",\n\t") { it.toSql() }, from,
           resolvedNameAnnotation?.joinAppend ?: "",
           whereSqlResult, groupBy, order, limit
       )
@@ -313,8 +349,10 @@ data class Query(
   /**
    * @param isCount 移除没有被条件引用的join表
    */
-  private fun resolveFrom(limitInSubQuery: Boolean, whereSqlResult: String, limit: String,
-                          isCount: Boolean = false): String {
+  private fun resolveFrom(
+      limitInSubQuery: Boolean, whereSqlResult: String, limit: String,
+      isCount: Boolean = false
+  ): String {
     val onlyIncludesTables = if (isCount) {
       criterion.map {
         it.columns.mapNotNull { it.table }
@@ -376,8 +414,10 @@ data class Query(
     val whereAppend = resolvedNameAnnotation?.whereAppend
     return when {
       criterion.isNotEmpty() || (whereAppend != null && whereAppend.isNotBlank()) ->
-        String.format(WHERE, trimCondition(groupBuilders.joinToString(LINE_BREAK) +
-            LINE_BREAK + (whereAppend ?: EMPTY)).lines().joinToString(LINE_BREAK) {
+        String.format(WHERE, trimCondition(
+            groupBuilders.joinToString(LINE_BREAK) +
+                LINE_BREAK + (whereAppend ?: EMPTY)
+        ).lines().joinToString(LINE_BREAK) {
           "\t".repeat(3) + it
         })
       else                                                                        -> ""

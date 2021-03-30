@@ -13,3 +13,7 @@ internal const val IN_TEMPLATE = "%s\n\t%S\n%s"
 
 /**  not null或者is not null的条件表达式模板 */
 internal const val NO_VALUE = "%s %S"
+
+const val PROPERTY_PREFIX = "#{"
+
+const val PROPERTY_SUFFIX = "}"

@@ -2,8 +2,9 @@ package com.aegis.mybatis.xmlless.enums
 
 import com.aegis.mybatis.xmlless.constant.IN_TEMPLATE
 import com.aegis.mybatis.xmlless.constant.NO_VALUE
+import com.aegis.mybatis.xmlless.constant.PROPERTY_PREFIX
+import com.aegis.mybatis.xmlless.constant.PROPERTY_SUFFIX
 import com.aegis.mybatis.xmlless.kotlin.toWords
-import com.aegis.mybatis.xmlless.methods.XmlLessMethods
 
 /**
  * 数据库支持的操作符
@@ -12,13 +13,13 @@ import com.aegis.mybatis.xmlless.methods.XmlLessMethods
  */
 enum class Operations(val operator: String) {
 
+  Between("BETWEEN"),
   Eq("="),
   EqDefault("="),
   EqFalse(" = FALSE"),
   EqTrue(" = TRUE"),
   Gt("&gt;"),
   Gte("&gt;="),
-  Between("BETWEEN"),
   In("IN"),
   IsNotNull("IS NOT NULL"),
   IsNull("IS NULL"),
@@ -50,17 +51,19 @@ enum class Operations(val operator: String) {
   fun getTemplate(value: Boolean = false): String {
     val valueHolder = when {
       value -> "%s"
-      else  -> "${XmlLessMethods.PROPERTY_PREFIX}%s${XmlLessMethods.PROPERTY_SUFFIX}"
+      else  -> "${PROPERTY_PREFIX}%s${PROPERTY_SUFFIX}"
     }
     return when (this) {
-      Like                         -> "%s %s CONCAT('%%', $valueHolder,'%%')"
-      LikeLeft                     -> "%s %s CONCAT($valueHolder, '%%')"
-      LikeRight                    -> "%s %s CONCAT('%%', $valueHolder)"
-      In                           -> IN_TEMPLATE
-      in listOf(NotNull, IsNotNull,
-          IsNull, EqTrue, EqFalse) -> NO_VALUE
-      Between -> "%s %s $valueHolder AND $valueHolder"
-      else                         -> "%s %s $valueHolder"
+      Like      -> "%s %s CONCAT('%%', $valueHolder,'%%')"
+      LikeLeft  -> "%s %s CONCAT($valueHolder, '%%')"
+      LikeRight -> "%s %s CONCAT('%%', $valueHolder)"
+      In        -> IN_TEMPLATE
+      in listOf(
+          NotNull, IsNotNull,
+          IsNull, EqTrue, EqFalse
+      )         -> NO_VALUE
+      Between   -> "%s %s $valueHolder AND $valueHolder"
+      else      -> "%s %s $valueHolder"
     }
   }
 

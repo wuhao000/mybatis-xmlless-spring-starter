@@ -13,6 +13,7 @@ enum class QueryType {
   Exists,
   Insert,
   Select,
-  Update;
+  Update,
+  LogicDelete;
 
 }

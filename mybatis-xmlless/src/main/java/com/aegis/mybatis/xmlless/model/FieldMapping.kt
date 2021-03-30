@@ -2,14 +2,15 @@ package com.aegis.mybatis.xmlless.model
 
 import com.aegis.mybatis.xmlless.annotations.*
 import com.aegis.mybatis.xmlless.config.TmpHandler
+import com.aegis.mybatis.xmlless.constant.PROPERTY_PREFIX
+import com.aegis.mybatis.xmlless.constant.PROPERTY_SUFFIX
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.HANDLER_PREFIX
-import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.PROPERTY_PREFIX
-import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.PROPERTY_SUFFIX
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import org.apache.ibatis.type.TypeHandler
 import org.springframework.core.annotation.AnnotationUtils
+import org.springframework.data.annotation.CreatedDate
 import java.lang.reflect.Field
 import javax.persistence.GeneratedValue
 import javax.persistence.Transient
@@ -47,6 +48,19 @@ data class FieldMapping(
     typeHandler = resolveTypeHandler(field)
   }
 
+  fun getInsertPropertyExpression(prefix: String? = null): String {
+    if (this.field.isAnnotationPresent(CreatedDate::class.java)) {
+      return """<choose>
+      <when test="$property != null">
+        ${PROPERTY_PREFIX}${property}${PROPERTY_SUFFIX}
+      </when>
+      <otherwise>
+        sysdate()
+      </otherwise>
+    </choose>""".trimIndent()
+    }
+    return getPropertyExpression(prefix)
+  }
 
   fun getPropertyExpression(prefix: String? = null, wrap: Boolean = true): String {
     val template = if (wrap) {
