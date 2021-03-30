@@ -101,10 +101,10 @@ interface StudentDAO : XmlLessMapper<Student> {
    * @param max
    * @return
    */
-  fun findByAgeBetweenMinAndMax(@Param("min")
+  fun findByAgeBetweenMinAndMaxOrderByBirthday(@Param("min")
                                 @TestExpression([TestType.NotNull])
                                 min: Int,
-                                @Param("max")
+                                               @Param("max")
                                 @TestExpression([TestType.NotNull])
                                 max: Int): List<Student>
 

@@ -14,7 +14,6 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -164,7 +163,7 @@ class StudentDAOTest : BaseTest() {
             }
         )
     )
-    val list = dao.findByAgeBetweenMinAndMax(18, 22)
+    val list = dao.findByAgeBetweenMinAndMaxOrderByBirthday(18, 22)
     assertEquals(2, list.size)
   }
 

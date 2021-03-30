@@ -56,8 +56,8 @@ object CriteriaResolver {
         parameterConditions.add(resolveCriteria(criteria, parameter, paramNames[index], function, mappings))
       } else if (ParameterResolver.isComplexParameter(parameter)) {
         TypeResolver.resolveRealType(parameter.type).declaredMemberProperties.forEach { property ->
-          val propertyCriteria = property.javaField!!.getDeclaredAnnotation(Criteria::class.java)
-            ?: property.findAnnotation<Criteria>()
+          val propertyCriteria = property.javaField?.getDeclaredAnnotation(Criteria::class.java)
+                ?: property.findAnnotation()
           if (propertyCriteria != null) {
             parameterConditions.add(
                 resolveCriteriaFromProperty(propertyCriteria, property, paramNames[index], function, mappings)
@@ -103,7 +103,7 @@ object CriteriaResolver {
         function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
           it.param == paramName
         }?.let {
-               SpecificValue(it.stringValue, it.nonStringValue)
+          SpecificValue(it.stringValue, it.nonStringValue)
         },
         mappings
     )

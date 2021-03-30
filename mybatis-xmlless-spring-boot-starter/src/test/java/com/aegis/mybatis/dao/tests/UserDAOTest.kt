@@ -73,6 +73,10 @@ class UserDAOTest : BaseTest() {
             0, 20, Sort.Direction.DESC, "id"
         )
     )
+    page.content.forEach {
+      println(it.roles)
+      println(it.roleList)
+    }
     assert(page.content.isNotEmpty())
   }
 

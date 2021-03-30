@@ -3,6 +3,8 @@
 package com.aegis.mybatis.bean
 
 import com.aegis.mybatis.xmlless.annotations.InsertIgnore
+import com.aegis.mybatis.xmlless.annotations.JoinObject
+import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
 import com.baomidou.mybatisplus.annotation.TableField
 import javax.persistence.*
 
@@ -13,7 +15,6 @@ import javax.persistence.*
  */
 @Suppress("unused")
 @Entity
-@Table(schema = "test")
 data class User(
     @Id
     @TableField()
@@ -22,24 +23,23 @@ data class User(
     var id: Int? = null,
     @TableField()
     var name: String? = null,
-    var deleted: Boolean = false) {
+    var deleted: Boolean = false
+) {
 
-  /**
-   * 临时字段，忽略
-   */
+  /**  临时字段，忽略 */
   @Transient
   @TableField(exist = false)
   var count: Int = 0
 
-}
+  @JsonMappingProperty
+  var roles: List<Int> = listOf()
 
-@Suppress("ALL")
-object QUser {
-  const val id = "id"
-  const val name = "name"
-  const val age = "age"
-  const val deleted = "deleted"
+  @JoinObject(
+      targetTable = "t_role",
+      targetColumn = "id",
+      joinProperty = "roles",
+      associationPrefix = "role_",
+      selectProperties = ["id", "name", "deps", "depList"]
+  )
+  var roleList: MutableList<Role> = arrayListOf()
 }
-
-@Suppress("ALL")
-val quser = QUser

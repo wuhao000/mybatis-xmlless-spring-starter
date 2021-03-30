@@ -2,6 +2,9 @@ package com.aegis
 
 import org.apache.ibatis.jdbc.SQL
 import org.junit.jupiter.api.Test
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.isAccessible
+import kotlin.reflect.jvm.javaField
 
 
 /**
@@ -12,6 +15,13 @@ import org.junit.jupiter.api.Test
  * @since 0.0.8
  */
 class SQLTest {
+
+  @Test
+  fun a() {
+    U::class.memberProperties.forEach {
+      println("${it.name} ${it.isConst} ${it.isFinal} ${it.isAccessible}")
+    }
+  }
 
   @Test
   fun sql() {
@@ -38,6 +48,17 @@ class SQLTest {
 
     }.toString()
     println(sql)
+  }
+
+  class U {
+
+    var n: String? = null
+    val s: Int = 0
+    val a: String
+      get() {
+        return "ab"
+      }
+
   }
 
 }

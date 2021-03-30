@@ -18,7 +18,7 @@ object AnnotationResolver {
   }
 
   inline fun <reified T : Annotation> resolveFromProperty(parameter: KProperty<*>): T? {
-    return parameter.findAnnotation() ?: parameter.javaField!!.getDeclaredAnnotation(T::class.java)
+    return parameter.findAnnotation() ?: parameter.javaField?.getDeclaredAnnotation(T::class.java)
   }
 
 }

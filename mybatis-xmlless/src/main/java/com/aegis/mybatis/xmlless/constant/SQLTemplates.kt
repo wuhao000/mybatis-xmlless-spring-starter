@@ -58,8 +58,7 @@ internal const val JOIN = """
   %S JOIN
     %s
   ON
-    %s.%s = %s.%s
-"""
+    %s"""
 
 /**  limit 语句模板 */
 internal const val LIMIT = "LIMIT #{%s}, #{%s}"

@@ -51,8 +51,10 @@ data class FieldMappings(
         ColumnsResolver.wrapColumn(it.column)
       }
     } else {
-      mappings.filter { !it.insertIgnore
-          && it.property !in selectedProperties.excludes}.map {
+      mappings.filter {
+        !it.insertIgnore
+            && it.property !in selectedProperties.excludes
+      }.map {
         ColumnsResolver.wrapColumn(it.column)
       }
     }
@@ -68,7 +70,7 @@ data class FieldMappings(
         mappings.filter { !it.insertIgnore && it.property in insertProperties.includes }.map {
           it.getInsertPropertyExpression(prefix)
         }
-      else                          ->
+      else                                 ->
         mappings.filter { !it.insertIgnore && it.property !in insertProperties.excludes }.map {
           it.getInsertPropertyExpression(prefix)
         }
@@ -139,8 +141,10 @@ data class FieldMappings(
         resolveColumnByPropertyName(it)
       }.flatten()
     }
-    return mappings.asSequence().filter { !it.selectIgnore
-        && it.property !in properties.excludes}.map { mapping ->
+    return mappings.asSequence().filter {
+      !it.selectIgnore
+          && it.property !in properties.excludes
+    }.map { mapping ->
       when {
         mapping.joinInfo != null -> mapping.joinInfo.selectFields(1)
         else                     -> listOf(SelectColumn(tableInfo.tableName, mapping.column))
@@ -161,34 +165,43 @@ data class FieldMappings(
       !it.selectIgnore && it.joinInfo != null && (
           when {
             selectedProperties.isIncludeNotEmpty() -> it.property in selectedProperties
-            else                            -> true
+            else                                   -> true
           }) || (it.joinInfo != null && it.joinInfo.joinTable.alias in includedTableAlias)
     }.mapNotNull { it.joinInfo }
         .distinctBy { it.joinTable.alias }
         .filter { onlyIncludesTables == null || onlyIncludesTables.contains(it.joinTable.name) }
         .joinToString("\n") { joinInfo ->
-          val joinProperty = joinInfo.getJoinProperty(tableInfo)
-          val col = mappings.firstOrNull { it.property == joinProperty }?.column
-            ?: throw BuildSQLException("无法解析join属性$joinProperty")
+          val joinPropertyName = joinInfo.getJoinProperty(tableInfo)
+          val joinProperty = mappings.firstOrNull { it.property == joinPropertyName }
+            ?: throw BuildSQLException("无法解析join属性$joinPropertyName")
           val joinTable = joinInfo.joinTable
           when (joinInfo) {
             is PropertyJoinInfo -> (String.format(
                 JOIN, joinInfo.type.name,
                 joinTable.toSql(),
-                joinInfo.joinTable.alias,
-                joinInfo.targetColumn,
-                joinTableName?.alias ?: tableInfo.tableName, col
+                createJoinCondition(joinInfo, joinTableName, joinProperty)
             )).trim()
             is ObjectJoinInfo   -> (String.format(
                 JOIN, joinInfo.type.name,
                 joinTable.toSql(),
-                joinInfo.joinTable.alias,
-                joinInfo.targetColumn,
-                joinTableName?.alias ?: tableInfo.tableName, col
+                createJoinCondition(joinInfo, joinTableName, joinProperty)
             ) + "\n" + joinInfo.selectJoins(level)).trim()
             else                -> ""
           }
         }
+  }
+
+  private fun createJoinCondition(
+      joinInfo: JoinInfo,
+      joinTableName: TableName?,
+      joinProperty: FieldMapping
+  ): String {
+    if (joinProperty.isJsonArray) {
+      return "JSON_CONTAINS(${joinTableName?.alias ?: tableInfo.tableName}.${joinProperty.column}, CAST(${
+        joinInfo.joinTable.alias
+      }.${joinInfo.targetColumn} AS JSON), '$')"
+    }
+    return "${joinInfo.joinTable.alias}.${joinInfo.targetColumn} = ${joinTableName?.alias ?: tableInfo.tableName}.${joinProperty.column}"
   }
 
   /**
@@ -234,7 +247,7 @@ data class FieldMappings(
       mapping.joinInfo?.getJoinTableInfo()?.fieldList?.firstOrNull { it.property == property } != null
     }.map { it.joinInfo as ObjectJoinInfo }
     return when {
-      matchedJoinInfos.size > 1 -> throw BuildSQLException(
+      matchedJoinInfos.size > 1  -> throw BuildSQLException(
           "在${matchedJoinInfos.joinToString(",") { it.realType().simpleName }}发现了相同的属性$property, " +
               "无法确定属性对应的表及字段"
       )
@@ -244,7 +257,7 @@ data class FieldMappings(
               matchedJoinInfos.first().resolveColumnProperty(property), null, null
           )
       )
-      else -> listOf()
+      else                       -> listOf()
     }
   }
 
