@@ -6,7 +6,7 @@ import com.aegis.mybatis.bean.User
 import com.aegis.mybatis.bean.UserSimple
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
-import com.aegis.mybatis.xmlless.config.XmlLessMapper
+import com.aegis.mybatis.xmlless.XmlLessMapper
 import com.baomidou.mybatisplus.core.mapper.BaseMapper
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param

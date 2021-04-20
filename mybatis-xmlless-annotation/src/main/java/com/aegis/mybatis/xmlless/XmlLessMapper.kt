@@ -1,4 +1,4 @@
-package com.aegis.mybatis.xmlless.config
+package com.aegis.mybatis.xmlless
 
 import com.baomidou.mybatisplus.core.mapper.Mapper
 

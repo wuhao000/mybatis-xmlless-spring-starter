@@ -4,7 +4,7 @@ import com.aegis.mybatis.bean.EducationInfo
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.bean.StudentDetail
 import com.aegis.mybatis.xmlless.annotations.JsonResult
-import com.aegis.mybatis.xmlless.config.XmlLessMapper
+import com.aegis.mybatis.xmlless.XmlLessMapper
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param
 

@@ -7,7 +7,7 @@ import com.aegis.mybatis.xmlless.annotations.ExcludeProperties
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.annotations.TestExpression
-import com.aegis.mybatis.xmlless.config.XmlLessMapper
+import com.aegis.mybatis.xmlless.XmlLessMapper
 import com.aegis.mybatis.xmlless.enums.TestType
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param

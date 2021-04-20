@@ -1,7 +1,7 @@
 package com.aegis.mybatis.dao
 
 import com.aegis.mybatis.bean.Score
-import com.aegis.mybatis.xmlless.config.XmlLessMapper
+import com.aegis.mybatis.xmlless.XmlLessMapper
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param
 

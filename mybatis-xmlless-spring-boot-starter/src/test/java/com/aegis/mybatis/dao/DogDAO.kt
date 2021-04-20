@@ -4,7 +4,7 @@ import com.aegis.mybatis.bean.Dog
 import com.aegis.mybatis.xmlless.annotations.DeleteValue
 import com.aegis.mybatis.xmlless.annotations.Logic
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
-import com.aegis.mybatis.xmlless.config.XmlLessMapper
+import com.aegis.mybatis.xmlless.XmlLessMapper
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param
 
