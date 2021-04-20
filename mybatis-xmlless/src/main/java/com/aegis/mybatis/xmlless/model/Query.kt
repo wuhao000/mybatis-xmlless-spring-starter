@@ -103,16 +103,17 @@ data class Query(
    *
    * @param prefix 前缀
    * @return sql 脚本片段
+   * @author 吴昊
    */
   fun getSqlSet(prefix: String?, mapping: FieldMapping, insertUpdate: Boolean): String {
     val column = mapping.tableFieldInfo.column
     val newPrefix = prefix ?: StringPool.EMPTY
     // 默认: column=
-    var sqlSet = column + StringPool.EQUALS
-    if (insertUpdate) {
-      sqlSet += "(if(VALUES($column) = null, $column, VALUES($column)))"
+    var sqlSet = ColumnsResolver.wrapColumn(column) + StringPool.EQUALS
+    sqlSet += if (insertUpdate) {
+      "(if(VALUES($column) = null, $column, VALUES($column)))"
     } else {
-      sqlSet += when {
+      when {
         !mapping.tableFieldInfo.update.isNullOrBlank() -> String.format(mapping.tableFieldInfo.update, column)
         else                                           -> SqlScriptUtils.safeParam(
             newPrefix + mapping.getPropertyExpression(

@@ -28,6 +28,7 @@ data class Server(
     var parent: Server? = null
 ) {
 
+  var order: Int = 1
   @JoinObject(
       selectProperties = ["name", "id"],
       targetColumn = "id",
