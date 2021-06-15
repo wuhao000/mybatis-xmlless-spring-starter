@@ -50,4 +50,6 @@ interface DogDAO : XmlLessMapper<Dog>, BaseDAO<Dog, Int> {
    */
   fun findByNamesIn(@Param("names") names: List<String>): List<Dog>
 
+  fun findByAgesIn(@Param("ages") ages: List<Int>): List<Dog>
+
 }

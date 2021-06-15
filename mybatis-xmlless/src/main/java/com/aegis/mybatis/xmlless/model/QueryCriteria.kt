@@ -2,11 +2,11 @@ package com.aegis.mybatis.xmlless.model
 
 import com.aegis.mybatis.xmlless.annotations.Criteria
 import com.aegis.mybatis.xmlless.annotations.TestExpression
-import com.aegis.mybatis.xmlless.annotations.ValueAssign
 import com.aegis.mybatis.xmlless.constant.Strings
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.enums.TestType
 import com.aegis.mybatis.xmlless.resolver.AnnotationResolver
+import com.aegis.mybatis.xmlless.resolver.TypeResolver
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
 import kotlin.reflect.KAnnotatedElement
 import kotlin.reflect.KParameter
@@ -69,16 +69,18 @@ data class QueryCriteria(
         return criteria.expression + " " + append
       }
     }
+    val mapping = mappings.mappings.firstOrNull { it.property == property }
+
     val columnResult = columns.joinToString(",\n\t") { it.toSql() }
     val value = resolveValue()
-    val mapping = mappings.mappings.firstOrNull { it.property == property }
+
     return when {
       // 条件变量为确定的值时
       value != null                                -> String.format(
           operator.getValueTemplate(),
           columnResult, operator.operator, value
       ) + " " + append
-      mapping != null && mapping.isJsonArray       -> buildJsonQuery(columnResult, operator)
+      mapping != null && mapping.isJsonArray       -> buildJsonQuery(columnResult, operator, mapping)
       operator == Operations.In
           && mapping?.joinInfo is PropertyJoinInfo -> String.format(
           operator.getTemplate(),
@@ -110,22 +112,32 @@ data class QueryCriteria(
   }
 
   private fun buildJsonQuery(
-      columnResult: String,
-      operator: Operations
+    columnResult: String,
+    operator: Operations,
+    mapping: FieldMapping
   ): String {
+    val type = TypeResolver.resolveRealType(mapping.type)
+    val quote = type == String::class.java
     if (operator in listOf(Operations.Eq, Operations.EqDefault)) {
       return String.format(
           "JSON_CONTAINS(%s -> '\$[*]', " +
-              "'\"\${%s}\"', '\$')",
+              "'${quote("\${%s}", quote)}', '\$')",
           columnResult, *scriptParams().toTypedArray()
       )
     } else if (operator in listOf(Operations.In)) {
       return String.format(
           FOREACH, realParams()[0], "item", " OR ",
-          "JSON_CONTAINS(${columnResult} -> '\$[*]', '\"\${item}\"', '\$')"
+          "JSON_CONTAINS(${columnResult} -> '\$[*]', '${quote("\${item}", quote)}', '\$')"
       )
     }
     throw IllegalStateException("暂不支持${operator.operator}的json查询")
+  }
+
+  private fun quote(str: String, quote: Boolean): String {
+    if (quote) {
+      return "\"" + str + "\"";
+    }
+    return str
   }
 
   private fun getOnlyParameter(): KAnnotatedElement? {

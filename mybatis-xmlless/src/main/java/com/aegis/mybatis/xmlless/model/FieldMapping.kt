@@ -12,6 +12,7 @@ import org.apache.ibatis.type.TypeHandler
 import org.springframework.core.annotation.AnnotationUtils
 import org.springframework.data.annotation.CreatedDate
 import java.lang.reflect.Field
+import java.lang.reflect.Type
 import javax.persistence.GeneratedValue
 import javax.persistence.Transient
 
@@ -39,7 +40,7 @@ data class FieldMapping(
   /** 是否查询时忽略 */
   val selectIgnore: Boolean
   /** 字段类型 */
-  val type: Class<*> = field.type
+  val type: Type = field.genericType
   /**  mybatis的字段处理器 */
   val typeHandler: TypeHandler<*>?
   /** 是否更新时忽略 */

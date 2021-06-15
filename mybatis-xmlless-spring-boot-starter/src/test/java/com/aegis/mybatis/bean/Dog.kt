@@ -21,4 +21,7 @@ class Dog {
   @JsonMappingProperty
   var names: List<String>? = null
 
+  @JsonMappingProperty
+  var ages: List<Int>? = null
+
 }
