@@ -13,7 +13,7 @@ import javax.persistence.*
  * @author 吴昊
  * @since 0.0.1
  */
-@Suppress("unused")
+@Table(name = "t_user")
 @Entity
 data class User(
     @Id

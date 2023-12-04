@@ -5,6 +5,7 @@ import com.aegis.mybatis.xmlless.model.FieldMappings
 import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.model.SelectColumn
 import org.slf4j.LoggerFactory
+import java.util.*
 
 /**
  * Created by 吴昊 on 2018/12/12.
@@ -23,13 +24,13 @@ object ColumnsResolver {
   fun resolveIncludedTables(mappings: FieldMappings, properties: Properties): List<String> {
     return resolveColumns(mappings, properties).mapNotNull {
       it.table
-    }
+    }.map { it.getAliasOrName() }
   }
 
   fun wrapColumn(column: String): String {
     return when {
-      column.toUpperCase() in SQLKeywords.getValues() -> "`$column`"
-      else                                            -> column
+      column.uppercase(Locale.getDefault()) in SQLKeywords.getValues() -> "`$column`"
+      else                                                             -> column
     }
   }
 

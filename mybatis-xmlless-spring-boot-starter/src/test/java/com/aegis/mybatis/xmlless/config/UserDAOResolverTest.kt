@@ -25,10 +25,13 @@ class UserDAOResolverTest : BaseResolverTest(
 ) {
 
   companion object {
-    val method = "findById"
+    val method = "findAll"
   }
   @Test
   fun mappingResolve() {
+    queries.forEach {
+      println(it)
+    }
     val allMappings = MappingResolver.getAllMappings()
     val scoreMapping = allMappings.first {
       it.modelClass == Score::class.java

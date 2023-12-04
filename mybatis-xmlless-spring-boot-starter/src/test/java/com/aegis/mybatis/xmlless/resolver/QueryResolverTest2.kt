@@ -1,11 +1,11 @@
 package com.aegis.mybatis.xmlless.resolver
 
+import com.aegis.jackson.createObjectMapper
 import com.aegis.mybatis.bean.Dog
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.DogDAO
 import com.aegis.mybatis.dao.StudentDAO
 import com.aegis.mybatis.dao.StudentDetailDAO
-import com.aegis.mybatis.xmlless.config.paginition.XmlLessPageMapperMethod
 import org.junit.jupiter.api.Test
 import org.springframework.core.ResolvableType
 import kotlin.reflect.full.functions
@@ -22,13 +22,15 @@ import kotlin.test.assertEquals
  */
 class QueryResolverTest2 {
 
+  val objectMapper = createObjectMapper()
+
   @Test
   fun resolveReturnType() {
     val kclass = StudentDetailDAO::class
     val fn = kclass.functions
         .first { it.name == "findEducation" }
     val javaType = QueryResolver.resolveJavaType(fn.javaMethod!!, kclass.java)
-    val rs = XmlLessPageMapperMethod.mapper.readValue<Any>(
+    val rs = objectMapper.readValue<Any>(
         """[{
           | "school": "南京大学"
           |}]""".trimMargin(), javaType

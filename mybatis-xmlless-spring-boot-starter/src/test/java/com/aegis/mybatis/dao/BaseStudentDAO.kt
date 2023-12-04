@@ -13,5 +13,5 @@ import org.apache.ibatis.annotations.Mapper
  * @since 0.0.4
  */
 @Mapper
-interface BaseStudentDAO : XmlLessMapper<Student>, BaseMapper<Student> {
+interface BaseStudentDAO : XmlLessMapper<Student> {
 }

@@ -1,11 +1,13 @@
 package com.aegis.mybatis.xmlless.model
 
-import com.aegis.mybatis.xmlless.constant.JOIN
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.toCamelCase
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
+import com.aegis.mybatis.xmlless.model.component.FromDeclaration
+import com.aegis.mybatis.xmlless.model.component.JoinDeclaration
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.baomidou.mybatisplus.core.metadata.TableInfo
+import java.util.*
 
 
 /**
@@ -28,14 +30,18 @@ data class FieldMappings(
   fun fromDeclaration(
       properties: Properties,
       includedTableAlias: List<String>,
-      onlyIncludesTables: List<String>?
-  ): String {
-    val joins = selectJoins(1, properties, includedTableAlias, null, onlyIncludesTables)
-    return if (joins.isNotBlank()) {
-      tableInfo.tableName + "\n" + selectJoins(1, properties, includedTableAlias)
+      onlyIncludesTables: List<TableName>?,
+      limitInSubQuery: Boolean
+  ): FromDeclaration {
+    val tableName = if (limitInSubQuery) {
+      TableName(tableInfo.tableName, tableInfo.tableName.replace('.', '_'), null)
     } else {
-      tableInfo.tableName
+      TableName(tableInfo.tableName, "", null)
     }
+    val declaration = FromDeclaration()
+    declaration.tableName = tableName
+    declaration.joins = selectJoins(1, properties, includedTableAlias, null, onlyIncludesTables)
+    return declaration
   }
 
   /**
@@ -70,6 +76,7 @@ data class FieldMappings(
         mappings.filter { !it.insertIgnore && it.property in insertProperties.includes }.map {
           it.getInsertPropertyExpression(prefix)
         }
+
       else                                 ->
         mappings.filter { !it.insertIgnore && it.property !in insertProperties.excludes }.map {
           it.getInsertPropertyExpression(prefix)
@@ -94,10 +101,10 @@ data class FieldMappings(
           }?.let {
             return listOf(
                 SelectColumn(
-                    it.joinInfo!!.joinTable.alias,
-                    joinProperty.toUnderlineCase().toLowerCase(),
+                    it.joinInfo!!.joinTable,
+                    joinProperty.toUnderlineCase().lowercase(Locale.getDefault()),
                     if (it.joinInfo is ObjectJoinInfo && !it.joinInfo.associationPrefix.isNullOrBlank()) {
-                      it.joinInfo.associationPrefix + joinProperty.toUnderlineCase().toLowerCase()
+                      it.joinInfo.associationPrefix + joinProperty.toUnderlineCase().lowercase(Locale.getDefault())
                     } else {
                       null
                     },
@@ -106,13 +113,14 @@ data class FieldMappings(
             )
           }
         }
+
         else                          -> throw IllegalStateException("暂不支持多级连接属性：$property")
       }
     }
     // 匹配持久化对象的属性查找列名
     val column = resolveFromFieldInfo(property)
     if (column != null) {
-      return listOf(SelectColumn(tableInfo.tableName, column, null, null))
+      return listOf(SelectColumn(TableName(tableInfo.tableName), column, null, null))
     } else {
       // 从关联属性中匹配
       val resolvedFromJoinProperty = resolveFromPropertyJoinInfo(property)
@@ -126,7 +134,7 @@ data class FieldMappings(
       }
     }
     if (!validate) {
-      return listOf(SelectColumn(tableInfo.tableName, column ?: property.toUnderlineCase(), null, null))
+      return listOf(SelectColumn(TableName(tableInfo.tableName), column ?: property.toUnderlineCase(), null, null))
     } else {
       throw BuildSQLException("无法解析持久化类${modelClass.simpleName}的属性${property}对应的列名称, 持久化类或关联对象中不存在此属性")
     }
@@ -147,7 +155,7 @@ data class FieldMappings(
     }.map { mapping ->
       when {
         mapping.joinInfo != null -> mapping.joinInfo.selectFields(1)
-        else                     -> listOf(SelectColumn(tableInfo.tableName, mapping.column))
+        else                     -> listOf(SelectColumn(TableName(tableInfo.tableName), mapping.column))
       }
     }.flatten().filter { it.column.isNotBlank() }.distinctBy { it.toSql() }.toList()
   }
@@ -159,8 +167,8 @@ data class FieldMappings(
       level: Int, selectedProperties: Properties = Properties(),
       includedTableAlias: List<String> = listOf(),
       joinTableName: TableName? = null,
-      onlyIncludesTables: List<String>? = null
-  ): String {
+      onlyIncludesTables: List<TableName>? = null
+  ): List<JoinDeclaration> {
     return mappings.filter {
       !it.selectIgnore && it.joinInfo != null && (
           when {
@@ -169,24 +177,31 @@ data class FieldMappings(
           }) || (it.joinInfo != null && it.joinInfo.joinTable.alias in includedTableAlias)
     }.mapNotNull { it.joinInfo }
         .distinctBy { it.joinTable.alias }
-        .filter { onlyIncludesTables == null || onlyIncludesTables.contains(it.joinTable.name) }
-        .joinToString("\n") { joinInfo ->
+        .filter { onlyIncludesTables == null || onlyIncludesTables.map { it.name }
+            .contains(it.joinTable.name) }
+        .mapNotNull { joinInfo ->
           val joinPropertyName = joinInfo.getJoinProperty(tableInfo)
           val joinProperty = mappings.firstOrNull { it.property == joinPropertyName }
             ?: throw BuildSQLException("无法解析join属性$joinPropertyName")
           val joinTable = joinInfo.joinTable
           when (joinInfo) {
-            is PropertyJoinInfo -> (String.format(
-                JOIN, joinInfo.type.name,
-                joinTable.toSql(),
-                createJoinCondition(joinInfo, joinTableName, joinProperty)
-            )).trim()
-            is ObjectJoinInfo   -> (String.format(
-                JOIN, joinInfo.type.name,
-                joinTable.toSql(),
-                createJoinCondition(joinInfo, joinTableName, joinProperty)
-            ) + "\n" + joinInfo.selectJoins(level)).trim()
-            else                -> ""
+            is PropertyJoinInfo -> {
+              JoinDeclaration(
+                  joinInfo.type,
+                  joinTable,
+                  createJoinCondition(joinInfo, joinTableName, joinProperty)
+              )
+            }
+
+            is ObjectJoinInfo   -> {
+              JoinDeclaration(
+                  joinInfo.type, joinTable,
+                  createJoinCondition(joinInfo, joinTableName, joinProperty),
+                  joinInfo.selectJoins(level)
+              )
+            }
+
+            else                -> null
           }
         }
   }
@@ -201,7 +216,9 @@ data class FieldMappings(
         joinInfo.joinTable.alias
       }.${joinInfo.targetColumn} AS JSON), '$')"
     }
-    return "${joinInfo.joinTable.alias}.${joinInfo.targetColumn} = ${joinTableName?.alias ?: tableInfo.tableName}.${joinProperty.column}"
+    return "${joinInfo.joinTable.alias}.${joinInfo.targetColumn} = ${
+      joinTableName?.alias ?: tableInfo.tableName
+    }.${joinProperty.column}"
   }
 
   /**
@@ -232,7 +249,7 @@ data class FieldMappings(
         val maybeJoinProperty = maybeJoinPropertyPascal.toCamelCase()
         return listOf(
             SelectColumn(
-                bestObjectJoinMapping.joinInfo!!.joinTable.alias, bestObjectJoinMapping.joinInfo
+                bestObjectJoinMapping.joinInfo!!.joinTable, bestObjectJoinMapping.joinInfo
                 .resolveColumnProperty(maybeJoinProperty), null, null
             )
         )
@@ -251,12 +268,14 @@ data class FieldMappings(
           "在${matchedJoinInfos.joinToString(",") { it.realType().simpleName }}发现了相同的属性$property, " +
               "无法确定属性对应的表及字段"
       )
+
       matchedJoinInfos.size == 1 -> listOf(
           SelectColumn(
-              matchedJoinInfos.first().joinTable.alias,
+              matchedJoinInfos.first().joinTable,
               matchedJoinInfos.first().resolveColumnProperty(property), null, null
           )
       )
+
       else                       -> listOf()
     }
   }
@@ -272,7 +291,7 @@ data class FieldMappings(
     if (matchedMapping?.joinInfo != null) {
       val joinInfo = matchedMapping.joinInfo as PropertyJoinInfo
       return SelectColumn(
-          joinInfo.joinTable.alias,
+          joinInfo.joinTable,
           joinInfo.propertyColumn.name, null, joinInfo.javaType
       )
     }

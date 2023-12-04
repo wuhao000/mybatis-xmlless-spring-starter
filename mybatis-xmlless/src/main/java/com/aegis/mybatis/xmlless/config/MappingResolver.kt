@@ -3,6 +3,7 @@ package com.aegis.mybatis.xmlless.config
 import com.aegis.mybatis.xmlless.model.FieldMappings
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import java.lang.reflect.Field
@@ -17,9 +18,12 @@ fun TableInfo.getFieldInfoMap(modelClass: Class<*>): MutableMap<String, TableFie
     it.property
   }.toMutableMap()
   if (!fieldInfoMap.containsKey(this.keyProperty)) {
-    MappingResolver.resolveFields(modelClass).firstOrNull { it.name == this.keyProperty }?.also {
+    val fields = MappingResolver.resolveFields(modelClass)
+
+    fields.firstOrNull { it.name == this.keyProperty }?.also {
       fieldInfoMap[this.keyProperty] = TableFieldInfo(
-          GlobalConfigUtils.defaults().dbConfig, this, it
+          GlobalConfigUtils.defaults(), this, it,
+          this.reflector, TableInfoHelper.isExistTableLogic(modelClass, fields)
       )
     }
   }

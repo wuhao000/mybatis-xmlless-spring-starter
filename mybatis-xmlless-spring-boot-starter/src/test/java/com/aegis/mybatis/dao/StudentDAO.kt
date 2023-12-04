@@ -126,7 +126,8 @@ interface StudentDAO : XmlLessMapper<Student> {
    * @param date
    * @return
    */
-  @SelectedProperties(properties = ["id", "name", "birthday"])
+  @SelectedProperties(properties = ["id", "name",
+    "createTime", "birthday"])
   fun findByBirthday(date: LocalDate): List<Student>
 
   /**

@@ -13,6 +13,7 @@ import org.springframework.core.annotation.AnnotationUtils
 import org.springframework.data.annotation.CreatedDate
 import java.lang.reflect.Field
 import java.lang.reflect.Type
+import java.util.*
 import javax.persistence.GeneratedValue
 import javax.persistence.Transient
 
@@ -28,21 +29,29 @@ data class FieldMapping(
 ) {
 
   /**  对应数据库表的列名称 */
-  val column: String = tableFieldInfo.column ?: field.name.toUnderlineCase().toLowerCase()
+  val column: String = tableFieldInfo.column ?: field.name.toUnderlineCase().lowercase(Locale.getDefault())
+
   /** 是否插入时忽略 */
   val insertIgnore: Boolean
+
   /** 是否json对象 */
   val isJsonObject: Boolean = field.isAnnotationPresent(JsonMappingProperty::class.java)
+
   /** 是否json数组 */
   val isJsonArray: Boolean = isJsonObject && Collection::class.java.isAssignableFrom(field.type)
+
   /**  持久化类的属性名称 */
   val property: String = field.name
+
   /** 是否查询时忽略 */
   val selectIgnore: Boolean
+
   /** 字段类型 */
   val type: Type = field.genericType
+
   /**  mybatis的字段处理器 */
   val typeHandler: TypeHandler<*>?
+
   /** 是否更新时忽略 */
   val updateIgnore: Boolean
 

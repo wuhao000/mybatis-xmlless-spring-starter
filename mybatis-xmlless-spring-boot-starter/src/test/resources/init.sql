@@ -60,6 +60,7 @@ create table t_student
   education json null,
   favorites json null,
   graduated tinyint(1) default 0 not null,
+  age INT null,
   nick_names json null,
   email varchar(100) null,
   birthday date null,

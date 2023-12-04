@@ -1,6 +1,6 @@
 package com.aegis.mybatis.xmlless.config
 
-import com.baomidou.mybatisplus.extension.plugins.PaginationInterceptor
+import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -18,17 +18,12 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 @EnableConfigurationProperties(AegisMyBatisConfig::class)
 @ConfigurationProperties(prefix = "mybatis.aegis")
-open class AegisMyBatisConfig {
+class AegisMyBatisConfig {
 
   @Bean
   @ConditionalOnMissingBean
-  open fun paginationInterceptor(): PaginationInterceptor {
-    return PaginationInterceptor()
+  fun paginationInterceptor(): PaginationInnerInterceptor {
+    return PaginationInnerInterceptor()
   }
-
-//  @Bean
-//  fun springDataPaginationInterceptor(): SpringDataPaginationInterceptor {
-//    return SpringDataPaginationInterceptor()
-//  }
 
 }

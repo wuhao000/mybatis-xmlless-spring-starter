@@ -6,9 +6,11 @@ import com.aegis.mybatis.xmlless.annotations.SelectIgnore
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
+import com.aegis.mybatis.xmlless.model.component.JoinDeclaration
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import java.lang.reflect.Type
+import java.util.*
 import javax.persistence.Transient
 import javax.persistence.criteria.JoinType
 
@@ -37,7 +39,7 @@ class ObjectJoinInfo(
     }
     // 列名称添加前缀防止多表连接的字段名称冲突问题
     val list = wrappedColumns(prefix).map {
-      SelectColumn(joinTable.alias, it.column, it.alias, it.type)
+      SelectColumn(joinTable, it.column, it.alias, it.type)
     }
     if (hasJoinedProperty()) {
       val realType = this.realType()
@@ -64,16 +66,16 @@ class ObjectJoinInfo(
    * 获取层级join语句
    * @param level 当前join的层数
    */
-  fun selectJoins(level: Int): String {
+  fun selectJoins(level: Int): List<JoinDeclaration> {
     // 最多支持3级关系
     if (level >= 3) {
-      return ""
+      return listOf()
     }
     val realType = this.realType()
     val mappings = MappingResolver.getMappingCache(realType)
     return mappings?.selectJoins(level + 1,
         selectProperties,
-        listOf(), this.joinTable) ?: ""
+        listOf(), this.joinTable) ?: listOf()
   }
 
   private fun hasJoinedProperty(): Boolean {
@@ -100,7 +102,7 @@ class ObjectJoinInfo(
             && !it.isAnnotationPresent(JoinObject::class.java)
             && !it.isAnnotationPresent(JoinProperty::class.java)
       }.map {
-        val columnName = it.name.toUnderlineCase().toLowerCase()
+        val columnName = it.name.toUnderlineCase().lowercase(Locale.getDefault())
         SelectColumn(null, columnName, associationPrefix + columnName, null)
       }
     }

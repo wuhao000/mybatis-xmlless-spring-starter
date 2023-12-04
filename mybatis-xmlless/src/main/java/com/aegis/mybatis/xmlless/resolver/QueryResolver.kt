@@ -7,7 +7,7 @@ import com.aegis.mybatis.xmlless.annotations.Logic
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.config.MappingResolver
-import com.aegis.mybatis.xmlless.config.paginition.XmlLessPageMapperMethod
+import com.baomidou.mybatisplus.core.override.XmlLessPageMapperMethod
 import com.aegis.mybatis.xmlless.constant.PAGEABLE_SORT
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.split
@@ -100,10 +100,11 @@ object QueryResolver {
       }
       val returnType = resolveReturnType(function.javaMethod!!, mapperClass)
       val resolvedQuery = ResolvedQuery(
-          query, resolveResultMap(
-          function, query,
-          mapperClass, returnType, builderAssistant
-      ), returnType, function
+          query,
+          resolveResultMap(
+              function, query,
+              mapperClass, returnType, builderAssistant
+          ), returnType, function
       )
       putQueryCache(function, mapperClass, resolvedQuery)
       return resolvedQuery
@@ -127,7 +128,7 @@ object QueryResolver {
    */
   fun resolveProperties(remainWords: List<String>, function: KFunction<*>): ResolvePropertiesResult {
     val byIndex = remainWords.indexOf("By")
-    var properties: List<String> = if (byIndex == 0) {
+    var properties: List<String> = if (byIndex == 0 || function.name == "selectOne") {
       listOf()
     } else {
       val propertiesWords = if (byIndex > 0) {
@@ -209,6 +210,7 @@ object QueryResolver {
             direction = Sort.Direction.DESC
             it.substring(0, it.length - 4)
           }
+
           it.endsWith("Asc")  -> it.substring(0, it.length - 3)
           else                -> it
         }
@@ -240,6 +242,7 @@ object QueryResolver {
           QueryType.Delete
         }
       }
+
       in listOf("Insert", "Save", "Add")             -> QueryType.Insert
       else                                           -> null
     } ?: throw BuildSQLException("无法解析SQL类型，解析的名称为$name")
@@ -271,6 +274,7 @@ object QueryResolver {
           else                                            -> partName
         }
       }
+
       else                           -> function.name
     }
   }

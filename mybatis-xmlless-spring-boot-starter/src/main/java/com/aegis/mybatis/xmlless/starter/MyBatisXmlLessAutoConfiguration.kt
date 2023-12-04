@@ -28,6 +28,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.io.ResourceLoader
+import org.springframework.util.CollectionUtils
 import org.springframework.util.StringUtils
 import java.util.*
 import javax.sql.DataSource
@@ -86,9 +87,6 @@ class MyBatisXmlLessAutoConfiguration(
     if (StringUtils.hasLength(this.properties.typeAliasesPackage)) {
       factory.setTypeAliasesPackage(this.properties.typeAliasesPackage)
     }
-    if (StringUtils.hasLength(this.properties.typeEnumsPackage)) {
-      factory.setTypeEnumsPackage(this.properties.typeEnumsPackage)
-    }
     if (this.properties.typeAliasesSuperType != null) {
       factory.setTypeAliasesSuperType(this.properties.typeAliasesSuperType)
     }
@@ -114,8 +112,8 @@ class MyBatisXmlLessAutoConfiguration(
             false
         ).isNotEmpty()
     ) {
-      val keyGenerator = this.applicationContext.getBean(IKeyGenerator::class.java)
-      globalConfig.dbConfig.keyGenerator = keyGenerator
+      val keyGenerator = this.applicationContext.getBeansOfType(IKeyGenerator::class.java)
+      globalConfig.dbConfig.keyGenerators = keyGenerator.values.toList()
     }
     //注入sql注入器
     if (this.applicationContext.getBeanNamesForType(
@@ -142,21 +140,27 @@ class MyBatisXmlLessAutoConfiguration(
   }
 
   private fun applyConfiguration(factory: MybatisSqlSessionFactoryBean) {
-    var configuration: MybatisConfiguration? = this.properties.configuration
-    if (configuration == null && !StringUtils.hasText(this.properties.configLocation)) {
+
+    // TODO 使用 MybatisConfiguration
+
+    // TODO 使用 MybatisConfiguration
+    val coreConfiguration = properties.configuration
+    var configuration: MybatisConfiguration? = null
+    if (coreConfiguration != null || !StringUtils.hasText(properties.configLocation)) {
       configuration = MybatisConfiguration()
     }
+    if (configuration != null && coreConfiguration != null) {
+      coreConfiguration.applyTo(configuration)
+    }
     val xmlLessConfiguration = MybatisXmlLessConfiguration()
-    if (configuration != null) {
-      if (!this.configurationCustomizers.isNullOrEmpty()) {
-        for (customizer in this.configurationCustomizers!!) {
-          customizer.customize(configuration)
-        }
+    if (configuration != null && !CollectionUtils.isEmpty(configurationCustomizers)) {
+      for (customizer in configurationCustomizers!!) {
+        customizer.customize(configuration)
       }
       BeanUtils.copyProperties(configuration, xmlLessConfiguration)
     }
     xmlLessConfiguration.objectFactory = MyObjectFactory()
-    factory.setConfiguration(xmlLessConfiguration)
+    factory.configuration = xmlLessConfiguration
   }
 
   private fun copyProperties(properties: MybatisPlusProperties, mybatisProperties: MybatisProperties) {

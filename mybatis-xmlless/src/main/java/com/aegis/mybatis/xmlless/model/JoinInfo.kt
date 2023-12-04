@@ -6,6 +6,7 @@ import com.aegis.mybatis.xmlless.resolver.TypeResolver
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
+import java.util.*
 import javax.persistence.criteria.JoinType
 
 /**
@@ -63,7 +64,7 @@ abstract class JoinInfo(
   abstract fun getJoinTableInfo(): TableInfo?
 
   fun resolveColumnProperty(property: String): String {
-    return property.toUnderlineCase().toLowerCase()
+    return property.toUnderlineCase().lowercase(Locale.getDefault())
   }
 
   abstract fun selectFields(level: Int, prefix: String? = null): List<SelectColumn>

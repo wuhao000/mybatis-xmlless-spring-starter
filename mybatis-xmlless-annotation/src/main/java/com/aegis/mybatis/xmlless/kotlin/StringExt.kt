@@ -87,9 +87,9 @@ infix fun String.startsWithAny(prefixes: Collection<String>): Boolean {
  * @return 转化为驼峰命名的字符串
  */
 fun String.toCamelCase(): String {
-  return if (!this.isBlank()) {
+  return if (this.isNotBlank()) {
     val words = toWords().toMutableList()
-    words[0] = words[0].toLowerCase()
+    words[0] = words[0].lowercase(Locale.getDefault())
     words.joinToString("")
   } else {
     ""
@@ -101,7 +101,7 @@ fun String.toCamelCase(): String {
  * @return 转化为常量命名的字符串
  */
 fun String.toConstantCase(): String {
-  return toWords().joinToString("_") { it.toUpperCase() }
+  return toWords().joinToString("_") { it.uppercase(Locale.getDefault()) }
 }
 
 /**
@@ -109,7 +109,7 @@ fun String.toConstantCase(): String {
  * @return 转化为中划线命名的字符串
  */
 fun String.toDashCase(): String {
-  return toWords().joinToString("-") { it.toLowerCase() }
+  return toWords().joinToString("-") { it.lowercase(Locale.getDefault()) }
 }
 
 /**
@@ -125,7 +125,7 @@ fun String.toPascalCase(): String {
  * @return 转化为下划线命名的字符串
  */
 fun String.toUnderlineCase(): String {
-  return toConstantCase().toLowerCase()
+  return toConstantCase().lowercase(Locale.getDefault())
 }
 
 /**
@@ -136,9 +136,9 @@ fun String.toWords(): List<String> {
   return when {
     this.contains("[-_\\s]".toRegex()) -> this.split("[-_\\s]".toRegex()).map {
       if (it.length == 1) {
-        it.toUpperCase()
+        it.uppercase(Locale.getDefault())
       } else {
-        it.substring(0, 1).toUpperCase() + it.substring(1).toLowerCase()
+        it.substring(0, 1).uppercase(Locale.getDefault()) + it.substring(1).lowercase(Locale.getDefault())
       }
     }
     this.isBlank()                     -> listOf()
@@ -178,9 +178,9 @@ fun String.toWords(): List<String> {
       }
       result.map {
         if (it.length == 1) {
-          it.toUpperCase()
+          it.uppercase(Locale.getDefault())
         } else {
-          it.substring(0, 1).toUpperCase() + it.substring(1).toLowerCase()
+          it.substring(0, 1).uppercase(Locale.getDefault()) + it.substring(1).lowercase(Locale.getDefault())
         }
       }
     }
@@ -196,7 +196,7 @@ fun String.toWords(): List<String> {
 fun uuid(upperCase: Boolean = false, removeDash: Boolean = true): String {
   var uuid = UUID.randomUUID().toString()
   if (upperCase) {
-    uuid = uuid.toUpperCase()
+    uuid = uuid.uppercase(Locale.getDefault())
   }
   if (removeDash) {
     uuid = uuid.replace("-", "")

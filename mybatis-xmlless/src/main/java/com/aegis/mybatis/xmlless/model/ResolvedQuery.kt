@@ -20,7 +20,7 @@ data class ResolvedQuery(
     var unresolvedReason: String? = null) {
 
   /**  sql语句 */
-  var sql: String? = query?.toSql()
+  val sql: String? = query?.toSql()
   /**  sql类型 */
   val type = query?.type
 

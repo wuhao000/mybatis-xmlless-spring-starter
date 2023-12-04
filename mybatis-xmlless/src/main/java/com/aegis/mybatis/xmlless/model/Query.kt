@@ -10,6 +10,9 @@ import com.aegis.mybatis.xmlless.constant.Strings.SCRIPT_END
 import com.aegis.mybatis.xmlless.constant.Strings.SCRIPT_START
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
+import com.aegis.mybatis.xmlless.model.component.FromDeclaration
+import com.aegis.mybatis.xmlless.model.component.ISqlPart
+import com.aegis.mybatis.xmlless.model.component.SubQueryDeclaration
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.baomidou.mybatisplus.annotation.FieldFill
 import com.baomidou.mybatisplus.annotation.FieldStrategy
@@ -63,12 +66,12 @@ data class Query(
     // 必须先解析查询条件才能确定条件中用于判断的字段来自哪张表
     val where = resolveWhere()
     val from = resolveFrom(false, resolveWhere(), "", true)
-    return String.format(SELECT_COUNT, from, where)
+    return String.format(SELECT_COUNT, from.toSql(), where)
   }
 
   fun buildUpdateSql(): String {
     return String.format(
-        UPDATE, tableName(), resolveUpdateProperties(false),
+        UPDATE, tableName().name, resolveUpdateProperties(false),
         resolveUpdateWhere()
     )
   }
@@ -250,7 +253,7 @@ data class Query(
   }
 
   private fun buildDeleteSql(): String {
-    return String.format(DELETE, tableName(), resolveWhere())
+    return String.format(DELETE, tableName().name, resolveWhere())
   }
 
   private fun buildExistsSql(): String {
@@ -304,7 +307,7 @@ data class Query(
       DeleteValue.Deleted -> 1
       else                -> 0
     }
-    return "<script>UPDATE ${tableName()} SET ${mapper.column} = $value " + resolveWhere() + "</script>"
+    return "<script>UPDATE ${tableName().name} SET ${mapper.column} = $value " + resolveWhere() + "</script>"
   }
 
   private fun buildScript(template: String, vararg args: String): String {
@@ -320,21 +323,37 @@ data class Query(
    */
   private fun buildSelectSql(): String {
     // 构建select的列
-    val buildColsResult = ColumnsResolver.resolve(mappings, properties)
     val groupBy = resolveGroupBy(mappings)
     val whereSqlResult = resolveWhere()
     val order = resolveOrder()
     val limit = resolveLimit()
     val limitInSubQuery = limitInSubQuery()
     val from = resolveFrom(limitInSubQuery, whereSqlResult, limit)
+    val tables = if (from is SubQueryDeclaration) {
+      from.defaultFrom.getTables()
+    } else if (from is FromDeclaration) {
+      from.getTables()
+    } else if (from is TableName) {
+      listOf(from)
+    } else {
+      listOf()
+    }
+    val buildColsResult = ColumnsResolver.resolve(mappings, properties).map { col ->
+      val t = tables.find { it.name == col.table?.name}
+      if (t != null) {
+        SelectColumn(t, col.column, col.alias, col.type)
+      } else {
+        col
+      }
+    }
     return when {
       limitInSubQuery -> buildScript(
-          SELECT, buildColsResult.joinToString(",\n\t") { it.toSql() }, from,
+          SELECT, buildColsResult.joinToString(",\n\t") { it.toSql() }, from.toSql(),
           resolvedNameAnnotation?.joinAppend ?: "",
           "", groupBy, order, ""
       )
       else            -> buildScript(
-          SELECT, buildColsResult.joinToString(",\n\t") { it.toSql() }, from,
+          SELECT, buildColsResult.joinToString(",\n\t") { it.toSql() }, from.toSql(),
           resolvedNameAnnotation?.joinAppend ?: "",
           whereSqlResult, groupBy, order, limit
       )
@@ -361,7 +380,7 @@ data class Query(
   private fun resolveFrom(
       limitInSubQuery: Boolean, whereSqlResult: String, limit: String,
       isCount: Boolean = false
-  ): String {
+  ): ISqlPart {
     val onlyIncludesTables = if (isCount) {
       criterion.map {
         it.columns.mapNotNull { it.table }
@@ -369,10 +388,10 @@ data class Query(
     } else {
       null
     }
-    val defaultFrom = mappings.fromDeclaration(properties, containedTables(), onlyIncludesTables)
+    val defaultFrom = mappings.fromDeclaration(properties, containedTables(), onlyIncludesTables, limitInSubQuery)
 
     return when {
-      limitInSubQuery -> String.format(SUB_QUERY, tableName(), whereSqlResult, limit, defaultFrom)
+      limitInSubQuery -> SubQueryDeclaration(tableName(), whereSqlResult, limit, defaultFrom)
       includeJoins()  -> defaultFrom
       else            -> tableName()
     }
@@ -433,8 +452,8 @@ data class Query(
     }
   }
 
-  private fun tableName(): String {
-    return mappings.tableInfo.tableName
+  private fun tableName(): TableName {
+    return TableName(mappings.tableInfo.tableName, mappings.tableInfo.tableName.replace('.', '_'))
   }
 
   private fun trimCondition(sql: String): String {

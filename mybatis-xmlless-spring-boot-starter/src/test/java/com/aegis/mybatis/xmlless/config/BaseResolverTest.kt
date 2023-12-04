@@ -9,12 +9,14 @@ import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
 import kotlin.reflect.KFunction
-import kotlin.reflect.full.declaredFunctions
 import kotlin.reflect.full.functions
 
-open class BaseResolverTest(val modelClass: Class<*>,
-                            val mapperClass: Class<*>,
-                            vararg methods: String) {
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+open class BaseResolverTest(
+    val modelClass: Class<*>,
+    val mapperClass: Class<*>,
+    vararg methods: String
+) {
 
   var methods: List<String> = methods.toList()
 

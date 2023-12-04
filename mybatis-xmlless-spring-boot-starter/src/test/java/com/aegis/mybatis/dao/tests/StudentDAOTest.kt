@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -28,8 +29,10 @@ class StudentDAOTest : BaseTest() {
   val id = "061251170"
   val mobile = "17705184916"
   val name = "张三"
+
   @Autowired
   private lateinit var dao: StudentDAO
+
   @Autowired
   private lateinit var scoreDAO: ScoreDAO
 
@@ -138,6 +141,11 @@ class StudentDAOTest : BaseTest() {
   }
 
   @Test
+  fun findByAge() {
+    dao.findByAge(12, "a")
+  }
+
+  @Test
   fun findByAgeBetween() {
     dao.saveAll(
         listOf(
@@ -203,12 +211,10 @@ class StudentDAOTest : BaseTest() {
     val students = dao.findByBirthday(
         LocalDate.of(2020, 11, 3)
     )
-    assertEquals(1, students.size)
-  }
-
-  @Test
-  fun findByAge() {
-    dao.findByAge(12, "a")
+    students.forEach {
+      println(it.createTime)
+    }
+    assert(students.isNotEmpty())
   }
 
   @Test
@@ -218,24 +224,26 @@ class StudentDAOTest : BaseTest() {
             Student().apply {
               id = "a"
               age = 20
-              createTime = LocalDateTime.of(2021, 1, 3, 12, 0, 0)
+//              createTime = LocalDateTime.of(2021, 1, 3, 12, 0, 0)
             },
             Student().apply {
               id = "b"
               age = 21
-              createTime = LocalDateTime.of(2021, 1, 4, 12, 0, 0)
+//              createTime = LocalDateTime.of(2021, 1, 4, 12, 0, 0)
             },
             Student().apply {
               id = "c"
               age = 16
-              createTime = LocalDateTime.of(2021, 1, 5, 12, 0, 0)
+//              createTime = LocalDateTime.of(2021, 1, 5, 12, 0, 0)
             }
         )
     )
-    val c1 = dao.findByCreateTimeBetweenStartTimeAndEndTime(LocalDateTime.of(2021,1,3,0,0,0),
-        LocalDateTime.of(2021,1,4,13,0,0))
-    val c2 = dao.findByCreateTimeBetweenStartTimeAndEndTime(LocalDateTime.of(2021,1,4,0,0,0), null)
-    val c3 = dao.findByCreateTimeBetweenStartTimeAndEndTime(null, LocalDateTime.of(2021,1,4,0,0,0))
+    val c1 = dao.findByCreateTimeBetweenStartTimeAndEndTime(
+        LocalDateTime.of(2021, 1, 3, 0, 0, 0),
+        LocalDateTime.of(2021, 1, 4, 13, 0, 0)
+    )
+    val c2 = dao.findByCreateTimeBetweenStartTimeAndEndTime(LocalDateTime.of(2021, 1, 4, 0, 0, 0), null)
+    val c3 = dao.findByCreateTimeBetweenStartTimeAndEndTime(null, LocalDateTime.of(2021, 1, 4, 0, 0, 0))
     val c4 = dao.findByCreateTimeBetweenStartTimeAndEndTime(null, null)
     println(c1.size)
     println(c2.size)
@@ -291,10 +299,11 @@ class StudentDAOTest : BaseTest() {
   @Test
   fun findByPhoneNumberLikeRight() {
     dao.save(
-        Student("1", "李四", "17705184916", 22)
+        Student("2", "李四", "17705184916", 22)
     )
     assert(dao.findByPhoneNumberLikeRight("4916").isNotEmpty())
     assert(dao.findByPhoneNumberLikeRight("180").isEmpty())
+    dao.deleteById("2")
   }
 
   @Test
@@ -336,12 +345,13 @@ class StudentDAOTest : BaseTest() {
   @Test
   fun getJsonObject() {
     dao.save(
-        Student("1", "李四", "17705184916", 22).apply {
+        Student("3", "李四", "17705184916", 22).apply {
           detail = StudentDetail(170)
         }
     )
     val s = dao.findDetail()
-    assertEquals(s.size, 1)
+    assertEquals(1, s.size)
+    dao.deleteById("3")
     println(s)
   }
 

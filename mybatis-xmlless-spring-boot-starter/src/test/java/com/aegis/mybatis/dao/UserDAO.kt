@@ -19,7 +19,7 @@ import org.springframework.data.domain.Pageable
  * @since 0.0.1
  */
 @Mapper
-interface UserDAO : XmlLessMapper<User>, BaseMapper<User> {
+interface UserDAO : XmlLessMapper<User> {
 
   /**
    *

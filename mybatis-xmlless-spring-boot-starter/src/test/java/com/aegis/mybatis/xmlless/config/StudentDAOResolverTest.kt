@@ -20,7 +20,7 @@ import kotlin.reflect.full.declaredFunctions
  * @since 0.0.1
  */
 class StudentDAOResolverTest : BaseResolverTest(
-    Student::class.java, StudentDAO::class.java, "findById", "findAllPage"
+    Student::class.java, StudentDAO::class.java, "findAllPageable", "findAllPage"
 ) {
 
   @Test
@@ -48,6 +48,7 @@ class StudentDAOResolverTest : BaseResolverTest(
     cols.map {
       it.toSql()
     }.forEach {
+      println(it)
     }
   }
 
@@ -56,8 +57,14 @@ class StudentDAOResolverTest : BaseResolverTest(
   }
 
   @Test
+  fun resolveFindBySubjectId() {
+    val q = queries.find { it.function.name == "findBySubjectId" }
+    println(q)
+  }
+
+  @Test
   fun resolveFindAllPage(){
-    val query = createQueryForMethod("findAllPage")
+    val query = createQueryForMethod("findAllPageable")
     println(query)
   }
 

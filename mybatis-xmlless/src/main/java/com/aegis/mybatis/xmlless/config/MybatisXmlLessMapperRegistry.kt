@@ -15,7 +15,7 @@
  */
 package com.aegis.mybatis.xmlless.config
 
-import com.aegis.mybatis.xmlless.config.paginition.XmlLessPageMapperProxyFactory
+import com.baomidou.mybatisplus.core.override.XmlLessPageMapperProxyFactory
 import org.apache.ibatis.binding.BindingException
 import org.apache.ibatis.binding.MapperRegistry
 import org.apache.ibatis.session.Configuration

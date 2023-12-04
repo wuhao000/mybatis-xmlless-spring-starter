@@ -109,20 +109,6 @@ class UserDAOTest : BaseTest() {
     dao.deleteById(user2.id!!)
   }
 
-  /**
-   * 查询（根据ID 批量查询）
-   *
-   * @param idList 主键ID列表(不能为 null 以及 empty)
-   */
-  @Test
-  fun selectBatchIds() {
-    assertEquals(dao.selectBatchIds(listOf(testId, 17, 18)).size, 3)
-  }
-
-  @Test
-  fun selectById() {
-    assertNotNull(dao.selectById(testId))
-  }
 
   /**
    * 查询（根据 columnMap 条件）
@@ -156,40 +142,6 @@ class UserDAOTest : BaseTest() {
   fun selectMaps() {
   }
 
-  @Test
-  fun selectMapsPage() {
-    val queryWrapper = QueryWrapper<User>()
-        .orderByDesc("id")
-    val page = dao.selectMapsPage(Page(0, 2), queryWrapper)
-    assertEquals(2, page.records.size)
-    assertEquals(5, page.total)
-  }
-
-  /**
-   * 根据 Wrapper 条件，查询全部记录
-   *
-   * 注意： 只返回第一个字段的值
-   *
-   * @param queryWrapper 实体对象封装操作类（可以为 null）
-   */
-  @Test
-  fun selectObjs() {
-    val queryWrapper = QueryWrapper<User>()
-        .orderByDesc("id")
-    val list = dao.selectObjs(queryWrapper)
-    assertEquals(list.size, 5)
-  }
-
-  /**
-   * 根据 entity 条件，查询一条记录
-   *
-   * @param queryWrapper 实体对象封装操作类（可以为 null）
-   */
-  @Test
-  fun selectOne() {
-    val queryWrapper = QueryWrapper<User>().eq("id", 16)
-    assertNotNull(dao.selectOne(queryWrapper))
-  }
 
 
   /**

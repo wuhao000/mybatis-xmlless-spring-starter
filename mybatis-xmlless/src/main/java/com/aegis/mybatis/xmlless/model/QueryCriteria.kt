@@ -120,8 +120,7 @@ data class QueryCriteria(
     val quote = type == String::class.java
     if (operator in listOf(Operations.Eq, Operations.EqDefault)) {
       return String.format(
-          "JSON_CONTAINS(%s -> '\$[*]', " +
-              "'${quote("\${%s}", quote)}', '\$')",
+          """JSON_CONTAINS(%s -> '$[*]', '${quote("\${%s}", quote)}', '$')""",
           columnResult, *scriptParams().toTypedArray()
       )
     } else if (operator in listOf(Operations.In)) {

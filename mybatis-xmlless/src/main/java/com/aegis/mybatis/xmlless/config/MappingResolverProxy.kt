@@ -3,6 +3,7 @@ package com.aegis.mybatis.xmlless.config
 import com.aegis.mybatis.xmlless.annotations.*
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.model.*
+import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.TypeResolver
 import com.baomidou.mybatisplus.annotation.IdType
 import com.baomidou.mybatisplus.annotation.TableField
@@ -10,10 +11,13 @@ import com.baomidou.mybatisplus.annotation.TableId
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
+import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
 import org.apache.ibatis.builder.MapperBuilderAssistant
+import org.apache.ibatis.session.Configuration
 import org.springframework.core.annotation.AnnotationUtils
 import org.springframework.data.annotation.CreatedDate
 import java.lang.reflect.Field
+import java.util.*
 import javax.persistence.*
 
 class MappingResolverProxy {
@@ -66,7 +70,7 @@ class MappingResolverProxy {
         field.set(tableInfo, IdType.AUTO)
       }
       if (tableInfo.keyColumn == null || tableInfo.keyProperty == null) {
-        val keyColumn = keyField.name.toUnderlineCase().toLowerCase()
+        val keyColumn = keyField.name.toUnderlineCase().lowercase(Locale.getDefault())
         val field = TableInfo::class.java.getDeclaredField("keyProperty")
         field.isAccessible = true
         field.set(tableInfo, keyField.name)
@@ -101,7 +105,8 @@ class MappingResolverProxy {
       field.annotationIncompatible(Transient::class.java, UpdateIgnore::class.java)
       field.annotationIncompatible(Transient::class.java, CreatedDate::class.java)
       field.annotationIncompatible(Transient::class.java, InsertIgnore::class.java)
-      val joinInfo = resolveJoin(field)
+
+      val joinInfo = resolveJoin(field, builderAssistant.configuration)
       if (joinInfo is ObjectJoinInfo) {
         val joinClass = joinInfo.realType()
         val joinTableInfo = TableInfoHelper.getTableInfo(joinInfo.realType())
@@ -156,16 +161,17 @@ class MappingResolverProxy {
     }
   }
 
-  private fun resolveJoin(field: Field): JoinInfo? {
+  private fun resolveJoin(field: Field, configuration: Configuration): JoinInfo? {
     val joinProperty = field.getDeclaredAnnotation(JoinProperty::class.java)
     val joinObject = field.getDeclaredAnnotation(JoinObject::class.java)
     val count = field.getDeclaredAnnotation(Count::class.java)
     if (joinProperty != null && joinObject != null) {
       throw IllegalStateException("@JoinObject and @JoinProperty cannot appear on field $field at the same time.")
     }
+    val schema = GlobalConfigUtils.getGlobalConfig(configuration).dbConfig.schema
     return when {
       joinProperty != null -> joinProperty.let {
-        val targetTableName = TableName.resolve(it.targetTable)
+        val targetTableName = TableName.resolve(it.targetTable, null, schema)
         PropertyJoinInfo(
             ColumnName(joinProperty.selectColumn, field.name),
             targetTableName,

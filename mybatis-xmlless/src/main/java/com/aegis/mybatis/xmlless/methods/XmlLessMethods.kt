@@ -8,6 +8,7 @@ import com.aegis.mybatis.xmlless.model.ResolvedQuery
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.baomidou.mybatisplus.annotation.IdType
 import com.baomidou.mybatisplus.core.injector.AbstractMethod
+import com.baomidou.mybatisplus.core.mapper.BaseMapper
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator
 import org.apache.ibatis.executor.keygen.NoKeyGenerator
@@ -27,7 +28,7 @@ import kotlin.reflect.jvm.javaMethod
  * @author 吴昊
  * @since 0.0.1
  */
-class XmlLessMethods : AbstractMethod() {
+class XmlLessMethods : AbstractMethod("") {
 
   companion object {
     const val COUNT_STATEMENT_SUFFIX = "CountAllSuffix"
@@ -87,13 +88,10 @@ class XmlLessMethods : AbstractMethod() {
     val sql = resolvedQuery.sql
     try {
       val sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass)
-      @Suppress("NON_EXHAUSTIVE_WHEN")
-      when (resolvedQuery.type) {
-        in listOf(
-            QueryType.Select,
-            QueryType.Exists,
-            QueryType.Count
-        )                -> {
+      when (resolvedQuery.type!!) {
+        QueryType.Select,
+        QueryType.Exists,
+        QueryType.Count       -> {
           val returnType = resolvedQuery.returnType ?: throw BuildSQLException("无法解析方法${function}的返回类型")
           val resultMap = resolvedQuery.resultMap
           // addSelectMappedStatement这个方法中会使用默认的resultMap，该resultMap映射的类型和modelClass一致，所以如果当前方法的返回值和modelClass
@@ -116,10 +114,12 @@ class XmlLessMethods : AbstractMethod() {
             )
           }
         }
-        QueryType.Delete -> {
+
+        QueryType.Delete      -> {
           addDeleteMappedStatement(mapperClass, function.name, sqlSource)
         }
-        QueryType.Insert -> {
+
+        QueryType.Insert      -> {
           // 如果id类型为自增，则将自增的id回填到插入的对象中
           val keyGenerator = when (tableInfo.idType) {
             IdType.AUTO -> Jdbc3KeyGenerator.INSTANCE
@@ -131,12 +131,12 @@ class XmlLessMethods : AbstractMethod() {
               keyGenerator, tableInfo.keyProperty, tableInfo.keyColumn
           )
         }
-        in listOf(
-            QueryType.Update,
-            QueryType.LogicDelete
-        ) -> {
+
+        QueryType.Update,
+        QueryType.LogicDelete -> {
           addUpdateMappedStatement(mapperClass, modelClass, function.name, sqlSource)
         }
+
       }
     } catch (ex: Exception) {
       LOG.error(
