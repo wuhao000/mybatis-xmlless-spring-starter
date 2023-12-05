@@ -1,9 +1,9 @@
 package com.aegis.mybatis.bean
 
 import com.aegis.mybatis.xmlless.annotations.JoinProperty
-import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.Id
+import jakarta.persistence.Entity
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.Id
 
 /**
  * 应用集群

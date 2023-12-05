@@ -6,7 +6,7 @@ package com.aegis.mybatis.xmlless.annotations
  * Created by 吴昊 on 2018/12/6.
  *
  * @author 吴昊
- * @since 0.0.1-SNAPSHOT
+ * @since 0.0.1
  */
 @Target(AnnotationTarget.FUNCTION)
 annotation class JsonResult(

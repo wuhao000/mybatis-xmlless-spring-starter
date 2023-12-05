@@ -4,8 +4,8 @@ import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
 import com.baomidou.mybatisplus.annotation.TableLogic
 import org.springframework.data.annotation.CreatedDate
 import java.util.*
-import javax.persistence.GeneratedValue
-import javax.persistence.Id
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.Id
 
 class Dog {
 

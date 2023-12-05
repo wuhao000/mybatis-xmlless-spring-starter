@@ -6,7 +6,7 @@ import com.aegis.mybatis.xmlless.annotations.InsertIgnore
 import com.aegis.mybatis.xmlless.annotations.JoinObject
 import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
 import com.baomidou.mybatisplus.annotation.TableField
-import javax.persistence.*
+import jakarta.persistence.*
 
 /**
  *

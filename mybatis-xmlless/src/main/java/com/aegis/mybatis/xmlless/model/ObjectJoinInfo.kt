@@ -11,8 +11,8 @@ import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import java.lang.reflect.Type
 import java.util.*
-import javax.persistence.Transient
-import javax.persistence.criteria.JoinType
+import jakarta.persistence.Transient
+import jakarta.persistence.criteria.JoinType
 
 /**
  * Created by 吴昊 on 2018/12/17.

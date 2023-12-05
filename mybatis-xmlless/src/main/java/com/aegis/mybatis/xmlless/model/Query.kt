@@ -93,6 +93,7 @@ data class Query(
             sqlScript,
             String.format("%s != null and %s != ''", property, property), false
         )
+
       else                                         -> SqlScriptUtils.convertIf(
           sqlScript,
           String.format("%s != null", property),
@@ -133,6 +134,7 @@ data class Query(
     return when (mapping.tableFieldInfo.fieldFill) {
       FieldFill.UPDATE,
       FieldFill.INSERT_UPDATE -> sqlSet
+
       else                    -> convertIf(sqlSet, newPrefix + mapping.tableFieldInfo.property, mapping)
     }
   }
@@ -164,6 +166,7 @@ data class Query(
           }
           result.add(QueryCriteriaGroup(mutableListOf(criteria)))
         }
+
         tmp.isEmpty() && criteria.append == Append.AND -> result.add(
             QueryCriteriaGroup(
                 mutableListOf(
@@ -171,11 +174,13 @@ data class Query(
                 )
             )
         )
+
         tmp.isEmpty()                                  -> tmp.add(criteria)
         tmp.onlyDefaultEq()
             && criteria.operator == Operations.EqDefault
             && criteria.append == Append.OR
                                                        -> tmp.add(criteria)
+
         tmp.onlyDefaultEq()                            -> {
           if (criteria.operator == Operations.EqDefault) {
             result.addAll(tmp.criterion.map { QueryCriteriaGroup(mutableListOf(it)) })
@@ -194,6 +199,7 @@ data class Query(
           }
           tmp = QueryCriteriaGroup()
         }
+
         else                                           -> {
           result.add(tmp)
           tmp = QueryCriteriaGroup(mutableListOf(criteria))
@@ -224,6 +230,7 @@ data class Query(
           else                            -> String.format(ORDER_BY, "$string, $extraSortScript")
         }
       }
+
       extraSortScript != null -> String.format(ORDER_BY, extraSortScript)
       else                    -> ""
     }
@@ -236,6 +243,7 @@ data class Query(
         WHERE %s = #{%s}
       """, mappings.tableInfo.keyColumn, mappings.tableInfo.keyProperty
       )
+
       else                -> resolveWhere()
     }
   }
@@ -271,6 +279,7 @@ data class Query(
         }
         mappings.insertProperties("item.", this.properties)
       }
+
       this.properties.isNotEmpty()    -> {
         template = when {
           function.name.endsWith("OrUpdate") -> INSERT_OR_UPDATE
@@ -278,6 +287,7 @@ data class Query(
         }
         mappings.insertProperties(insertProperties = this.properties)
       }
+
       this.properties.isIncludeEmpty()
           && this.criterion.isEmpty() -> {
         template = when {
@@ -286,6 +296,7 @@ data class Query(
         }
         mappings.insertProperties()
       }
+
       else                            -> throw BuildSQLException("无法解析${this.function}")
     }
     if (columns.size != values.size) {
@@ -329,17 +340,17 @@ data class Query(
     val limit = resolveLimit()
     val limitInSubQuery = limitInSubQuery()
     val from = resolveFrom(limitInSubQuery, whereSqlResult, limit)
-    val tables = if (from is SubQueryDeclaration) {
-      from.defaultFrom.getTables()
-    } else if (from is FromDeclaration) {
-      from.getTables()
-    } else if (from is TableName) {
-      listOf(from)
-    } else {
-      listOf()
+    val tables = when (from) {
+      is SubQueryDeclaration -> from.defaultFrom.getTables()
+
+      is FromDeclaration     -> from.getTables()
+
+      is TableName           -> listOf(from)
+
+      else                   -> listOf()
     }
     val buildColsResult = ColumnsResolver.resolve(mappings, properties).map { col ->
-      val t = tables.find { it.name == col.table?.name}
+      val t = tables.find { it.name == col.table?.name }
       if (t != null) {
         SelectColumn(t, col.column, col.alias, col.type)
       } else {
@@ -352,6 +363,7 @@ data class Query(
           resolvedNameAnnotation?.joinAppend ?: "",
           "", groupBy, order, ""
       )
+
       else            -> buildScript(
           SELECT, buildColsResult.joinToString(",\n\t") { it.toSql() }, from.toSql(),
           resolvedNameAnnotation?.joinAppend ?: "",
@@ -364,6 +376,7 @@ data class Query(
     return when {
       this.properties.isIncludeNotEmpty() -> this.mappings.mappings
           .filter { it.property in this.properties }
+
       else                                -> this.mappings.mappings.filter {
         it.property !in this.properties.excludes
       }
@@ -401,6 +414,7 @@ data class Query(
     val mappingList = when {
       properties.isIncludeNotEmpty() -> mappings.mappings
           .filter { it.property in properties }
+
       else                           -> mappings.mappings.filter { it.property !in properties.excludes }
     }
     val groupProperties = mappingList.mapNotNull { it.joinInfo }
@@ -448,6 +462,7 @@ data class Query(
         ).lines().joinToString(LINE_BREAK) {
           "\t".repeat(3) + it
         })
+
       else                                                                        -> ""
     }
   }

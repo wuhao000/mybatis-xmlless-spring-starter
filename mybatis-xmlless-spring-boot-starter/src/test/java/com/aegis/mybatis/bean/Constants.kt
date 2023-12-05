@@ -1,11 +1,10 @@
 package com.aegis.mybatis.bean
 
 /**
- * TODO
  *
- * @author
+ * @author 吴昊
  * @date 2021/9/15 15:16
- * @since 3.5.4 TODO
+ * @since 3.5.4
  * @version 1.0
  */
 

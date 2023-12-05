@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.core.metadata.TableInfo
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.util.*
-import javax.persistence.criteria.JoinType
+import jakarta.persistence.criteria.JoinType
 
 /**
  *

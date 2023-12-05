@@ -6,7 +6,7 @@
 
   <groupId>com.aegis</groupId>
   <artifactId>aegis-starter-mybatis-parent</artifactId>
-  <version>3.5.4</version>
+  <version>4.0.0</version>
   <modules>
     <module>mybatis-xmlless</module>
     <module>mybatis-xmlless-spring-boot-starter</module>
@@ -30,8 +30,10 @@
     <kotlin.version>1.9.20</kotlin.version>
     <aegis-commons.version>1.0.4-1</aegis-commons.version>
     <mybatis-plus.version>3.5.4.1</mybatis-plus.version>
-    <mysql.version>8.0.28</mysql.version>
-    <mybatis-starter.version>3.0.1</mybatis-starter.version>
+    <mysql.version>8.0.33</mysql.version>
+    <mybatis-starter.version>3.0.2</mybatis-starter.version>
+    <snakeyaml.version>2.0</snakeyaml.version>
+    <jakarta-persistence.version>3.1.0</jakarta-persistence.version>
     <jackson.version>2.14.3</jackson.version>
   </properties>
 
@@ -54,11 +56,17 @@
       <groupId>org.mybatis.spring.boot</groupId>
       <artifactId>mybatis-spring-boot-starter</artifactId>
       <version>${mybatis-starter.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.yaml</groupId>
+          <artifactId>snakeyaml</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.hibernate.javax.persistence</groupId>
-      <artifactId>hibernate-jpa-2.1-api</artifactId>
-      <version>1.0.2.Final</version>
+      <groupId>jakarta.persistence</groupId>
+      <artifactId>jakarta.persistence-api</artifactId>
+      <version>${jakarta-persistence.version}</version>
     </dependency>
 
     <!-- https://mvnrepository.com/artifact/com.baomidou/mybatis-plus-boot-starter -->
@@ -111,9 +119,9 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>wuhao</groupId>
-      <artifactId>wuhao-tools</artifactId>
-      <version>3.1.4</version>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+      <version>${snakeyaml.version}</version>
     </dependency>
   </dependencies>
   <dependencyManagement>
@@ -138,7 +146,7 @@
   <distributionManagement>
     <repository>
       <id>nexus</id>
-      <url>http://nexus.aegis-info.com/repository/maven-releases/</url>
+      <url>https://nexus.aegis-info.com/repository/maven-releases/</url>
     </repository>
   </distributionManagement>
 </project>

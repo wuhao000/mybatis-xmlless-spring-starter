@@ -3,8 +3,8 @@ package com.aegis.mybatis.xmlless.model
 import com.aegis.mybatis.xmlless.config.BaseResolverTest
 import com.aegis.mybatis.xmlless.XmlLessMapper
 import org.junit.jupiter.api.Test
-import javax.persistence.GeneratedValue
-import javax.persistence.Id
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.Id
 import kotlin.test.assertEquals
 
 interface TestEntityDAO : XmlLessMapper<TestEntity> {

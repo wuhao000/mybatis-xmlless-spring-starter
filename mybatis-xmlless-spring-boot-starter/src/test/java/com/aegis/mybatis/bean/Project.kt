@@ -1,8 +1,8 @@
 package com.aegis.mybatis.bean
 
 import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
-import javax.persistence.Entity
-import javax.persistence.Id
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
 
 
 /**

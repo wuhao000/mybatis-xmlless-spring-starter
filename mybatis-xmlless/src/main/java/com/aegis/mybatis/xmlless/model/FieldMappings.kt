@@ -3,8 +3,7 @@ package com.aegis.mybatis.xmlless.model
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.toCamelCase
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
-import com.aegis.mybatis.xmlless.model.component.FromDeclaration
-import com.aegis.mybatis.xmlless.model.component.JoinDeclaration
+import com.aegis.mybatis.xmlless.model.component.*
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import java.util.*
@@ -40,7 +39,13 @@ data class FieldMappings(
     }
     val declaration = FromDeclaration()
     declaration.tableName = tableName
-    declaration.joins = selectJoins(1, properties, includedTableAlias, null, onlyIncludesTables)
+    val joins = selectJoins(1, properties, includedTableAlias, null, onlyIncludesTables)
+    joins.forEach {
+      if (it.joinCondition.originTable.name == tableName.name) {
+        it.joinCondition.originTable = tableName
+      }
+    }
+    declaration.joins = joins
     return declaration
   }
 
@@ -210,15 +215,11 @@ data class FieldMappings(
       joinInfo: JoinInfo,
       joinTableName: TableName?,
       joinProperty: FieldMapping
-  ): String {
-    if (joinProperty.isJsonArray) {
-      return "JSON_CONTAINS(${joinTableName?.alias ?: tableInfo.tableName}.${joinProperty.column}, CAST(${
-        joinInfo.joinTable.alias
-      }.${joinInfo.targetColumn} AS JSON), '$')"
-    }
-    return "${joinInfo.joinTable.alias}.${joinInfo.targetColumn} = ${
-      joinTableName?.alias ?: tableInfo.tableName
-    }.${joinProperty.column}"
+  ): JoinConditionDeclaration {
+    return JoinConditionDeclaration(
+        joinTableName ?: TableName(tableInfo.tableName), joinProperty.column,
+        joinInfo.joinTable, joinInfo.targetColumn, joinProperty.isJsonArray
+    )
   }
 
   /**

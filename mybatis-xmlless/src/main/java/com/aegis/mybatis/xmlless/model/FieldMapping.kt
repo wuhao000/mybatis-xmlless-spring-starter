@@ -14,8 +14,8 @@ import org.springframework.data.annotation.CreatedDate
 import java.lang.reflect.Field
 import java.lang.reflect.Type
 import java.util.*
-import javax.persistence.GeneratedValue
-import javax.persistence.Transient
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.Transient
 
 /**
  *

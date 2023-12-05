@@ -18,7 +18,7 @@ import org.springframework.core.annotation.AnnotationUtils
 import org.springframework.data.annotation.CreatedDate
 import java.lang.reflect.Field
 import java.util.*
-import javax.persistence.*
+import jakarta.persistence.*
 
 class MappingResolverProxy {
 

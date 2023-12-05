@@ -86,8 +86,7 @@ object ResultMapResolver {
       builder.flags(listOf(ResultFlag.ID))
     }
     if (mapping.joinInfo != null) {
-      val joinInfo = mapping.joinInfo
-      when (joinInfo) {
+      when (val joinInfo = mapping.joinInfo) {
         is PropertyJoinInfo -> {
           val rawType = joinInfo.rawType()
           if (Collection::class.java.isAssignableFrom(rawType)) {
@@ -192,8 +191,8 @@ object ResultMapResolver {
     }
     return mappings?.mappings?.mapNotNull { mapping ->
       when {
-        query != null && ((query.properties.isIncludeNotEmpty()
-            && !isMappingPropertyInQuery(mapping, query))) -> null
+        query != null && (query.properties.isIncludeNotEmpty()
+            && !isMappingPropertyInQuery(mapping, query))      -> null
         (optionalProperties.isIncludeNotEmpty()
             && mapping.property !in optionalProperties)
             || mapping.property in optionalProperties.excludes -> null

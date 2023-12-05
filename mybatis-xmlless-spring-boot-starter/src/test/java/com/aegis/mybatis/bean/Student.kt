@@ -9,8 +9,8 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.time.LocalDate
 import java.time.LocalDateTime
-import javax.persistence.Column
-import javax.persistence.Id
+import jakarta.persistence.Column
+import jakarta.persistence.Id
 
 @JsonMappingProperty
 data class EducationInfo(

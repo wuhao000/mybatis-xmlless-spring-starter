@@ -1,6 +1,6 @@
 package com.aegis.mybatis.xmlless.annotations
 
-import javax.persistence.criteria.JoinType
+import jakarta.persistence.criteria.JoinType
 
 
 /**

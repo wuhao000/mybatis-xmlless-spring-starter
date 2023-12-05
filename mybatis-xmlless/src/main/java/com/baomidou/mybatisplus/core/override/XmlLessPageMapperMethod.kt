@@ -106,7 +106,7 @@ internal class XmlLessPageMapperMethod(
         list.addAll(result as Collection<Any?>)
         result.clear()
         (result as MutableCollection<Any?>).addAll(
-            list.map {
+            list.mapNotNull {
               val json = extractJson(it)
               when (json) {
                 null -> null

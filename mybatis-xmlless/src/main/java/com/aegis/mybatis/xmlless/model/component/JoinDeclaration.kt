@@ -2,7 +2,7 @@ package com.aegis.mybatis.xmlless.model.component
 
 import com.aegis.mybatis.xmlless.constant.JOIN
 import com.aegis.mybatis.xmlless.model.TableName
-import javax.persistence.criteria.JoinType
+import jakarta.persistence.criteria.JoinType
 
 /**
  *
@@ -12,9 +12,9 @@ import javax.persistence.criteria.JoinType
  * @version 1.0
  */
 class JoinDeclaration(
-    val type: JoinType,
+    private val type: JoinType,
     val joinTable: TableName,
-    val joinCondition: String,
+    val joinCondition: JoinConditionDeclaration,
     val joinSelect: List<JoinDeclaration> = listOf()
 ) : ISqlPart {
 
@@ -22,7 +22,7 @@ class JoinDeclaration(
     val sql = String.format(
         JOIN, type.name,
         joinTable.toSql(),
-        joinCondition
+        joinCondition.toSql()
     ).trim()
     if (joinSelect.isEmpty()) {
       return sql.trim()

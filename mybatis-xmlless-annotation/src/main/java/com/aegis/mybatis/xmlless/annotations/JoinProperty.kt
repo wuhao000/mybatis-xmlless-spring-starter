@@ -1,6 +1,6 @@
 package com.aegis.mybatis.xmlless.annotations
 
-import javax.persistence.criteria.JoinType
+import jakarta.persistence.criteria.JoinType
 
 /**
  * 用在持久化类的属性上，表示持久化类的属性是一个关联属性

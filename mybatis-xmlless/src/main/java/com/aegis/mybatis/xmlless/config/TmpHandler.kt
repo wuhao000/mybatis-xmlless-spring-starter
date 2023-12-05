@@ -52,6 +52,8 @@ open class TmpHandler(val type: JavaType? = null) : BaseTypeHandler<Any>() {
     ps.setString(i, mapper.writeValueAsString(parameter))
   }
 
-  private fun toTypeValue(str: String): Any? = mapper.readValue(str, type)
+  private fun toTypeValue(str: String): Any? {
+    return mapper.readValue(str, type)
+  }
 
 }

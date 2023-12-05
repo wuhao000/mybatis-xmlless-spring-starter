@@ -68,7 +68,7 @@ class StudentDetailDAOTest : BaseTest() {
         }
     )
     val s = studentDAO.findFavorites()
-    assertEquals(2, s.size)
+    assertEquals(1, s.size)
     println(s)
   }
 
@@ -82,7 +82,7 @@ class StudentDetailDAOTest : BaseTest() {
       }
     })
     val s = studentDAO.findDetail()
-    assertEquals(2, s.size)
+    assertEquals(1, s.size)
     println(s)
   }
 
