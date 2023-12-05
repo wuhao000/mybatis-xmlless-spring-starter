@@ -20,7 +20,10 @@ import kotlin.reflect.full.declaredFunctions
  * @since 0.0.1
  */
 class StudentDAOResolverTest : BaseResolverTest(
-    Student::class.java, StudentDAO::class.java, "findAllPageable", "findAllPage"
+    Student::class.java, StudentDAO::class.java,
+    "findByNameOrAge",
+//    "findAllPageable",
+//    "findAllPage"
 ) {
 
   @Test
@@ -67,6 +70,14 @@ class StudentDAOResolverTest : BaseResolverTest(
     val query = createQueryForMethod("findAllPageable")
     println(query)
   }
+
+  @Test
+  fun resolveParameter(){
+    val query = createQueryForMethod("findByNameOrAge")
+    println(query)
+  }
+
+
 
   @Test
   fun resolveFindByPhoneNumberLikeLeft() {

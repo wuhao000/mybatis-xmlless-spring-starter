@@ -126,8 +126,7 @@ interface StudentDAO : XmlLessMapper<Student> {
    * @param date
    * @return
    */
-  @SelectedProperties(properties = ["id", "name",
-    "createTime", "birthday"])
+  @SelectedProperties(properties = ["id", "name", "createTime", "birthday"])
   fun findByBirthday(date: LocalDate): List<Student>
 
   /**
@@ -233,4 +232,12 @@ interface StudentDAO : XmlLessMapper<Student> {
   @ResolvedName("update")
   fun updatePartly(student: Student): Int
 
+
+  fun findByNameOrAge(form: QueryForm): List<Student>
 }
+
+
+class QueryForm(
+    val name: String? = null,
+    val age: Int? = null
+)

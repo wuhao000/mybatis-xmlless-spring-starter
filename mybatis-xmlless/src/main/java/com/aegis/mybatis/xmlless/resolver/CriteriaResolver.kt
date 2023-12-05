@@ -10,6 +10,7 @@ import com.aegis.mybatis.xmlless.kotlin.toCamelCase
 import com.aegis.mybatis.xmlless.model.*
 import com.baomidou.mybatisplus.annotation.TableLogic
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
+import org.apache.ibatis.annotations.Param
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
@@ -57,7 +58,7 @@ object CriteriaResolver {
       } else if (ParameterResolver.isComplexParameter(parameter)) {
         TypeResolver.resolveRealType(parameter.type).declaredMemberProperties.forEach { property ->
           val propertyCriteria = property.javaField?.getDeclaredAnnotation(Criteria::class.java)
-                ?: property.findAnnotation()
+            ?: property.findAnnotation()
           if (propertyCriteria != null) {
             parameterConditions.add(
                 resolveCriteriaFromProperty(propertyCriteria, property, paramNames[index], function, mappings)
@@ -91,8 +92,7 @@ object CriteriaResolver {
   private fun resolveCriteria(
       criteria: Criteria, parameter: KParameter, paramName: String,
       function: KFunction<*>, mappings: FieldMappings
-  ):
-      QueryCriteria {
+  ): QueryCriteria {
     val property = when {
       criteria.property.isNotBlank() -> criteria.property
       else                           -> paramName
@@ -148,6 +148,7 @@ object CriteriaResolver {
             props[2].joinToString("").toCamelCase()
         )
       }
+
       props.size == 2 -> {
         // 解决剩余的名称为aInB的情况
         val parts = props[1].split("In")
@@ -156,6 +157,7 @@ object CriteriaResolver {
           else -> listOf(props[1].joinToString("").toCamelCase())
         }
       }
+
       else            -> listOf(property)
     }
     val parameters = paramNames.map { paramName ->
@@ -166,8 +168,10 @@ object CriteriaResolver {
       }
       // 如果条件参数是方法参数中的属性，则需要加上方法参数名称前缀
       val finalParamName = when {
-        parameterData?.property != null -> parameterData.paramName + DOT + paramName
-        else                            -> paramName
+        parameterData?.property != null && parameterData.parameter.hasAnnotation<Param>()
+             -> parameterData.paramName + DOT + paramName
+
+        else -> paramName
       }
       Pair(finalParamName, parameter)
     }

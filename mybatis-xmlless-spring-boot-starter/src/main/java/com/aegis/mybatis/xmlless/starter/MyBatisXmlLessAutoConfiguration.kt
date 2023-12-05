@@ -15,6 +15,7 @@ import org.apache.ibatis.session.SqlSessionFactory
 import org.mybatis.spring.SqlSessionFactoryBean
 import org.mybatis.spring.SqlSessionTemplate
 import org.mybatis.spring.boot.autoconfigure.MybatisProperties
+import org.slf4j.LoggerFactory
 import org.springframework.beans.BeanUtils
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.boot.autoconfigure.AutoConfigureAfter
@@ -27,6 +28,7 @@ import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Primary
 import org.springframework.core.io.ResourceLoader
 import org.springframework.util.CollectionUtils
 import org.springframework.util.StringUtils
@@ -45,7 +47,6 @@ import javax.sql.DataSource
 @ConditionalOnClass(SqlSessionFactory::class, SqlSessionFactoryBean::class)
 @EnableConfigurationProperties(MybatisPlusProperties::class)
 @AutoConfigureAfter(DataSourceAutoConfiguration::class)
-@AutoConfigureBefore(MybatisPlusAutoConfiguration::class)
 class MyBatisXmlLessAutoConfiguration(
     private var properties: MybatisPlusProperties,
     mybatisProperties: MybatisProperties,
@@ -59,15 +60,16 @@ class MyBatisXmlLessAutoConfiguration(
   private var configurationCustomizers: List<ConfigurationCustomizer>? = configurationCustomizersProvider.ifAvailable
   private var databaseIdProvider: DatabaseIdProvider? = databaseIdProvider.ifAvailable
   private var interceptors: Array<Interceptor>? = interceptorsProvider.ifAvailable
+  private val log = LoggerFactory.getLogger(MyBatisXmlLessAutoConfiguration::class.java)
 
   init {
     copyProperties(properties, mybatisProperties)
   }
 
   @Bean
-  @Throws(Exception::class)
-  @ConditionalOnMissingBean
-  fun sqlSessionFactory(dataSource: DataSource): SqlSessionFactory? {
+  @Primary
+  fun sqlSessionFactory(dataSource: DataSource): SqlSessionFactory {
+    log.info("初始化MybatisSqlSessionFactoryBean")
     val factory = MybatisSqlSessionFactoryBean()
     factory.setDataSource(dataSource)
     factory.vfs = SpringBootVFS::class.java
@@ -125,7 +127,8 @@ class MyBatisXmlLessAutoConfiguration(
       globalConfig.sqlInjector = iSqlInjector
     }
     factory.setGlobalConfig(globalConfig)
-    return factory.getObject()
+    log.info("mybatis xmlless 初始化完成")
+    return factory.getObject()!!
   }
 
   @Bean
@@ -140,10 +143,6 @@ class MyBatisXmlLessAutoConfiguration(
   }
 
   private fun applyConfiguration(factory: MybatisSqlSessionFactoryBean) {
-
-    // TODO 使用 MybatisConfiguration
-
-    // TODO 使用 MybatisConfiguration
     val coreConfiguration = properties.configuration
     var configuration: MybatisConfiguration? = null
     if (coreConfiguration != null || !StringUtils.hasText(properties.configLocation)) {

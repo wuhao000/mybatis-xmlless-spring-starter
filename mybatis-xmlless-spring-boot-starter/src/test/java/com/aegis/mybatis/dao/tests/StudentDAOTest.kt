@@ -5,6 +5,7 @@ import com.aegis.mybatis.bean.Score
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.bean.StudentDetail
 import com.aegis.mybatis.bean.StudentState
+import com.aegis.mybatis.dao.QueryForm
 import com.aegis.mybatis.dao.ScoreDAO
 import com.aegis.mybatis.dao.StudentDAO
 import org.junit.jupiter.api.Test
@@ -14,9 +15,9 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 /**
  *
@@ -340,6 +341,24 @@ class StudentDAOTest : BaseTest() {
     )
     println(page.content.size)
     println(page.totalElements)
+  }
+
+  @Test
+  fun findByNameOrAge() {
+    dao.save(
+        Student(
+            "6", "666",
+            "17705184916", 22
+        ).apply {
+          this.age = 55
+        }
+    )
+    val s1 = dao.findByNameOrAge(QueryForm(age = 55))
+    val s2 = dao.findByNameOrAge(QueryForm(name = "666"))
+    val s3 = dao.findByNameOrAge(QueryForm(name = "777"))
+    assertEquals(1, s1.size)
+    assertEquals(1, s2.size)
+    assert(s3.isEmpty())
   }
 
   @Test
