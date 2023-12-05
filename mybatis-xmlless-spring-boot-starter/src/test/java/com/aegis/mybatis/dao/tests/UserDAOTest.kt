@@ -68,6 +68,7 @@ class UserDAOTest : BaseTest() {
 
   @Test
   fun pageable() {
+    dao.save(User(name = "w", deleted = false))
     val page = dao.findAll(
         PageRequest.of(
             0, 20, Sort.Direction.DESC, "id"

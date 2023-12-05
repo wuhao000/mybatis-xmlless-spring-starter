@@ -36,12 +36,13 @@ object CriteriaResolver {
       queryType: QueryType
   ): List<QueryCriteria> {
     val nameConditions = if (allConditionWords.isNotEmpty()) {
+      val parameterOffsetHolder = ValueHolder(0)
       splitAndConditionKeywords(allConditionWords).map { addPropertiesWords ->
         // 解析形如 nameEq 或者 nameLikeKeywords 的表达式
         // nameEq 解析为 name = #{name}
         // nameLikeKeywords 解析为 name  LIKE concat('%',#{keywords},'%')
         addPropertiesWords.split("Or").map { singleConditionWords ->
-          resolveCriteria(singleConditionWords, function, mappings)
+          resolveCriteria(singleConditionWords, function, mappings, parameterOffsetHolder)
         }.apply {
           last().append = Append.AND
         }
@@ -112,7 +113,8 @@ object CriteriaResolver {
   private fun resolveCriteria(
       singleConditionWords: List<String>,
       function: KFunction<*>,
-      mappings: FieldMappings
+      mappings: FieldMappings,
+      parameterOffsetHolder: ValueHolder<Int>
   ): QueryCriteria {
     // 获取表示条件表达式操作符的单词
     val singleConditionString = singleConditionWords.joinToString("").toCamelCase()
@@ -125,18 +127,26 @@ object CriteriaResolver {
         .minByOrNull {
           singleConditionString.indexOf(it.joinToString(""))
         }
-    val props = when {
-      opWords != null -> singleConditionWords.split(opWords).map { it.split("") }.flatten()
-      else            -> listOf(singleConditionWords)
-    }
-    if (props.size !in 1..3) {
-      throw IllegalStateException("无法从${singleConditionWords.joinToString("")}中解析查询条件")
-    }
     // 解析条件表达式的二元操作符 = > < >= <= != in like 等
     val op = when {
       opWords != null -> Operations.valueOf(opWords)
       else            -> null
     }
+    val props = when {
+      opWords != null -> singleConditionWords.split(opWords).map { it.split("") }.flatten()
+      else            -> listOf(singleConditionWords)
+    }.toMutableList()
+    if (props.size == 1 && (op?.parameterCount ?: 0) > 0) {
+      (1..(op?.parameterCount?:0)).forEach {
+        val parameterName = resolveParameterName(function.parameters[parameterOffsetHolder.value + 1])
+        props.add(listOf(parameterName))
+        parameterOffsetHolder.value++
+      }
+    }
+    if (props.size !in 1..3) {
+      throw IllegalStateException("无法从${singleConditionWords.joinToString("")}中解析查询条件")
+    }
+
     val property = when {
       op != null -> props.first().joinToString("").toCamelCase()
       else       -> singleConditionWords.joinToString("").toCamelCase()
@@ -188,6 +198,14 @@ object CriteriaResolver {
     )
   }
 
+  private fun resolveParameterName(kParameter: KParameter): String {
+    return if (kParameter.hasAnnotation<Param>()) {
+      kParameter.findAnnotation<Param>()!!.value
+    } else {
+      kParameter.name!!
+    }
+  }
+
   private fun resolveCriteriaFromProperty(
       criteria: Criteria, property: KProperty1<out Any, Any?>,
       paramName: String, function: KFunction<*>, mappings: FieldMappings
@@ -220,3 +238,5 @@ object CriteriaResolver {
   }
 
 }
+
+class ValueHolder<T>(var value: T)

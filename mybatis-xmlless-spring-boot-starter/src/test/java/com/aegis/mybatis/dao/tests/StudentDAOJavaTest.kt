@@ -24,7 +24,7 @@ import kotlin.test.assertNotNull
  * @author 吴昊
  * @since 0.0.1
  */
-class StudentDAOTest : BaseTest() {
+class StudentDAOJavaTest : BaseTest() {
 
   val deleteId = "061251173"
   val id = "061251170"
@@ -32,7 +32,7 @@ class StudentDAOTest : BaseTest() {
   val name = "张三"
 
   @Autowired
-  private lateinit var dao: StudentDAO
+  private lateinit var dao: StudentDAO2
 
   @Autowired
   private lateinit var scoreDAO: ScoreDAO

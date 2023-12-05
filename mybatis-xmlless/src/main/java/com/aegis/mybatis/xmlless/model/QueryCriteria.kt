@@ -5,6 +5,7 @@ import com.aegis.mybatis.xmlless.annotations.TestExpression
 import com.aegis.mybatis.xmlless.constant.Strings
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.enums.TestType
+import com.aegis.mybatis.xmlless.model.component.TestConditionDeclaration
 import com.aegis.mybatis.xmlless.resolver.AnnotationResolver
 import com.aegis.mybatis.xmlless.resolver.TypeResolver
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
@@ -16,8 +17,11 @@ import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.jvm.jvmErasure
 
 
-class SpecificValue(val stringValue: String,
-                    val nonStringValue: String)
+class SpecificValue(
+    val stringValue: String,
+    val nonStringValue: String
+)
+
 /**
  *
  * @author 吴昊
@@ -33,6 +37,8 @@ data class QueryCriteria(
 ) {
 
   var columns: List<SelectColumn> = listOf()
+
+  var extraTestConditions: List<TestConditionDeclaration> = listOf()
 
   companion object {
     /**  foreach模板 */
@@ -58,7 +64,42 @@ data class QueryCriteria(
 
   fun toSql(mappings: FieldMappings): String {
     val sqlBuilder = toSqlWithoutTest(mappings)
-    return wrapWithTests(sqlBuilder)
+    val exp = wrapWithTests(sqlBuilder)
+    if (operator == Operations.Between) {
+      val realParams = realParams()
+      val s1 = QueryCriteria(
+          property,
+          Operations.Gte,
+          append,
+          parameters.dropLast(1),
+          specificValue,
+          mappings
+      ).apply {
+        extraTestConditions = listOf(
+            TestConditionDeclaration(
+                realParams[1],
+                TestType.IsNull
+            )
+        )
+      }.toSql(mappings)
+      val s2 = QueryCriteria(
+          property,
+          Operations.Lte,
+          append,
+          parameters.drop(1),
+          specificValue,
+          mappings
+      ).apply {
+        extraTestConditions = listOf(
+            TestConditionDeclaration(
+                realParams[0],
+                TestType.IsNull
+            )
+        )
+      }.toSql(mappings)
+      return listOf(exp, s1, s2).joinToString("\n")
+    }
+    return exp
   }
 
   fun toSqlWithoutTest(mappings: FieldMappings): String {
@@ -80,6 +121,7 @@ data class QueryCriteria(
           operator.getValueTemplate(),
           columnResult, operator.operator, value
       ) + " " + append
+
       mapping != null && mapping.isJsonArray       -> buildJsonQuery(columnResult, operator, mapping)
       operator == Operations.In
           && mapping?.joinInfo is PropertyJoinInfo -> String.format(
@@ -87,6 +129,7 @@ data class QueryCriteria(
           mappings.tableInfo.tableName + "." + mappings.tableInfo.keyColumn,
           operator.operator, *scriptParams(mapping).toTypedArray()
       ) + " " + append
+
       else                                         -> {
         String.format(
             operator.getTemplate(),
@@ -112,9 +155,9 @@ data class QueryCriteria(
   }
 
   private fun buildJsonQuery(
-    columnResult: String,
-    operator: Operations,
-    mapping: FieldMapping
+      columnResult: String,
+      operator: Operations,
+      mapping: FieldMapping
   ): String {
     val type = TypeResolver.resolveRealType(mapping.type)
     val quote = type == String::class.java
@@ -148,31 +191,19 @@ data class QueryCriteria(
   }
 
   private fun getTests(): String {
-    val parameter = getOnlyParameter()
-    if (parameter != null) {
-      val parameterTest = AnnotationResolver.resolve(parameter)
-        ?: AnnotationResolver.resolve<Criteria>(parameter)?.test
-      if (parameterTest != null) {
-        return resolveTests(parameterTest)
-      }
-      var tests = listOf<String>()
-      when (parameter) {
-        is KParameter   -> tests = resolveTestsFromType(parameter.type)
-        is KProperty<*> -> tests = resolveTestsFromType(parameter.returnType)
-      }
-      return tests.joinToString(Strings.TESTS_CONNECTOR)
-    } else {
-      return ""
+    val parameter = getOnlyParameter() ?: return ""
+    val parameterTest = AnnotationResolver.resolve(parameter)
+      ?: AnnotationResolver.resolve<Criteria>(parameter)?.test
+    if (parameterTest != null) {
+      return resolveTests(parameterTest)
     }
-  }
+    var tests = listOf<TestConditionDeclaration>()
+    when (parameter) {
+      is KParameter   -> tests = resolveTestsFromType(parameter.type)
+      is KProperty<*> -> tests = resolveTestsFromType(parameter.returnType)
+    }
+    return (tests + extraTestConditions).joinToString(Strings.TESTS_CONNECTOR) { it.toSql() }
 
-  private fun realParams(): List<String> {
-    if (parameters.isEmpty()) {
-      return listOf(property)
-    }
-    return parameters.map {
-      it.first
-    }
   }
 
   private fun resolveTests(parameterTest: TestExpression): String {
@@ -193,6 +224,7 @@ data class QueryCriteria(
           Collection::class.java.isAssignableFrom(clazz) -> ".size " + TestType.GtZero.expression
           clazz == String::class
               || clazz == java.lang.String::class.java   -> ".length() " + TestType.GtZero.expression
+
           clazz.isArray                                  -> ".length " + TestType.GtZero.expression
           else                                           -> ".size " + TestType.GtZero.expression
         }
@@ -203,23 +235,33 @@ data class QueryCriteria(
         parameterTest.expression.isNotBlank() -> parameterTest.expression + Strings.TESTS_CONNECTOR + tests
         else                                  -> tests
       }
+
       else               -> parameterTest.expression
     }
   }
 
-  private fun resolveTestsFromType(type: KType): List<String> {
+  private fun realParams(): List<String> {
+    if (parameters.isEmpty()) {
+      return listOf(property)
+    }
+    return parameters.map {
+      it.first
+    }
+  }
+
+  private fun resolveTestsFromType(type: KType): List<TestConditionDeclaration> {
     val realParams = realParams()
-    val tests = ArrayList<String>()
+    val tests = ArrayList<TestConditionDeclaration>()
     if (type.isMarkedNullable) {
-      tests.addAll(realParams.map { "$it != null" })
+      tests.addAll(realParams.map { TestConditionDeclaration(it, TestType.NotNull) })
     }
     if (type.jvmErasure == String::class) {
-      tests.addAll(realParams.map { "$it.length() " + TestType.GtZero.expression })
+      tests.addAll(realParams.map { TestConditionDeclaration("$it.length()", TestType.GtZero) })
     }
     if (Collection::class.java.isAssignableFrom(type.jvmErasure.java)) {
-      tests.addAll(realParams.map { "$it.size() " + TestType.GtZero.expression })
+      tests.addAll(realParams.map { TestConditionDeclaration("$it.size()", TestType.GtZero) })
     }
-    return tests
+    return tests.toList()
   }
 
   private fun resolveValue(): String? {
@@ -229,11 +271,13 @@ data class QueryCriteria(
         specificValue.stringValue.isNotBlank() -> "'" + specificValue.stringValue + "'"
         else                                   -> specificValue.nonStringValue
       }
+
       paramName != null     -> when {
         paramName.matches("\\d+".toRegex()) -> paramName
         paramName == "true"                 -> paramName.toUpperCase()
         else                                -> null
       }
+
       else                  -> null
     }
   }

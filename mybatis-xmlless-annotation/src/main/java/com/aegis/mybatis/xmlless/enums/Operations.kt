@@ -11,25 +11,28 @@ import com.aegis.mybatis.xmlless.kotlin.toWords
  * @author 吴昊
  * @since 0.0.1
  */
-enum class Operations(val operator: String) {
+enum class Operations(
+    val operator: String,
+    val parameterCount: Int
+) {
 
-  Between("BETWEEN"),
-  Eq("="),
-  EqDefault("="),
-  EqFalse(" = FALSE"),
-  EqTrue(" = TRUE"),
-  Gt("&gt;"),
-  Gte("&gt;="),
-  In("IN"),
-  IsNotNull("IS NOT NULL"),
-  IsNull("IS NULL"),
-  Like("LIKE"),
-  LikeLeft("LIKE"),
-  LikeRight("LIKE"),
-  Lt("&lt;"),
-  Lte("&lt;="),
-  Ne("!="),
-  NotNull("IS NOT NULL");
+  Between("BETWEEN", 2),
+  Eq("=", 1),
+  EqDefault("=", 0),
+  EqFalse(" = FALSE", 0),
+  EqTrue(" = TRUE", 0),
+  Gt("&gt;", 1),
+  Gte("&gt;=", 1),
+  In("IN", 1),
+  IsNotNull("IS NOT NULL", 0),
+  IsNull("IS NULL", 0),
+  Like("LIKE", 1),
+  LikeLeft("LIKE", 1),
+  LikeRight("LIKE", 1),
+  Lt("&lt;", 1),
+  Lte("&lt;=", 1),
+  Ne("!=", 1),
+  NotNull("IS NOT NULL", 0);
 
   companion object {
     fun nameWords(): List<List<String>> {

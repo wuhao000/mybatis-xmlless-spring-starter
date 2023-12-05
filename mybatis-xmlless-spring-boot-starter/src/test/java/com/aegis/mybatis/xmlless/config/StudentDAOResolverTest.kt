@@ -21,7 +21,9 @@ import kotlin.reflect.full.declaredFunctions
  */
 class StudentDAOResolverTest : BaseResolverTest(
     Student::class.java, StudentDAO::class.java,
-    "findByNameOrAge",
+//    "findByNameOrAge",
+    "findByAgeBetween",
+    "findByAgeBetweenMinAndMax",
 //    "findAllPageable",
 //    "findAllPage"
 ) {
@@ -77,6 +79,17 @@ class StudentDAOResolverTest : BaseResolverTest(
     println(query)
   }
 
+  @Test
+  fun findByAgeBetween(){
+    val query = createQueryForMethod("findByAgeBetween")
+    println(query)
+  }
+
+  @Test
+  fun findByAgeBetweenMinAndMax(){
+    val query = createQueryForMethod("findByAgeBetweenMinAndMax")
+    println(query)
+  }
 
 
   @Test

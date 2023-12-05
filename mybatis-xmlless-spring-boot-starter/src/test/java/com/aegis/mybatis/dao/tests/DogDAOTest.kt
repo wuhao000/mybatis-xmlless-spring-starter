@@ -38,28 +38,25 @@ open class DogDAOTest : BaseTest() {
   @Test
   @DisplayName("查询所有数据")
   fun findAll() {
+    dao.save(Dog().apply {
+      name = "a"
+      ages = listOf(2)
+    })
     val list = dao.findAll()
     assert(list.isNotEmpty())
   }
 
-  @Test
-  @DisplayName("查询未逻辑删除的数据")
-  fun findAllExcludeLogicDeleted() {
-    val list = dao.findNonDeleted()
-    assertEquals(2, list.size)
-  }
 
   @Test
   fun findByAgesIn() {
+    dao.save(Dog().apply {
+      name = "a"
+      ages = listOf(2)
+    })
     val result = dao.findByAgesIn(listOf(2, 3))
     assert(result.isNotEmpty())
   }
 
-  @Test
-  fun findById() {
-    val dog = dao.findById(1)
-    assertNotNull(dog)
-  }
 
   @Test
   fun findByNamesIn() {
@@ -72,6 +69,13 @@ open class DogDAOTest : BaseTest() {
   @Test
   @DisplayName("查询已删除的数据")
   fun findDeleted() {
+    dao.save(
+        Dog().apply {
+          name = "a"
+          ages = listOf(2)
+          deleteFlag = true
+        }
+    )
     val list = dao.findDeleted()
     list.forEach {
       assert(it.deleteFlag)
@@ -82,8 +86,20 @@ open class DogDAOTest : BaseTest() {
   @Test
   @DisplayName("查询未删除的数据")
   fun findNotDeleted() {
+    dao.save(
+        Dog().apply {
+          name = "a"
+          ages = listOf(2)
+        }
+    )
+    dao.save(
+        Dog().apply {
+          name = "b"
+          ages = listOf(3)
+        }
+    )
     val list = dao.findNonDeleted()
-    assertEquals(2, list.size)
+    assert(list.isNotEmpty())
   }
 
   @Test

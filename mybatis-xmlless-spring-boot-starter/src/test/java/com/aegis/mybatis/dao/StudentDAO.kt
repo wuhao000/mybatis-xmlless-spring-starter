@@ -232,8 +232,10 @@ interface StudentDAO : XmlLessMapper<Student> {
   @ResolvedName("update")
   fun updatePartly(student: Student): Int
 
-
   fun findByNameOrAge(form: QueryForm): List<Student>
+
+  fun findByAgeBetween(min: Int?, max: Int?): List<Student>
+  fun findByAgeBetweenMinAndMax(min: Int?, max: Int?): List<Student>
 }
 
 

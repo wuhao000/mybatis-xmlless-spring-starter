@@ -89,21 +89,21 @@ class StudentDetailDAOTest : BaseTest() {
   @Test
   @DisplayName("返回数组对象列表")
   fun getJsonObjectArrayList() {
-//    dao.save(Student().apply {
-//      id = "abc"
-//      education = listOf(
-//          EducationInfo("xx大学")
-//      )
-//    })
-//    val s = studentDAO.findEducation()
-//    assertEquals(1, s.size)
-//    assert(s.any { it != null && it.isNotEmpty() })
-//    s.forEach {
-//      it?.forEach {
-//        assert(it is EducationInfo)
-//      }
-//    }
-//    println(s)
+    dao.save(Student().apply {
+      id = "abc"
+      education = listOf(
+          EducationInfo("xx大学")
+      )
+    })
+    val s = studentDAO.findEducation()
+    assertEquals(1, s.size)
+    assert(s.any { !it.isNullOrEmpty() })
+    s.forEach {
+      it?.forEach {
+        assert(it is EducationInfo)
+      }
+    }
+    println(s)
   }
 
   @Test
