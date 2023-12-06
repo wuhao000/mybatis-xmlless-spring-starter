@@ -5,6 +5,7 @@ import com.aegis.mybatis.dao.AppClusterDAO
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import org.junit.jupiter.api.Test
 import kotlin.reflect.full.declaredFunctions
+import kotlin.reflect.jvm.javaMethod
 
 
 /**
@@ -28,7 +29,7 @@ class AppClusterDAOResolverTest : BaseResolverTest(
     return mapperClass.kotlin.declaredFunctions
         .filter { it.name == name }
         .map {
-          QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
+          QueryResolver.resolve(it.javaMethod!!, tableInfo, modelClass, mapperClass, builderAssistant)
         }.first()
   }
 

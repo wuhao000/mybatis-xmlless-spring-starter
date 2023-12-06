@@ -1,21 +1,24 @@
 package com.aegis.mybatis.xmlless.model
 
-import com.aegis.mybatis.xmlless.annotations.*
+import com.aegis.kotlin.isNotNullAndNotBlank
+import com.aegis.mybatis.xmlless.annotations.Handler
+import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
+import com.aegis.mybatis.xmlless.annotations.MyBatisIgnore
 import com.aegis.mybatis.xmlless.config.TmpHandler
 import com.aegis.mybatis.xmlless.constant.PROPERTY_PREFIX
 import com.aegis.mybatis.xmlless.constant.PROPERTY_SUFFIX
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.HANDLER_PREFIX
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
+import com.baomidou.mybatisplus.annotation.TableLogic
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
+import jakarta.persistence.Transient
 import org.apache.ibatis.type.TypeHandler
 import org.springframework.core.annotation.AnnotationUtils
 import org.springframework.data.annotation.CreatedDate
 import java.lang.reflect.Field
 import java.lang.reflect.Type
 import java.util.*
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.Transient
 
 /**
  *
@@ -55,14 +58,52 @@ data class FieldMapping(
   /** 是否更新时忽略 */
   val updateIgnore: Boolean
 
+  /** 是否逻辑删除的标记字段 */
+  val isLogicDelFlag = field.isAnnotationPresent(TableLogic::class.java)
+
+  /** 逻辑删除的标记为已删除字段值 */
+  val logicDelValue: Any?
+
+  /** 逻辑删除的标记为未删除字段值 */
+  val logicNotDelValue: Any?
+
   init {
     val transient = field.getDeclaredAnnotation(Transient::class.java)
-    insertIgnore = transient != null || AnnotationUtils.findAnnotation(field, InsertIgnore::class.java) != null
-        || AnnotationUtils.findAnnotation(field, GeneratedValue::class.java) != null
-    updateIgnore = transient != null || AnnotationUtils.findAnnotation(field, UpdateIgnore::class.java) != null
+    insertIgnore = transient != null || AnnotationUtils.findAnnotation(field, MyBatisIgnore::class.java)?.insert == true
+    updateIgnore = transient != null || AnnotationUtils.findAnnotation(field, MyBatisIgnore::class.java)?.update == true
         || AnnotationUtils.findAnnotation(field, CreatedDate::class.java) != null
-    selectIgnore = transient != null || AnnotationUtils.findAnnotation(field, SelectIgnore::class.java) != null
+    selectIgnore = transient != null || AnnotationUtils.findAnnotation(field, MyBatisIgnore::class.java)?.select == true
     typeHandler = resolveTypeHandler(field)
+    logicDelValue = parseLogicFlagValue(if (isLogicDelFlag) {
+      val delValue = field.getAnnotation(TableLogic::class.java)?.delval
+      if (delValue.isNotNullAndNotBlank()) {
+        delValue
+      } else {
+        "1"
+      }
+    } else {
+      null
+    })
+    logicNotDelValue = parseLogicFlagValue(if (isLogicDelFlag) {
+      val notDelValue = field.getAnnotation(TableLogic::class.java)?.value
+      if (notDelValue.isNotNullAndNotBlank()) {
+        notDelValue
+      } else {
+        "0"
+      }
+    } else {
+      null
+    })
+  }
+
+  private fun parseLogicFlagValue(value: String?): Any? {
+    if (value == null) {
+      return null
+    }
+    if (type == String::class.java) {
+      return value
+    }
+    return value.toInt()
   }
 
   fun getInsertPropertyExpression(prefix: String? = null): String {

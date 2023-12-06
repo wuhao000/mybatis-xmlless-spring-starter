@@ -4,13 +4,10 @@ import com.aegis.mybatis.bean.Score
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.bean.User
 import com.aegis.mybatis.dao.UserDAO
-import com.aegis.mybatis.xmlless.annotations.UpdateIgnore
 import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import org.junit.jupiter.api.Test
-import org.springframework.core.annotation.AnnotationUtils
-import kotlin.reflect.full.declaredFunctions
 
 
 /**
@@ -21,12 +18,13 @@ import kotlin.reflect.full.declaredFunctions
  * @since 0.0.1
  */
 class UserDAOResolverTest : BaseResolverTest(
-    User::class.java, UserDAO::class.java, method
+    User::class.java, UserDAO::class.java, method, "save"
 ) {
 
   companion object {
     val method = "findAll"
   }
+
   @Test
   fun mappingResolve() {
     queries.forEach {
@@ -42,13 +40,6 @@ class UserDAOResolverTest : BaseResolverTest(
   }
 
   @Test
-  fun resolve2() {
-    Student::class.java.declaredFields.forEach {
-      println(AnnotationUtils.findAnnotation(it, UpdateIgnore::class.java))
-    }
-  }
-
-  @Test
   fun resolveColumns() {
     val mappings = MappingResolver.getMappingCache(Student::class.java)
     val cols = ColumnsResolver.resolve(mappings!!, Properties())
@@ -57,11 +48,18 @@ class UserDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveFindAll() {
+    println(queries.first { it.function.name == "findAll" })
   }
 
   @Test
   fun resolvePartlyUpdate() {
     val query = createQueryForMethod("update")
+    println(query)
+  }
+
+  @Test
+  fun resolveSave() {
+    val query = createQueryForMethod("save")
     println(query)
   }
 
@@ -95,11 +93,9 @@ class UserDAOResolverTest : BaseResolverTest(
   }
 
   private fun createQueryForMethod(name: String): Any {
-    return mapperClass.kotlin.declaredFunctions
-        .filter { it.name == name }
-        .map {
-          QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
-        }.first()
+    return mapperClass.methods.filter { it.name == name }.map {
+      QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
+    }.first()
   }
 
 }

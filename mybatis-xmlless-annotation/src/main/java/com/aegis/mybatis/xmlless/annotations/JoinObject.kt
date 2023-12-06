@@ -9,10 +9,8 @@ import jakarta.persistence.criteria.JoinType
 @Target(allowedTargets = [
   AnnotationTarget.FIELD
 ])
-@ModifyIgnore
+@MyBatisIgnore(insert = true, update = true)
 annotation class JoinObject(
-    /**  链接表需要查询的字段 */
-    val selectProperties: Array<String> = [],
     /**  连接的表名称 */
     val targetTable: String = "",
     val joinType: JoinType = JoinType.LEFT,

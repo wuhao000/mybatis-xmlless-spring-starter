@@ -1,6 +1,6 @@
 package com.aegis.mybatis.xmlless.model
 
-import kotlin.reflect.KFunction
+import java.lang.reflect.Method
 
 
 /**
@@ -16,7 +16,7 @@ data class ResolvedQuery(
     /**  sql查询返回的java类型 */
     val returnType: Class<*>?,
     /** 待解析的方法 */
-    val function: KFunction<*>,
+    val function: Method,
     var unresolvedReason: String? = null) {
 
   /**  sql语句 */

@@ -2,13 +2,13 @@ package com.aegis.mybatis.xmlless.methods
 
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
+import com.aegis.mybatis.xmlless.generator.GenIdUtil
 import com.aegis.mybatis.xmlless.model.QueryType
 import com.aegis.mybatis.xmlless.model.ResolvedQueries
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.baomidou.mybatisplus.annotation.IdType
 import com.baomidou.mybatisplus.core.injector.AbstractMethod
-import com.baomidou.mybatisplus.core.mapper.BaseMapper
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator
 import org.apache.ibatis.executor.keygen.NoKeyGenerator
@@ -16,9 +16,7 @@ import org.apache.ibatis.mapping.MappedStatement
 import org.apache.ibatis.mapping.SqlCommandType
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import kotlin.reflect.KFunction
-import kotlin.reflect.full.functions
-import kotlin.reflect.jvm.javaMethod
+import java.lang.reflect.Method
 
 
 /**
@@ -48,10 +46,9 @@ class XmlLessMethods : AbstractMethod("") {
     // 修正表信息，主要是针对一些JPA注解的支持以及本项目中自定义的一些注解的支持，
     MappingResolver.fixTableInfo(modelClass, tableInfo, builderAssistant)
     // 判断Mapper方法是否已经定义了sql声明，如果没有定义才进行注入，这样如果存在Mapper方法在xml文件中有定义则会优先使用，如果没有定义才会进行推断
-    val unmappedFunctions = mapperClass.kotlin
-        .functions.filter {
-          it.javaMethod?.declaringClass != Object::class.java
-        }
+    val unmappedFunctions = mapperClass.methods.filter {
+      it.declaringClass != Object::class.java
+    }
         .filter {
           !configuration.hasStatement("${mapperClass.name}$DOT${it.name}")
         }
@@ -80,7 +77,7 @@ class XmlLessMethods : AbstractMethod("") {
   private fun resolve(
       resolvedQuery: ResolvedQuery,
       modelClass: Class<*>,
-      function: KFunction<*>,
+      function: Method,
       mapperClass: Class<*>,
       tableInfo: TableInfo
   ) {
@@ -121,11 +118,14 @@ class XmlLessMethods : AbstractMethod("") {
 
         QueryType.Insert      -> {
           // 如果id类型为自增，则将自增的id回填到插入的对象中
-          val keyGenerator = when (tableInfo.idType) {
-            IdType.AUTO -> Jdbc3KeyGenerator.INSTANCE
-            else        -> NoKeyGenerator.INSTANCE
+          val generator = MappingResolver.resolveKeyGenerator(modelClass)
+          val keyGenerator = if (generator != null) {
+            GenIdUtil.getGenerator(generator)
+          } else if (tableInfo.idType == IdType.AUTO) {
+            Jdbc3KeyGenerator.INSTANCE
+          } else {
+            NoKeyGenerator.INSTANCE
           }
-
           addInsertMappedStatement(
               mapperClass, modelClass, function.name, sqlSource,
               keyGenerator, tableInfo.keyProperty, tableInfo.keyColumn

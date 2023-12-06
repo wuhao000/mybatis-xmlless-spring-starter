@@ -1,5 +1,7 @@
 package com.aegis.mybatis.xmlless.starter
 
+import com.aegis.mybatis.xmlless.generator.GenIdUtil
+import com.aegis.mybatis.xmlless.generator.SnowflakeKeyGenerator
 import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusProperties
@@ -64,6 +66,7 @@ class MyBatisXmlLessAutoConfiguration(
 
   init {
     copyProperties(properties, mybatisProperties)
+    GenIdUtil.registerGenerator("SNOWFLAKE", SnowflakeKeyGenerator())
   }
 
   @Bean

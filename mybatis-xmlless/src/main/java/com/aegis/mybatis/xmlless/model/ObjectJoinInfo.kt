@@ -2,17 +2,17 @@ package com.aegis.mybatis.xmlless.model
 
 import com.aegis.mybatis.xmlless.annotations.JoinObject
 import com.aegis.mybatis.xmlless.annotations.JoinProperty
-import com.aegis.mybatis.xmlless.annotations.SelectIgnore
+import com.aegis.mybatis.xmlless.annotations.MyBatisIgnore
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.model.component.JoinDeclaration
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
-import java.lang.reflect.Type
-import java.util.*
 import jakarta.persistence.Transient
 import jakarta.persistence.criteria.JoinType
+import java.lang.reflect.Type
+import java.util.*
 
 /**
  * Created by 吴昊 on 2018/12/17.
@@ -73,9 +73,11 @@ class ObjectJoinInfo(
     }
     val realType = this.realType()
     val mappings = MappingResolver.getMappingCache(realType)
-    return mappings?.selectJoins(level + 1,
+    return mappings?.selectJoins(
+        level + 1,
         selectProperties,
-        listOf(), this.joinTable) ?: listOf()
+        listOf(), this.joinTable
+    ) ?: listOf()
   }
 
   private fun hasJoinedProperty(): Boolean {
@@ -96,8 +98,9 @@ class ObjectJoinInfo(
             null, it, null, null
         )
       }
+
       else                 -> TableInfoHelper.getAllFields(realType()).filter {
-        !it.isAnnotationPresent(SelectIgnore::class.java)
+        it.getAnnotation(MyBatisIgnore::class.java)?.select != true
             && !it.isAnnotationPresent(Transient::class.java)
             && !it.isAnnotationPresent(JoinObject::class.java)
             && !it.isAnnotationPresent(JoinProperty::class.java)
@@ -120,6 +123,7 @@ class ObjectJoinInfo(
         } else {
           it
         }
+
         else             -> SelectColumn(
             it.table, it.column, fullPrefix + it.column, javaType
         )

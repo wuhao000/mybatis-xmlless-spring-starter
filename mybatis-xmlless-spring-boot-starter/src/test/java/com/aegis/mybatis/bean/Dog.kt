@@ -2,6 +2,7 @@ package com.aegis.mybatis.bean
 
 import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
 import com.baomidou.mybatisplus.annotation.TableLogic
+import com.fasterxml.jackson.annotation.JsonProperty
 import org.springframework.data.annotation.CreatedDate
 import java.util.*
 import jakarta.persistence.GeneratedValue

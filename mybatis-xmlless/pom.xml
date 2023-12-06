@@ -11,6 +11,20 @@
   <packaging>jar</packaging>
   <artifactId>mybatis-xmlless</artifactId>
 
+
+
+  <dependencies>
+    <dependency>
+      <groupId>com.aegis</groupId>
+      <artifactId>mybatis-xmlless-annotation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>tk.mybatis</groupId>
+      <artifactId>mapper-core</artifactId>
+      <version>${tk.mybatis.version}</version>
+    </dependency>
+  </dependencies>
+
   <build>
     <plugins>
       <plugin>
@@ -57,10 +71,4 @@
     </plugins>
   </build>
 
-  <dependencies>
-    <dependency>
-      <groupId>com.aegis</groupId>
-      <artifactId>mybatis-xmlless-annotation</artifactId>
-    </dependency>
-  </dependencies>
 </project>

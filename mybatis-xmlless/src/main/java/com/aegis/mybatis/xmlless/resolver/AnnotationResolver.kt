@@ -1,6 +1,6 @@
 package com.aegis.mybatis.xmlless.resolver
 
-import kotlin.reflect.KAnnotatedElement
+import java.lang.reflect.AnnotatedElement
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.jvm.javaField
@@ -10,10 +10,10 @@ import kotlin.reflect.jvm.javaField
  */
 object AnnotationResolver {
 
-  inline fun <reified T : Annotation> resolve(parameter: KAnnotatedElement): T? {
+  inline fun <reified T : Annotation> resolve(parameter: AnnotatedElement): T? {
     return when (parameter) {
       is KProperty<*> -> resolveFromProperty(parameter)
-      else          -> parameter.findAnnotation()
+      else          -> parameter.getAnnotation(T::class.java)
     }
   }
 

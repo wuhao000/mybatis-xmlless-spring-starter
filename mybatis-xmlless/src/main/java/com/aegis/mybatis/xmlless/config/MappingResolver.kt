@@ -1,10 +1,13 @@
 package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.xmlless.model.FieldMappings
+import com.baomidou.mybatisplus.annotation.TableId
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.Id
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import java.lang.reflect.Field
 
@@ -63,6 +66,21 @@ object MappingResolver {
 
   fun resolveFields(modelClass: Class<*>): List<Field> {
     return instance.resolveFields(modelClass)
+  }
+
+  fun resolveKeyGenerator(modelClass: Class<*>): String? {
+    val fields = resolveFields(modelClass)
+    val idField = fields.firstOrNull {
+      (it.isAnnotationPresent(Id::class.java) || it.isAnnotationPresent(TableId::class.java))
+          && it.isAnnotationPresent(GeneratedValue::class.java)
+    }
+    if (idField != null) {
+      val generator = idField.getAnnotation(GeneratedValue::class.java).generator
+      if (generator.isNotBlank()) {
+        return generator
+      }
+    }
+    return null
   }
 
 }

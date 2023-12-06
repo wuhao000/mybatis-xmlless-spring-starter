@@ -1,12 +1,15 @@
 package com.aegis.mybatis.xmlless.config
 
+import com.aegis.mybatis.bean.Dog
 import com.aegis.mybatis.bean.Score
 import com.aegis.mybatis.bean.Student
-import com.aegis.mybatis.dao.StudentDAO
+import com.aegis.mybatis.dao.DogDAO
+import com.aegis.mybatis.xmlless.annotations.MyBatisIgnore
 import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import org.junit.jupiter.api.Test
+import org.springframework.core.annotation.AnnotationUtils
 
 
 /**
@@ -16,13 +19,9 @@ import org.junit.jupiter.api.Test
  * @author 吴昊
  * @since 0.0.1
  */
-class StudentDAOResolverTest : BaseResolverTest(
-    Student::class.java, StudentDAO::class.java,
-//    "findByNameOrAge",
-    "findByAgeBetween",
-    "findByAgeBetweenMinAndMax",
-//    "findAllPageable",
-//    "findAllPage"
+class DogDAOResolverTest : BaseResolverTest(
+    Dog::class.java, DogDAO::class.java,
+    "findById"
 ) {
 
   @Test
@@ -33,6 +32,13 @@ class StudentDAOResolverTest : BaseResolverTest(
     }
     scoreMapping.mappings.forEach {
       println(it.property + "/" + it.column)
+    }
+  }
+
+  @Test
+  fun resolve2() {
+    Student::class.java.declaredFields.forEach {
+      println(AnnotationUtils.findAnnotation(it, MyBatisIgnore::class.java))
     }
   }
 
@@ -52,45 +58,9 @@ class StudentDAOResolverTest : BaseResolverTest(
   }
 
   @Test
-  fun resolveFindBySubjectId() {
-    val q = queries.find { it.function.name == "findBySubjectId" }
+  fun findById() {
+    val q = queries.find { it.function.name == "findById" }
     println(q)
-  }
-
-  @Test
-  fun resolveFindAllPage() {
-    val query = createQueryForMethod("findAllPageable")
-    println(query)
-  }
-
-  @Test
-  fun resolveParameter() {
-    val query = createQueryForMethod("findByNameOrAge")
-    println(query)
-  }
-
-  @Test
-  fun findByAgeBetween() {
-    val query = createQueryForMethod("findByAgeBetween")
-    println(query)
-  }
-
-  @Test
-  fun findByAgeBetweenMinAndMax() {
-    val query = createQueryForMethod("findByAgeBetweenMinAndMax")
-    println(query)
-  }
-
-  @Test
-  fun resolveFindByPhoneNumberLikeLeft() {
-    val query = createQueryForMethod("findByPhoneNumberLikeLeft")
-    println(query)
-  }
-
-  @Test
-  fun resolvePartlyUpdate() {
-    val query = createQueryForMethod("updatePartly")
-    println(query)
   }
 
   @Test

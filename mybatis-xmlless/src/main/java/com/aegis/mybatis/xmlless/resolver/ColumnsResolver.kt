@@ -5,6 +5,7 @@ import com.aegis.mybatis.xmlless.model.FieldMappings
 import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.model.SelectColumn
 import org.slf4j.LoggerFactory
+import java.lang.reflect.Method
 import java.util.*
 
 /**
@@ -17,12 +18,12 @@ object ColumnsResolver {
   /**
    * 构建查询的列
    */
-  fun resolve(mappings: FieldMappings, properties: Properties): List<SelectColumn> {
-    return resolveColumns(mappings, properties).sortedBy { it.toSql() }
+  fun resolve(mappings: FieldMappings, properties: Properties, method: Method? = null): List<SelectColumn> {
+    return resolveColumns(mappings, properties, method).sortedBy { it.toSql() }
   }
 
-  fun resolveIncludedTables(mappings: FieldMappings, properties: Properties): List<String> {
-    return resolveColumns(mappings, properties).mapNotNull {
+  fun resolveIncludedTables(mappings: FieldMappings, properties: Properties, method: Method): List<String> {
+    return resolveColumns(mappings, properties, method).mapNotNull {
       it.table
     }.map { it.getAliasOrName() }
   }
@@ -34,12 +35,12 @@ object ColumnsResolver {
     }
   }
 
-  private fun resolveColumns(mappings: FieldMappings, properties: Properties): List<SelectColumn> {
+  private fun resolveColumns(mappings: FieldMappings, properties: Properties, method: Method?): List<SelectColumn> {
     if (LOG.isDebugEnabled) {
       LOG.debug("Available properties for class ${mappings.modelClass}: ${mappings.mappings.map { it.property }}")
       LOG.debug("Fetch properties for class ${mappings.modelClass}: $properties")
     }
-    return mappings.selectFields(properties)
+    return mappings.selectFields(properties, method)
   }
 
 }

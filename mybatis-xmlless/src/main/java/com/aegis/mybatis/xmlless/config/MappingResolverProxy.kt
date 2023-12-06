@@ -12,13 +12,12 @@ import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
+import jakarta.persistence.*
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.apache.ibatis.session.Configuration
 import org.springframework.core.annotation.AnnotationUtils
-import org.springframework.data.annotation.CreatedDate
 import java.lang.reflect.Field
 import java.util.*
-import jakarta.persistence.*
 
 class MappingResolverProxy {
 
@@ -56,7 +55,14 @@ class MappingResolverProxy {
     }.forEach { field ->
       val column = field.getDeclaredAnnotation(Column::class.java)
       if (column.name.isNotBlank()) {
-        val tableField = tableInfo.fieldList.first { it.property == field.name }
+        val tableField = tableInfo.getFieldInfoMap(modelClass).values.find { it.property == field.name }
+          ?: error(
+              """can not find table field ${field.name} for table ${
+                tableInfo.tableName
+              }, optional fields are ${
+                tableInfo.fieldList.joinToString(",") { it.property }
+              }"""
+          )
         val columnField = TableFieldInfo::class.java.getDeclaredField("column")
         columnField.isAccessible = true
         columnField.set(tableField, column.name)
@@ -101,10 +107,7 @@ class MappingResolverProxy {
     }
     val mapping = FieldMappings(fields.map { field ->
       val fieldInfo = fieldInfoMap[field.name]!!
-      field.annotationIncompatible(Transient::class.java, SelectIgnore::class.java)
-      field.annotationIncompatible(Transient::class.java, UpdateIgnore::class.java)
-      field.annotationIncompatible(Transient::class.java, CreatedDate::class.java)
-      field.annotationIncompatible(Transient::class.java, InsertIgnore::class.java)
+      field.annotationIncompatible(Transient::class.java, MyBatisIgnore::class.java)
 
       val joinInfo = resolveJoin(field, builderAssistant.configuration)
       if (joinInfo is ObjectJoinInfo) {
@@ -181,39 +184,8 @@ class MappingResolverProxy {
             field.genericType
         )
       }
-      joinObject != null   -> joinObject.let {
-        val targetTableName = if (it.targetTable.isBlank()) {
-          val tableInfo: TableInfo? = TableInfoHelper.getTableInfo(field.type)
-          if (tableInfo == null) {
-            throw IllegalStateException("无法解析字段${field.name}关联的表")
-          } else {
-            TableName.resolve(tableInfo.tableName, joinObject.associationPrefix)
-          }
-        } else {
-          TableName.resolve(it.targetTable, joinObject.associationPrefix)
-        }
-        val targetColumn = if (it.targetColumn.isBlank()) {
-          val tableInfo: TableInfo? = TableInfoHelper.getTableInfo(field.type)
-          if (tableInfo == null) {
-            throw IllegalStateException("无法解析字段${field.name}关联的字段")
-          } else {
-            tableInfo.keyColumn
-          }
-        } else {
-          it.targetColumn
-        }
-        ObjectJoinInfo(
-            Properties(
-                joinObject.selectProperties.toList()
-            ),
-            targetTableName,
-            it.joinType,
-            it.joinProperty,
-            targetColumn,
-            joinObject.associationPrefix,
-            field.genericType
-        )
-      }
+
+      joinObject != null   -> resolveJoinFromJoinObject(joinObject, field)
       count != null        -> {
         val targetTableName = TableName.resolve(count.targetTable)
         PropertyJoinInfo(
@@ -226,8 +198,34 @@ class MappingResolverProxy {
             "${targetTableName.alias}.${count.countColumn}"
         )
       }
+
       else                 -> null
     }
+  }
+
+  private fun resolveJoinFromJoinObject(joinObject: JoinObject, field: Field): JoinInfo? {
+    val targetTableName = if (joinObject.targetTable.isBlank()) {
+      val tableInfo = TableInfoHelper.getTableInfo(field.type) ?: error("无法解析字段${field.name}关联的表")
+      TableName.resolve(tableInfo.tableName, joinObject.associationPrefix)
+    } else {
+      TableName.resolve(joinObject.targetTable, joinObject.associationPrefix)
+    }
+    val targetColumn = joinObject.targetColumn.ifBlank {
+      val tableInfo = TableInfoHelper.getTableInfo(field.type) ?: error("无法解析字段${field.name}关联的字段")
+      tableInfo.keyColumn
+    }
+    val selectedProperties = field.getAnnotation(SelectedProperties::class.java)
+    return ObjectJoinInfo(
+        Properties(
+            selectedProperties?.properties?.toList() ?: listOf()
+        ),
+        targetTableName,
+        joinObject.joinType,
+        joinObject.joinProperty,
+        targetColumn,
+        joinObject.associationPrefix,
+        field.genericType
+    )
   }
 
 }

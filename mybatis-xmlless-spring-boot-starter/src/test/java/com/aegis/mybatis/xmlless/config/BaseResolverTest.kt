@@ -8,8 +8,7 @@ import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
-import kotlin.reflect.KFunction
-import kotlin.reflect.full.functions
+import java.lang.reflect.Method
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 open class BaseResolverTest(
@@ -41,8 +40,8 @@ open class BaseResolverTest(
         }
   }
 
-  fun getFunctions(): List<KFunction<*>> {
-    return mapperClass.kotlin.functions.filter { it.name in methods }
+  fun getFunctions(): List<Method> {
+    return mapperClass.methods.filter { it.name in methods }
   }
 
   private fun createTableInfo(modelClass: Class<*>): TableInfo {

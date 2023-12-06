@@ -9,8 +9,11 @@ package com.aegis.mybatis.xmlless.annotations
  * @since 0.0.3
  * @param properties 需要获取的对象属性名称
  */
-@Target(allowedTargets = [
-  AnnotationTarget.FUNCTION,
-  AnnotationTarget.TYPE
-])
+@Target(
+    allowedTargets = [
+      AnnotationTarget.FUNCTION,
+      AnnotationTarget.TYPE,
+      AnnotationTarget.FIELD
+    ]
+)
 annotation class SelectedProperties(val properties: Array<String>)

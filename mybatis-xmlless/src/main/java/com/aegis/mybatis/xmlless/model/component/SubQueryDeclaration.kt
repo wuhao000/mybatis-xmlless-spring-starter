@@ -12,7 +12,7 @@ import com.aegis.mybatis.xmlless.model.TableName
  */
 class SubQueryDeclaration(
     private val tableName: TableName,
-    private val whereSqlResult: String,
+    private val where: WhereDeclaration,
     private val limit: String,
     val defaultFrom: FromDeclaration)
   : ISqlPart {
@@ -20,7 +20,7 @@ class SubQueryDeclaration(
   override fun toSql(): String {
     return String.format(
         SUB_QUERY, tableName.name,
-        whereSqlResult, limit, getFromSql()
+        where.toSql(), limit, getFromSql()
     )
   }
 

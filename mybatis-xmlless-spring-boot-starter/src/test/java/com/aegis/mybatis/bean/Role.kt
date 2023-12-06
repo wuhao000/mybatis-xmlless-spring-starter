@@ -2,6 +2,8 @@ package com.aegis.mybatis.bean
 
 import com.aegis.mybatis.xmlless.annotations.JoinObject
 import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
+import com.aegis.mybatis.xmlless.annotations.SelectedProperties
+import com.baomidou.mybatisplus.annotation.TableLogic
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
@@ -26,8 +28,10 @@ data class Role(
         targetTable = "t_dep",
         targetColumn = "id",
         joinProperty = "deps",
-        associationPrefix = "dep_",
-        selectProperties = ["id", "name"]
+        associationPrefix = "dep_"
     )
-    var depList: MutableList<Dep> = arrayListOf()
+    @SelectedProperties(["id", "name"])
+    var depList: MutableList<Dep> = arrayListOf(),
+    @TableLogic(value = "0", delval = "2")
+    var delFlag: String = "0"
 )

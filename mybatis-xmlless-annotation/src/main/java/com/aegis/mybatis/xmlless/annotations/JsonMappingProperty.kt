@@ -8,5 +8,5 @@ package com.aegis.mybatis.xmlless.annotations
  * @author 吴昊
  * @since 0.0.1-SNAPSHOT
  */
-@Target(allowedTargets = [AnnotationTarget.FIELD, AnnotationTarget.CLASS])
+@Target(allowedTargets = [AnnotationTarget.FIELD, AnnotationTarget.CLASS, AnnotationTarget.PROPERTY])
 annotation class JsonMappingProperty

@@ -1,7 +1,6 @@
 package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.bean.Dog
-import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.DogDAO
 import com.aegis.mybatis.dao.StudentDetailDAO
 import com.aegis.mybatis.xmlless.config.BaseResolverTest
@@ -9,7 +8,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import kotlin.reflect.full.functions
 import kotlin.reflect.jvm.javaMethod
-import kotlin.test.assertEquals
 
 /**
  * TODO

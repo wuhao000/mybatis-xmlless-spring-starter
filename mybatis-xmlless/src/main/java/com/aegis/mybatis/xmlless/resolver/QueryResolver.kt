@@ -28,11 +28,8 @@ import org.springframework.data.domain.Sort
 import java.lang.reflect.Method
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
-import kotlin.reflect.KFunction
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.isSuperclassOf
-import kotlin.reflect.full.valueParameters
-import kotlin.reflect.jvm.javaMethod
 import kotlin.reflect.jvm.jvmErasure
 
 /**
@@ -50,16 +47,16 @@ object QueryResolver {
     return QUERY_CACHE[key]
   }
 
-  fun getQueryCache(function: KFunction<*>, mapperClass: Class<*>): ResolvedQuery? {
+  fun getQueryCache(function: Method, mapperClass: Class<*>): ResolvedQuery? {
     return QUERY_CACHE[mapperClass.name + DOT + function.name]
   }
 
-  fun putQueryCache(function: KFunction<*>, mapperClass: Class<*>, query: ResolvedQuery) {
+  fun putQueryCache(function: Method, mapperClass: Class<*>, query: ResolvedQuery) {
     QUERY_CACHE[mapperClass.name + DOT + function.name] = query
   }
 
   fun resolve(
-      function: KFunction<*>, tableInfo: TableInfo,
+      function: Method, tableInfo: TableInfo,
       modelClass: Class<*>, mapperClass: Class<*>,
       builderAssistant: MapperBuilderAssistant
   ): ResolvedQuery {
@@ -69,7 +66,7 @@ object QueryResolver {
     try {
       val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
       val paramNames = ParameterResolver.resolveNames(function)
-      val resolvedNameAnnotation = function.findAnnotation<ResolvedName>()
+      val resolvedNameAnnotation = function.getAnnotation(ResolvedName::class.java)
       val resolvedName = getResolvedName(function)
       val resolveSortsResult = resolveSorts(resolvedName)
       val resolveTypeResult = resolveType(resolveSortsResult.remainName, function)
@@ -91,14 +88,14 @@ object QueryResolver {
           null,
           resolvedNameAnnotation
       )
-      function.valueParameters.forEachIndexed { index, param ->
-        if (Pageable::class.isSuperclassOf(param.type.jvmErasure)) {
+      function.parameters.forEachIndexed { index, param ->
+        if (Pageable::class.java.isAssignableFrom(param.type)) {
           val paramName = paramNames[index]
           query.limitation = Limitation("$paramName.offset", "$paramName.pageSize")
           query.extraSortScript = String.format(PAGEABLE_SORT, paramName, paramName)
         }
       }
-      val returnType = resolveReturnType(function.javaMethod!!, mapperClass)
+      val returnType = resolveReturnType(function, mapperClass)
       val resolvedQuery = ResolvedQuery(
           query,
           resolveResultMap(
@@ -116,17 +113,16 @@ object QueryResolver {
 
   fun resolveJavaType(function: Method, clazz: Class<*>, forceSingleValue: Boolean = false): JavaType? {
     return if (!forceSingleValue && Collection::class.java.isAssignableFrom(function.returnType)) {
-      val type = ResolvableType.forMethodReturnType(function, clazz).generics[0].resolve()
-      toJavaType(type!!)
+      toJavaType(ResolvableType.forMethodReturnType(function, clazz).generics[0].type)
     } else {
-      toJavaType(ResolvableType.forMethodReturnType(function, clazz).resolve()!!)
+      toJavaType(ResolvableType.forMethodReturnType(function, clazz).type)
     }
   }
 
   /**
    * 解析要查询或者更新的字段
    */
-  fun resolveProperties(remainWords: List<String>, function: KFunction<*>): ResolvePropertiesResult {
+  fun resolveProperties(remainWords: List<String>, function: Method): ResolvePropertiesResult {
     val byIndex = remainWords.indexOf("By")
     var properties: List<String> = if (byIndex == 0 || function.name == "selectOne") {
       listOf()
@@ -148,21 +144,21 @@ object QueryResolver {
     var excludeProperties = listOf<String>()
     var updateExcludeProperties = listOf<String>()
     // 如果方法指定了要查询或者更新的属性，从方法名称解析的字段无效
-    if (function.findAnnotation<SelectedProperties>() != null) {
-      properties = function.findAnnotation<SelectedProperties>()!!.properties.toList()
+    if (function.getAnnotation(SelectedProperties::class.java) != null) {
+      properties = function.getAnnotation(SelectedProperties::class.java)!!.properties.toList()
     }
-    if (function.findAnnotation<ExcludeProperties>() != null) {
-      excludeProperties = function.findAnnotation<ExcludeProperties>()!!.properties.toList()
-      updateExcludeProperties = function.findAnnotation<ExcludeProperties>()!!.update.toList()
+    if (function.getAnnotation(ExcludeProperties::class.java) != null) {
+      excludeProperties = function.getAnnotation(ExcludeProperties::class.java)!!.properties.toList()
+      updateExcludeProperties = function.getAnnotation(ExcludeProperties::class.java)!!.update.toList()
     }
     return ResolvePropertiesResult(properties, conditionWords, excludeProperties, updateExcludeProperties)
   }
 
   fun resolveResultMap(
-      function: KFunction<*>, query: Query,
+      function: Method, query: Query,
       mapperClass: Class<*>, returnType: Class<*>, builderAssistant: MapperBuilderAssistant
   ): String? {
-    val resultMap = function.findAnnotation<ResultMap>()?.value?.firstOrNull()
+    val resultMap = function.getAnnotation(ResultMap::class.java)?.value?.firstOrNull()
     if (resultMap == null && query.type == QueryType.Select) {
       // 如果没有指定resultMap，则自动生成resultMap
       return ResultMapResolver.resolveResultMap(
@@ -227,7 +223,7 @@ object QueryResolver {
     return ResolveSortsResult(sorts, remainName)
   }
 
-  fun resolveType(name: String, function: KFunction<*>): ResolveTypeResult {
+  fun resolveType(name: String, function: Method): ResolveTypeResult {
     val wordsWithoutSort = name.toWords()
     val typeWord = wordsWithoutSort[0]
     val type: QueryType = when (typeWord) {
@@ -236,7 +232,7 @@ object QueryResolver {
       "Count"                                        -> QueryType.Count
       "Update"                                       -> QueryType.Update
       in listOf("Delete", "Remove")                  -> {
-        if (function.findAnnotation<Logic>() != null) {
+        if (function.getAnnotation(Logic::class.java) != null) {
           QueryType.LogicDelete
         } else {
           QueryType.Delete
@@ -258,8 +254,8 @@ object QueryResolver {
     return typeFactory.constructType(type)
   }
 
-  private fun getResolvedName(function: KFunction<*>): String {
-    val resolvedNameAnnotation = function.findAnnotation<ResolvedName>()
+  private fun getResolvedName(function: Method): String {
+    val resolvedNameAnnotation = function.getAnnotation(ResolvedName::class.java)
     return when {
       resolvedNameAnnotation != null -> {
         var finalName = ""

@@ -2,7 +2,7 @@ package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.bean.Score
 import com.aegis.mybatis.bean.Student
-import com.aegis.mybatis.dao.StudentDAO
+import com.aegis.mybatis.dao.StudentDAO2
 import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
@@ -16,13 +16,8 @@ import org.junit.jupiter.api.Test
  * @author 吴昊
  * @since 0.0.1
  */
-class StudentDAOResolverTest : BaseResolverTest(
-    Student::class.java, StudentDAO::class.java,
-//    "findByNameOrAge",
-    "findByAgeBetween",
-    "findByAgeBetweenMinAndMax",
-//    "findAllPageable",
-//    "findAllPage"
+class StudentJavaDAOResolverTest : BaseResolverTest(
+    Student::class.java, StudentDAO2::class.java, "findAllPage"
 ) {
 
   @Test
@@ -59,37 +54,7 @@ class StudentDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveFindAllPage() {
-    val query = createQueryForMethod("findAllPageable")
-    println(query)
-  }
-
-  @Test
-  fun resolveParameter() {
-    val query = createQueryForMethod("findByNameOrAge")
-    println(query)
-  }
-
-  @Test
-  fun findByAgeBetween() {
-    val query = createQueryForMethod("findByAgeBetween")
-    println(query)
-  }
-
-  @Test
-  fun findByAgeBetweenMinAndMax() {
-    val query = createQueryForMethod("findByAgeBetweenMinAndMax")
-    println(query)
-  }
-
-  @Test
-  fun resolveFindByPhoneNumberLikeLeft() {
-    val query = createQueryForMethod("findByPhoneNumberLikeLeft")
-    println(query)
-  }
-
-  @Test
-  fun resolvePartlyUpdate() {
-    val query = createQueryForMethod("updatePartly")
+    val query = createQueryForMethod("findAllPage")
     println(query)
   }
 
@@ -121,12 +86,11 @@ class StudentDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveSpecValue() {
-    mapperClass.methods
-        .first { it.name == "findByGraduatedEqTrue" }.also {
-          val query = QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
-          println(query.toString())
-          assert(query.toString().contains("graduated = TRUE"))
-        }
+    mapperClass.methods.first { it.name == "findByGraduatedEqTrue" }.also {
+      val query = QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
+      println(query.toString())
+      assert(query.toString().contains("graduated = TRUE"))
+    }
   }
 
   @Test
@@ -144,11 +108,9 @@ class StudentDAOResolverTest : BaseResolverTest(
   }
 
   private fun createQueryForMethod(name: String): Any {
-    return mapperClass.methods
-        .filter { it.name == name }
-        .map {
-          QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
-        }.first()
+    return mapperClass.methods.filter { it.name == name }.map {
+      QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
+    }.first()
   }
 
 }

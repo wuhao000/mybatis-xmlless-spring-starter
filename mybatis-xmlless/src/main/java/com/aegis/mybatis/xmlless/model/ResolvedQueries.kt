@@ -3,7 +3,7 @@ package com.aegis.mybatis.xmlless.model
 import com.aegis.mybatis.xmlless.config.paginition.XmlLessException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import kotlin.reflect.KFunction
+import java.lang.reflect.Method
 import kotlin.reflect.jvm.javaMethod
 
 
@@ -13,7 +13,7 @@ import kotlin.reflect.jvm.javaMethod
  * @since 0.0.1
  */
 class ResolvedQueries(private val mapperClass: Class<*>,
-                      private val unmappedMethods: List<KFunction<*>> = listOf()) {
+                      private val unmappedMethods: List<Method> = listOf()) {
 
   private val queries = mutableListOf<ResolvedQuery>()
 
@@ -56,7 +56,7 @@ class ResolvedQueries(private val mapperClass: Class<*>,
     if (unResolved.isNotEmpty()) {
       sb.append("以下方法未能成功解析:")
       unResolved.sortedBy { it.function.name }.forEach {
-        sb.append("\n\t\t- ${it.function.javaMethod!!.declaringClass.name}." + it.function.name)
+        sb.append("\n\t\t- ${it.function.declaringClass.name}." + it.function.name + ", 原因: " + it.unresolvedReason)
       }
       throw XmlLessException(sb.toString())
     }

@@ -11,8 +11,7 @@ import org.apache.ibatis.mapping.ResultFlag
 import org.apache.ibatis.mapping.ResultMapping
 import org.apache.ibatis.type.JdbcType
 import org.apache.ibatis.type.StringTypeHandler
-import kotlin.reflect.KFunction
-import kotlin.reflect.full.findAnnotation
+import java.lang.reflect.Method
 
 /**
  *
@@ -26,9 +25,9 @@ object ResultMapResolver {
   fun isJsonType(
       modelClass: Class<*>,
       query: Query?,
-      function: KFunction<*>?
+      function: Method?
   ): Boolean {
-    if (function != null && function.findAnnotation<JsonResult>() != null) {
+    if (function != null && function.isAnnotationPresent(JsonResult::class.java)) {
       return true
     }
     return (modelClass.isAnnotationPresent(JsonMappingProperty::class.java)
@@ -41,7 +40,7 @@ object ResultMapResolver {
       modelClass: Class<*>,
       query: Query? = null,
       optionalProperties: Properties = Properties(),
-      function: KFunction<*>? = null
+      function: Method? = null
   ): String? {
     if (modelClass.name.startsWith("java.lang") || modelClass.isEnum) {
       return null
@@ -174,7 +173,7 @@ object ResultMapResolver {
       builderAssistant: MapperBuilderAssistant,
       modelClass: Class<*>,
       copyId: String,
-      function: KFunction<*>?
+      function: Method?
   ): List<ResultMapping> {
     if (isJsonType(modelClass, query, function)) {
       val column = query!!.mappings.mappings

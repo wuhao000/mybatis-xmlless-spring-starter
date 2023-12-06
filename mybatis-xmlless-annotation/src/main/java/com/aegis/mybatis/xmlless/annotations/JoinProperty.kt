@@ -14,7 +14,7 @@ import jakarta.persistence.criteria.JoinType
   AnnotationTarget.FIELD,
   AnnotationTarget.ANNOTATION_CLASS
 ])
-@ModifyIgnore
+@MyBatisIgnore(insert = true, update = true)
 annotation class JoinProperty(
     val selectColumn: String,
     val targetTable: String,

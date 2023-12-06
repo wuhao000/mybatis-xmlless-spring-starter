@@ -4,6 +4,7 @@ import com.aegis.mybatis.xmlless.annotations.JoinProperty
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
 
 /**
  * 应用集群

@@ -1,7 +1,6 @@
 package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.xmlless.annotations.Criteria
-import com.aegis.mybatis.xmlless.annotations.DeleteValue
 import com.aegis.mybatis.xmlless.annotations.Logic
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.enums.Operations
@@ -11,14 +10,9 @@ import com.aegis.mybatis.xmlless.model.*
 import com.baomidou.mybatisplus.annotation.TableLogic
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import org.apache.ibatis.annotations.Param
-import kotlin.reflect.KFunction
-import kotlin.reflect.KParameter
-import kotlin.reflect.KProperty1
-import kotlin.reflect.full.declaredMemberProperties
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.hasAnnotation
-import kotlin.reflect.full.valueParameters
-import kotlin.reflect.jvm.javaField
+import java.lang.reflect.Field
+import java.lang.reflect.Method
+import java.lang.reflect.Parameter
 
 /**
  *
@@ -31,7 +25,7 @@ object CriteriaResolver {
 
   fun resolveConditions(
       allConditionWords: List<String>,
-      function: KFunction<*>,
+      function: Method,
       mappings: FieldMappings,
       queryType: QueryType
   ): List<QueryCriteria> {
@@ -52,14 +46,14 @@ object CriteriaResolver {
     }
     val parameterConditions = arrayListOf<QueryCriteria>()
     val paramNames = ParameterResolver.resolveNames(function)
-    function.valueParameters.forEachIndexed { index, parameter ->
-      val criteria = parameter.findAnnotation<Criteria>()
+    function.parameters.forEachIndexed { index, parameter ->
+      val criteria = parameter.getAnnotation(Criteria::class.java)
       if (criteria != null) {
         parameterConditions.add(resolveCriteria(criteria, parameter, paramNames[index], function, mappings))
-      } else if (ParameterResolver.isComplexParameter(parameter)) {
-        TypeResolver.resolveRealType(parameter.type).declaredMemberProperties.forEach { property ->
-          val propertyCriteria = property.javaField?.getDeclaredAnnotation(Criteria::class.java)
-            ?: property.findAnnotation()
+      } else if (ParameterResolver.isComplexParameter(parameter.type)) {
+        TypeResolver.resolveRealType(parameter.type).declaredFields.forEach { property ->
+          val propertyCriteria = property.getDeclaredAnnotation(Criteria::class.java)
+            ?: property.getAnnotation(Criteria::class.java)
           if (propertyCriteria != null) {
             parameterConditions.add(
                 resolveCriteriaFromProperty(propertyCriteria, property, paramNames[index], function, mappings)
@@ -68,8 +62,8 @@ object CriteriaResolver {
         }
       }
     }
-    if (function.hasAnnotation<Logic>() && queryType == QueryType.Select) {
-      val logic = function.findAnnotation<Logic>()!!
+    if (function.isAnnotationPresent(Logic::class.java) && queryType == QueryType.Select) {
+      val logic = function.getAnnotation(Logic::class.java)!!
       val mapper = mappings.mappings.find { it.field.isAnnotationPresent(TableLogic::class.java) }
         ?: throw IllegalStateException("缺少逻辑删除字段，请在字段上添加@TableLogic注解")
       parameterConditions.add(
@@ -77,10 +71,7 @@ object CriteriaResolver {
               mapper.property, Operations.Eq,
               specificValue = SpecificValue(
                   stringValue = "",
-                  nonStringValue = when (logic.flag) {
-                    DeleteValue.Deleted    -> 1
-                    DeleteValue.NotDeleted -> 0
-                  }.toString()
+                  nonStringValue = mappings.getLogicDelFlagValue(logic).toString()
               ),
               mappings = mappings,
               parameters = listOf()
@@ -91,8 +82,8 @@ object CriteriaResolver {
   }
 
   private fun resolveCriteria(
-      criteria: Criteria, parameter: KParameter, paramName: String,
-      function: KFunction<*>, mappings: FieldMappings
+      criteria: Criteria, parameter: Parameter, paramName: String,
+      function: Method, mappings: FieldMappings
   ): QueryCriteria {
     val property = when {
       criteria.property.isNotBlank() -> criteria.property
@@ -101,7 +92,7 @@ object CriteriaResolver {
     return QueryCriteria(
         property, criteria.operator, Append.AND,
         listOf(Pair(paramName, parameter)),
-        function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
+        function.getAnnotation(ResolvedName::class.java)?.values?.firstOrNull {
           it.param == paramName
         }?.let {
           SpecificValue(it.stringValue, it.nonStringValue)
@@ -112,7 +103,7 @@ object CriteriaResolver {
 
   private fun resolveCriteria(
       singleConditionWords: List<String>,
-      function: KFunction<*>,
+      function: Method,
       mappings: FieldMappings,
       parameterOffsetHolder: ValueHolder<Int>
   ): QueryCriteria {
@@ -138,7 +129,7 @@ object CriteriaResolver {
     }.toMutableList()
     if (props.size == 1 && (op?.parameterCount ?: 0) > 0) {
       (1..(op?.parameterCount?:0)).forEach {
-        val parameterName = resolveParameterName(function.parameters[parameterOffsetHolder.value + 1])
+        val parameterName = resolveParameterName(function.parameters[parameterOffsetHolder.value])
         props.add(listOf(parameterName))
         parameterOffsetHolder.value++
       }
@@ -178,7 +169,7 @@ object CriteriaResolver {
       }
       // 如果条件参数是方法参数中的属性，则需要加上方法参数名称前缀
       val finalParamName = when {
-        parameterData?.property != null && parameterData.parameter.hasAnnotation<Param>()
+        parameterData?.property != null && parameterData.parameter.isAnnotationPresent(Param::class.java)
              -> parameterData.paramName + DOT + paramName
 
         else -> paramName
@@ -189,7 +180,7 @@ object CriteriaResolver {
     return QueryCriteria(
         property, op ?: Operations.EqDefault, Append.OR,
         parameters,
-        function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
+        function.getAnnotation(ResolvedName::class.java)?.values?.firstOrNull {
           it.param == property
         }?.let {
           SpecificValue(it.stringValue, it.nonStringValue)
@@ -198,17 +189,17 @@ object CriteriaResolver {
     )
   }
 
-  private fun resolveParameterName(kParameter: KParameter): String {
-    return if (kParameter.hasAnnotation<Param>()) {
-      kParameter.findAnnotation<Param>()!!.value
+  private fun resolveParameterName(kParameter: Parameter): String {
+    return if (kParameter.isAnnotationPresent(Param::class.java)) {
+      kParameter.getAnnotation(Param::class.java)!!.value
     } else {
       kParameter.name!!
     }
   }
 
   private fun resolveCriteriaFromProperty(
-      criteria: Criteria, property: KProperty1<out Any, Any?>,
-      paramName: String, function: KFunction<*>, mappings: FieldMappings
+      criteria: Criteria, property: Field,
+      paramName: String, function: Method, mappings: FieldMappings
   ): QueryCriteria {
     val propertyName = when {
       criteria.property.isNotBlank() -> criteria.property
@@ -217,7 +208,7 @@ object CriteriaResolver {
     return QueryCriteria(
         propertyName, criteria.operator, Append.AND,
         listOf(Pair(paramName + "." + property.name, property)),
-        function.findAnnotation<ResolvedName>()?.values?.firstOrNull {
+        function.getAnnotation(ResolvedName::class.java)?.values?.firstOrNull {
           it.param == paramName
         }?.let {
           SpecificValue(it.stringValue, it.nonStringValue)

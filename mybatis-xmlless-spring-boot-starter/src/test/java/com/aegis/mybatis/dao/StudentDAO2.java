@@ -22,6 +22,8 @@ import org.springframework.data.domain.Pageable;
  * Created by 吴昊 on 2018-12-12.
  *
  * @author 吴昊
+ * @version 0.0.4
+ * @date 2023-08-12
  * @since 0.0.4
  */
 @Mapper
@@ -30,7 +32,6 @@ public interface StudentDAO2 extends XmlLessMapper<Student> {
   int count();
 
   void deleteById(@Param("id") String id);
-
 
   @ResolvedName(name = "deleteByIdInIds")
   void deleteByIds(@Param("ids") List<String> ids);
@@ -44,34 +45,21 @@ public interface StudentDAO2 extends XmlLessMapper<Student> {
   List<Student> findAll();
 
   @ResolvedName(name = "findAllByNameEqAndSubjectIdEq")
-  Page<Student> findAllPage(
-      @TestExpression({TestType.NotNull, TestType.NotEmpty}) String name,
-      Integer subjectId,
-      @Param("pageable") Pageable page
-  );
+  Page<Student> findAllPage(@TestExpression({TestType.NotNull, TestType.NotEmpty}) String name, Integer subjectId, @Param("pageable") Pageable page);
 
   @ResolvedName(name = "findAll")
   Page<Student> findAllPageable(@Param("pageable") Pageable pageable);
 
-  List<Student> findByAgeBetweenMinAndMaxOrderByBirthday(@Param("min")
-                                                         @TestExpression(TestType.NotNull)
-                                                         int min,
-                                                         @Param("max")
-                                                         @TestExpression(TestType.NotNull)
-                                                         int max);
+  List<Student> findByAgeBetweenMinAndMaxOrderByBirthday(@Param("min") @TestExpression(TestType.NotNull) int min, @Param("max") @TestExpression(TestType.NotNull) int max);
 
-  List<Student> findByCreateTimeBetweenStartTimeAndEndTime(
-      @Param("startTime") LocalDateTime startTime,
-      @Param("endTime") LocalDateTime endTime
-  );
+  List<Student> findByCreateTimeBetweenStartTimeAndEndTime(@Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
 
   @ResolvedName(name = "findByAge", partNames = "name")
   List<Student> findByAge(@Param("age") int age, @Param("name") String name);
 
   List<Student> findByAgeGte(@Param("age") int age);
 
-  @SelectedProperties(properties = {"id", "name", "createTime", "birthday"})
-  List<Student> findByBirthday(LocalDate date);
+  @SelectedProperties(properties = {"id", "name", "createTime", "birthday"}) List<Student> findByBirthday(LocalDate date);
 
   List<Student> findByGraduatedEqTrue();
 
@@ -95,8 +83,7 @@ public interface StudentDAO2 extends XmlLessMapper<Student> {
 
   void saveOrUpdate(Student student);
 
-  @ExcludeProperties(update = {"name"})
-  void saveOrUpdateAll(List<Student> list);
+  @ExcludeProperties(update = {"name"}) void saveOrUpdateAll(List<Student> list);
 
   int update(Student student);
 
@@ -111,4 +98,5 @@ public interface StudentDAO2 extends XmlLessMapper<Student> {
   List<Student> findByAgeBetween(Integer min, Integer max);
 
   List<Student> findByAgeBetweenMinAndMax(Integer min, Integer max);
+
 }

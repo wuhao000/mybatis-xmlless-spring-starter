@@ -89,10 +89,10 @@ class Student() {
       targetTable = "t_score",
       targetColumn = "student_id",
       joinProperty = "id",
-      associationPrefix = "score_",
-      selectProperties = ["score", "subjectId", "subject"]
+      associationPrefix = "score_"
   )
-  @ModifyIgnore
+  @SelectedProperties(["score", "subjectId", "subject"])
+  @MyBatisIgnore(insert = true, update = true)
   var scores: MutableList<Score>? = null
   var state: StudentState = StudentState.normal
 

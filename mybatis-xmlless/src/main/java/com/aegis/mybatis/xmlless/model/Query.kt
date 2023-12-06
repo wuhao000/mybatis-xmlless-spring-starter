@@ -1,10 +1,8 @@
 package com.aegis.mybatis.xmlless.model
 
-import com.aegis.mybatis.xmlless.annotations.DeleteValue
 import com.aegis.mybatis.xmlless.annotations.Logic
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.constant.*
-import com.aegis.mybatis.xmlless.constant.Strings.EMPTY
 import com.aegis.mybatis.xmlless.constant.Strings.LINE_BREAK
 import com.aegis.mybatis.xmlless.constant.Strings.SCRIPT_END
 import com.aegis.mybatis.xmlless.constant.Strings.SCRIPT_START
@@ -13,6 +11,7 @@ import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.model.component.FromDeclaration
 import com.aegis.mybatis.xmlless.model.component.ISqlPart
 import com.aegis.mybatis.xmlless.model.component.SubQueryDeclaration
+import com.aegis.mybatis.xmlless.model.component.WhereDeclaration
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.baomidou.mybatisplus.annotation.FieldFill
 import com.baomidou.mybatisplus.annotation.FieldStrategy
@@ -21,8 +20,7 @@ import com.baomidou.mybatisplus.core.toolkit.StringPool
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils.convertTrim
 import org.springframework.data.domain.Sort
-import kotlin.reflect.KFunction
-import kotlin.reflect.full.findAnnotation
+import java.lang.reflect.Method
 
 /**
  * 当结尾以指定字符串结束时，返回去掉结尾指定字符串的新字符串，否则返回当前字符串
@@ -51,7 +49,7 @@ data class Query(
     /**  排序信息 */
     val sorts: List<Sort.Order> = listOf(),
     /** 待解析的方法 */
-    val function: KFunction<*>,
+    val method: Method,
     /**  数据对象的与数据库的映射管理 */
     val mappings: FieldMappings,
     /**  limit信息 */
@@ -65,8 +63,8 @@ data class Query(
   fun buildCountSql(): String {
     // 必须先解析查询条件才能确定条件中用于判断的字段来自哪张表
     val where = resolveWhere()
-    val from = resolveFrom(false, resolveWhere(), "", true)
-    return String.format(SELECT_COUNT, from.toSql(), where)
+    val from = resolveFrom(false, where, "", true)
+    return String.format(SELECT_COUNT, from.toSql(), where.toSql())
   }
 
   fun buildUpdateSql(): String {
@@ -79,7 +77,7 @@ data class Query(
   fun containedTables(): List<String> {
     return (this.criterion.map {
       it.toSqlWithoutTest(mappings).split(".")[0]
-    } + ColumnsResolver.resolveIncludedTables(mappings, properties)).distinct()
+    } + ColumnsResolver.resolveIncludedTables(mappings, properties, method)).distinct()
   }
 
   fun convertIf(sqlScript: String, property: String, mapping: FieldMapping): String {
@@ -244,7 +242,7 @@ data class Query(
       """, mappings.tableInfo.keyColumn, mappings.tableInfo.keyProperty
       )
 
-      else                -> resolveWhere()
+      else                -> resolveWhere().toSql()
     }
   }
 
@@ -261,7 +259,7 @@ data class Query(
   }
 
   private fun buildDeleteSql(): String {
-    return String.format(DELETE, tableName().name, resolveWhere())
+    return String.format(DELETE, tableName().name, resolveWhere().toSql())
   }
 
   private fun buildExistsSql(): String {
@@ -272,35 +270,38 @@ data class Query(
     val columns = mappings.insertFields(this.properties)
     val template: String
     val values = when {
-      function.name.endsWith("All")   -> {
-        template = when {
-          function.name.endsWith("OrUpdateAll") -> BATCH_INSERT_OR_UPDATE
-          else                                  -> BATCH_INSERT
+      method.name.endsWith("All")           -> {
+        template = if (method.name.endsWith("OrUpdateAll")) {
+          BATCH_INSERT_OR_UPDATE
+        } else {
+          BATCH_INSERT
         }
         mappings.insertProperties("item.", this.properties)
       }
 
-      this.properties.isNotEmpty()    -> {
-        template = when {
-          function.name.endsWith("OrUpdate") -> INSERT_OR_UPDATE
-          else                               -> INSERT
+      this.properties.isNotEmpty()          -> {
+        template = if (method.name.endsWith("OrUpdate")) {
+          INSERT_OR_UPDATE
+        } else {
+          INSERT
         }
         mappings.insertProperties(insertProperties = this.properties)
       }
 
       this.properties.isIncludeEmpty()
           && this.criterion.isEmpty() -> {
-        template = when {
-          function.name.endsWith("OrUpdate") -> INSERT_OR_UPDATE
-          else                               -> INSERT
+        template = if (method.name.endsWith("OrUpdate")) {
+          INSERT_OR_UPDATE
+        } else {
+          INSERT
         }
         mappings.insertProperties()
       }
 
-      else                            -> throw BuildSQLException("无法解析${this.function}")
+      else                                  -> throw BuildSQLException("无法解析${this.method}")
     }
     if (columns.size != values.size) {
-      throw BuildSQLException("解析方法[${function}]失败，插入的字段\n$columns\n与插入的值\n$values\n数量不一致")
+      throw BuildSQLException("解析方法[${method}]失败，插入的字段\n$columns\n与插入的值\n$values\n数量不一致")
     }
     return String.format(
         template, mappings.tableInfo.tableName,
@@ -313,12 +314,9 @@ data class Query(
   private fun buildLogicDeleteSql(): String {
     val mapper = this.mappings.mappings.find { it.field.isAnnotationPresent(TableLogic::class.java) }
       ?: throw IllegalStateException("缺少逻辑删除字段，请在字段上添加@TableLogic注解")
-    val logic = function.findAnnotation<Logic>()!!
-    val value = when (logic.flag) {
-      DeleteValue.Deleted -> 1
-      else                -> 0
-    }
-    return "<script>UPDATE ${tableName().name} SET ${mapper.column} = $value " + resolveWhere() + "</script>"
+    val logic = method.getAnnotation(Logic::class.java)!!
+    val value = this.mappings.getLogicDelFlagValue(logic)
+    return "<script>UPDATE ${tableName().name} SET ${mapper.column} = $value " + resolveWhere().toSql() + "</script>"
   }
 
   private fun buildScript(template: String, vararg args: String): String {
@@ -335,11 +333,11 @@ data class Query(
   private fun buildSelectSql(): String {
     // 构建select的列
     val groupBy = resolveGroupBy(mappings)
-    val whereSqlResult = resolveWhere()
+    val where = resolveWhere()
     val order = resolveOrder()
     val limit = resolveLimit()
-    val limitInSubQuery = limitInSubQuery()
-    val from = resolveFrom(limitInSubQuery, whereSqlResult, limit)
+    val limitInSubQuery = limitInSubQuery() && where.whereAppend.isNullOrBlank() && where.criterion.isEmpty()
+    val from = resolveFrom(limitInSubQuery, where, limit)
     val tables = when (from) {
       is SubQueryDeclaration -> from.defaultFrom.getTables()
 
@@ -349,7 +347,7 @@ data class Query(
 
       else                   -> listOf()
     }
-    val buildColsResult = ColumnsResolver.resolve(mappings, properties).map { col ->
+    val buildColsResult = ColumnsResolver.resolve(mappings, properties, method).map { col ->
       val t = tables.find { it.name == col.table?.name }
       if (t != null) {
         SelectColumn(t, col.column, col.alias, col.type)
@@ -367,7 +365,7 @@ data class Query(
       else            -> buildScript(
           SELECT, buildColsResult.joinToString(",\n\t") { it.toSql() }, from.toSql(),
           resolvedNameAnnotation?.joinAppend ?: "",
-          whereSqlResult, groupBy, order, limit
+          where.toSql(), groupBy, order, limit
       )
     }
   }
@@ -391,7 +389,8 @@ data class Query(
    * @param isCount 移除没有被条件引用的join表
    */
   private fun resolveFrom(
-      limitInSubQuery: Boolean, whereSqlResult: String, limit: String,
+      limitInSubQuery: Boolean,
+      where: WhereDeclaration, limit: String,
       isCount: Boolean = false
   ): ISqlPart {
     val onlyIncludesTables = if (isCount) {
@@ -404,7 +403,7 @@ data class Query(
     val defaultFrom = mappings.fromDeclaration(properties, containedTables(), onlyIncludesTables, limitInSubQuery)
 
     return when {
-      limitInSubQuery -> SubQueryDeclaration(tableName(), whereSqlResult, limit, defaultFrom)
+      limitInSubQuery -> SubQueryDeclaration(tableName(), where, limit, defaultFrom)
       includeJoins()  -> defaultFrom
       else            -> tableName()
     }
@@ -440,7 +439,7 @@ data class Query(
     val builders = this.properties.includes.map { property ->
       val mapping = this.mappings.mappings.firstOrNull { it.property == property }
       if (mapping == null) {
-        throw BuildSQLException("无法解析待更新属性：$property, 方法：$function")
+        throw BuildSQLException("无法解析待更新属性：$property, 方法：$method")
       } else {
         getSqlSet(null, mapping, isInsertUpdate)
       }
@@ -448,23 +447,13 @@ data class Query(
     return wrapSetScript(builders.joinToString(StringPool.NEWLINE), isInsertUpdate)
   }
 
-  private fun resolveWhere(): String {
+  private fun resolveWhere(): WhereDeclaration {
     val groups = resolveGroups()
     val groupBuilders = groups.map {
       it.toSql(mappings)
     }
     val whereAppend = resolvedNameAnnotation?.whereAppend
-    return when {
-      criterion.isNotEmpty() || (whereAppend != null && whereAppend.isNotBlank()) ->
-        String.format(WHERE, trimCondition(
-            groupBuilders.joinToString(LINE_BREAK) +
-                LINE_BREAK + (whereAppend ?: EMPTY)
-        ).lines().joinToString(LINE_BREAK) {
-          "\t".repeat(3) + it
-        })
-
-      else                                                                        -> ""
-    }
+    return WhereDeclaration(criterion, groupBuilders, whereAppend)
   }
 
   private fun tableName(): TableName {

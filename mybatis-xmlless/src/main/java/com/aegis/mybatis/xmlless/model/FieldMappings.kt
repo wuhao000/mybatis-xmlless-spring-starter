@@ -1,11 +1,17 @@
 package com.aegis.mybatis.xmlless.model
 
+import com.aegis.mybatis.xmlless.annotations.DeleteValue
+import com.aegis.mybatis.xmlless.annotations.Logic
+import com.aegis.mybatis.xmlless.config.getFieldInfoMap
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.toCamelCase
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.model.component.*
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
+import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.baomidou.mybatisplus.core.metadata.TableInfo
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
+import java.lang.reflect.Method
 import java.util.*
 
 
@@ -92,7 +98,8 @@ data class FieldMappings(
   /**
    * 根据属性名称获取数据库表的列名称，返回的列名称包含表名称
    */
-  fun resolveColumnByPropertyName(property: String, validate: Boolean = true): List<SelectColumn> {
+  fun resolveColumnByPropertyName(property: String, validate: Boolean = true, method: Method? = null):
+      List<SelectColumn> {
     // 如果属性中存在.则该属性表示一个关联对象的属性，例如student.subjectId
     // 目前仅支持一层关联关系
     if (property.contains(".")) {
@@ -122,8 +129,9 @@ data class FieldMappings(
         else                          -> throw IllegalStateException("暂不支持多级连接属性：$property")
       }
     }
+
     // 匹配持久化对象的属性查找列名
-    val column = resolveFromFieldInfo(property)
+    val column = resolveFromFieldInfo(property, method)
     if (column != null) {
       return listOf(SelectColumn(TableName(tableInfo.tableName), column, null, null))
     } else {
@@ -148,10 +156,10 @@ data class FieldMappings(
   /**
    * 获取select查询的列名称语句
    */
-  fun selectFields(properties: Properties): List<SelectColumn> {
+  fun selectFields(properties: Properties, method: Method?): List<SelectColumn> {
     if (properties.isIncludeNotEmpty()) {
       return properties.includes.map {
-        resolveColumnByPropertyName(it)
+        resolveColumnByPropertyName(it, method = method)
       }.flatten()
     }
     return mappings.asSequence().filter {
@@ -225,8 +233,19 @@ data class FieldMappings(
   /**
    * 从表信息中解析对象属性名称对应的数据库表的列名称
    */
-  private fun resolveFromFieldInfo(property: String): String? {
-    return mappings.firstOrNull { it.joinInfo == null && it.property == property }?.column
+  private fun resolveFromFieldInfo(property: String, method: Method?): String? {
+    val column =  mappings.firstOrNull { it.joinInfo == null && it.property == property }?.column
+    if (column != null) {
+      return column
+    }
+    if (method != null) {
+      val type = QueryResolver.resolveJavaType(method, modelClass, false)
+      if (type != null) {
+        val returnTableInfo = TableInfoHelper.getTableInfo(type.rawClass)
+        return returnTableInfo.getFieldInfoMap(type.rawClass)[property]?.column
+      }
+    }
+    return null
   }
 
   private fun resolveFromObjectJoinInfo(property: String): List<SelectColumn> {
@@ -297,6 +316,21 @@ data class FieldMappings(
       )
     }
     return null
+  }
+
+  fun getLogicDelFlagValue(logic: Logic): Any? {
+    val logicDelMapping = this.mappings.find { it.isLogicDelFlag }
+    return if (logicDelMapping != null) {
+      when (logic.flag) {
+        DeleteValue.Deleted -> logicDelMapping.logicDelValue
+        else                -> logicDelMapping.logicNotDelValue
+      }
+    } else {
+      when (logic.flag) {
+        DeleteValue.Deleted -> 1
+        else                -> 0
+      }
+    }
   }
 
 }

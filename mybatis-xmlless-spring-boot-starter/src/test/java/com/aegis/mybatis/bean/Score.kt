@@ -1,6 +1,7 @@
 package com.aegis.mybatis.bean
 
 import com.aegis.mybatis.xmlless.annotations.JoinObject
+import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
@@ -21,10 +22,10 @@ class Score {
   var score: Int = 0
   var studentId: String = ""
   @JoinObject(
-      selectProperties = ["id", "name"],
       joinProperty = "subjectId",
       associationPrefix = "subject_"
   )
+  @SelectedProperties(["id", "name"])
   var subject: Subject? = null
   var subjectId: Int = 0
 

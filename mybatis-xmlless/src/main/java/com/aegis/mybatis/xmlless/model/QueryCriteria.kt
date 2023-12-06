@@ -9,11 +9,9 @@ import com.aegis.mybatis.xmlless.model.component.TestConditionDeclaration
 import com.aegis.mybatis.xmlless.resolver.AnnotationResolver
 import com.aegis.mybatis.xmlless.resolver.TypeResolver
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
-import kotlin.reflect.KAnnotatedElement
-import kotlin.reflect.KParameter
-import kotlin.reflect.KProperty
-import kotlin.reflect.KType
-import kotlin.reflect.full.findAnnotation
+import java.lang.reflect.AnnotatedElement
+import java.lang.reflect.Field
+import java.lang.reflect.Parameter
 import kotlin.reflect.jvm.jvmErasure
 
 
@@ -31,13 +29,15 @@ data class QueryCriteria(
     val property: String,
     val operator: Operations,
     var append: Append = Append.AND,
-    var parameters: List<Pair<String, KAnnotatedElement?>>,
+    var parameters: List<Pair<String, AnnotatedElement?>>,
     val specificValue: SpecificValue?,
     private val mappings: FieldMappings
 ) {
 
+  /** 选中的列 */
   var columns: List<SelectColumn> = listOf()
 
+  /** 额外他的test判断条件 */
   var extraTestConditions: List<TestConditionDeclaration> = listOf()
 
   companion object {
@@ -54,7 +54,7 @@ data class QueryCriteria(
   fun hasExpression(): Boolean {
     val parameter = getOnlyParameter()
     if (parameter != null) {
-      val criteria = parameter.findAnnotation<Criteria>()
+      val criteria = parameter.getAnnotation(Criteria::class.java)
       if (criteria != null && criteria.expression.isNotBlank()) {
         return criteria.expression.isNotBlank()
       }
@@ -105,7 +105,7 @@ data class QueryCriteria(
   fun toSqlWithoutTest(mappings: FieldMappings): String {
     val parameter = getOnlyParameter()
     if (parameter != null) {
-      val criteria = parameter.findAnnotation<Criteria>()
+      val criteria = parameter.getAnnotation(Criteria::class.java)
       if (criteria != null && criteria.expression.isNotBlank()) {
         return criteria.expression + " " + append
       }
@@ -177,12 +177,12 @@ data class QueryCriteria(
 
   private fun quote(str: String, quote: Boolean): String {
     if (quote) {
-      return "\"" + str + "\"";
+      return "\"$str\""
     }
     return str
   }
 
-  private fun getOnlyParameter(): KAnnotatedElement? {
+  private fun getOnlyParameter(): AnnotatedElement? {
     return parameters.firstOrNull()?.second
   }
 
@@ -199,8 +199,8 @@ data class QueryCriteria(
     }
     var tests = listOf<TestConditionDeclaration>()
     when (parameter) {
-      is KParameter   -> tests = resolveTestsFromType(parameter.type)
-      is KProperty<*> -> tests = resolveTestsFromType(parameter.returnType)
+      is Parameter   -> tests = resolveTestsFromType(parameter.type)
+      is Field -> tests = resolveTestsFromType(parameter.type)
     }
     return (tests + extraTestConditions).joinToString(Strings.TESTS_CONNECTOR) { it.toSql() }
 
@@ -209,12 +209,12 @@ data class QueryCriteria(
   private fun resolveTests(parameterTest: TestExpression): String {
     val parameter = getOnlyParameter()
     val realParams = realParams()
-    val clazz = if (parameter is KParameter) {
-      parameter.type.jvmErasure
+    val clazz = if (parameter is Parameter) {
+      parameter.type
     } else {
-      parameter as KProperty<*>
-      parameter.returnType.jvmErasure
-    }.java
+      parameter as Field
+      parameter.type
+    }
 
     val tests = parameterTest.value.joinToString(Strings.TESTS_CONNECTOR) {
       realParams[0] + if (it != TestType.NotEmpty) {
@@ -249,16 +249,16 @@ data class QueryCriteria(
     }
   }
 
-  private fun resolveTestsFromType(type: KType): List<TestConditionDeclaration> {
+  private fun resolveTestsFromType(type: Class<*>): List<TestConditionDeclaration> {
     val realParams = realParams()
     val tests = ArrayList<TestConditionDeclaration>()
-    if (type.isMarkedNullable) {
+    if (!type.isPrimitive) {
       tests.addAll(realParams.map { TestConditionDeclaration(it, TestType.NotNull) })
     }
-    if (type.jvmErasure == String::class) {
+    if (type == String::class.java) {
       tests.addAll(realParams.map { TestConditionDeclaration("$it.length()", TestType.GtZero) })
     }
-    if (Collection::class.java.isAssignableFrom(type.jvmErasure.java)) {
+    if (Collection::class.java.isAssignableFrom(type)) {
       tests.addAll(realParams.map { TestConditionDeclaration("$it.size()", TestType.GtZero) })
     }
     return tests.toList()

@@ -1,16 +1,21 @@
 package com.aegis.mybatis.dao.tests
 
 import com.aegis.mybatis.BaseTest
+import com.aegis.mybatis.bean.Role
 import com.aegis.mybatis.bean.User
+import com.aegis.mybatis.dao.RoleDAO
 import com.aegis.mybatis.dao.UserDAO
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page
+import jakarta.annotation.Resource
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 
 /**
@@ -24,8 +29,10 @@ class UserDAOTest : BaseTest() {
 
   private val testId = 16
 
-  @Autowired
+  @Resource
   private lateinit var dao: UserDAO
+  @Resource
+  private lateinit var roleDAO: RoleDAO
 
   /**
    * 根据 entity 条件，删除记录
@@ -62,23 +69,32 @@ class UserDAOTest : BaseTest() {
   @Test
   fun findAllNames() {
     val names = dao.findAllNames()
-    println(names)
+    log.info(names.toString())
     assert(names.size == dao.count())
   }
 
   @Test
-  fun pageable() {
-    dao.save(User(name = "w", deleted = false))
+  fun findAll() {
     val page = dao.findAll(
         PageRequest.of(
             0, 20, Sort.Direction.DESC, "id"
         )
     )
-    page.content.forEach {
-      println(it.roles)
-      println(it.roleList)
-    }
     assert(page.content.isNotEmpty())
+  }
+
+  @Test
+  fun pageable() {
+    val role = Role(name = "我是管理员")
+    roleDAO.save(role)
+    val user = User(name = "w", deleted = false)
+    user.roles = listOf(role.id)
+    dao.save(user)
+    val user2 = dao.findById(user.id)
+    assertNotNull(user2)
+    assertNotNull(user2.roles)
+    assert(user2.roles.isNotEmpty())
+    assert(user2.roleList.isNotEmpty())
   }
 
   @Test
@@ -88,9 +104,22 @@ class UserDAOTest : BaseTest() {
         deleted = false
     )
     dao.save(user)
-    assert(user.id!! > 0)
-    println(dao.findSimpleUserById(user.id!!))
-    dao.deleteById(user.id!!)
+    assert(user.id > 0)
+    assertNotNull(dao.findSimpleUserById(user.id))
+    dao.deleteById(user.id)
+  }
+
+  @Test
+  fun findById() {
+    val user = User(
+        id = 99988,
+        name = "b"
+    )
+    dao.save(user)
+    assertEquals(99988, user.id)
+    val user2 = User(name = "c")
+    dao.save(user2)
+    assert(user2.id > 0)
   }
 
   @Test
@@ -104,10 +133,10 @@ class UserDAOTest : BaseTest() {
         deleted = false
     )
     dao.saveAll(listOf(user1, user2))
-    assert(user1.id!! > 0)
-    assert(user2.id!! > 0)
-    dao.deleteById(user1.id!!)
-    dao.deleteById(user2.id!!)
+    assert(user1.id > 0)
+    assert(user2.id > 0)
+    dao.deleteById(user1.id)
+    dao.deleteById(user2.id)
   }
 
 
@@ -160,6 +189,10 @@ class UserDAOTest : BaseTest() {
    * @param entity 实体对象
    */
   fun updateById() {
+  }
+
+  companion object {
+    private val log: Logger = LoggerFactory.getLogger(UserDAOTest::class.java)
   }
 
 }
