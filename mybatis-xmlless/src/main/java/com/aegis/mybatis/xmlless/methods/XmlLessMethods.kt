@@ -2,7 +2,7 @@ package com.aegis.mybatis.xmlless.methods
 
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
-import com.aegis.mybatis.xmlless.generator.GenIdUtil
+import com.aegis.mybatis.xmlless.generator.IdGeneratorUtil
 import com.aegis.mybatis.xmlless.model.QueryType
 import com.aegis.mybatis.xmlless.model.ResolvedQueries
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
@@ -120,7 +120,7 @@ class XmlLessMethods : AbstractMethod("") {
           // 如果id类型为自增，则将自增的id回填到插入的对象中
           val generator = MappingResolver.resolveKeyGenerator(modelClass)
           val keyGenerator = if (generator != null) {
-            GenIdUtil.getGenerator(generator)
+            IdGeneratorUtil.getGenerator(generator)
           } else if (tableInfo.idType == IdType.AUTO) {
             Jdbc3KeyGenerator.INSTANCE
           } else {

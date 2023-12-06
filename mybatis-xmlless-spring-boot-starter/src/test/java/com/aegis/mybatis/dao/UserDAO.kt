@@ -80,6 +80,8 @@ interface UserDAO : XmlLessMapper<User> {
    */
   fun saveAll(user: List<User>)
 
+  fun saveBatch(user: List<User>)
+
   /**
    *
    * @param user

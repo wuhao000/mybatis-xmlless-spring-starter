@@ -113,7 +113,7 @@ object CriteriaResolver {
       singleConditionWords.containsAll(it)
           && singleConditionWords.joinToString("").contains(it.joinToString(""))
     }.sortedByDescending { it.size }
-    val maxOpWordCount = opWordsList.map { it.size }.maxOrNull()
+    val maxOpWordCount = opWordsList.maxOfOrNull { it.size }
     val opWords = opWordsList.filter { it.size == maxOpWordCount }
         .minByOrNull {
           singleConditionString.indexOf(it.joinToString(""))
@@ -142,15 +142,14 @@ object CriteriaResolver {
       op != null -> props.first().joinToString("").toCamelCase()
       else       -> singleConditionWords.joinToString("").toCamelCase()
     }
-    val paramNames = when {
-      props.size == 3 -> {
+    val paramNames = when (props.size) {
+      3    -> {
         listOf(
             props[1].joinToString("").toCamelCase(),
             props[2].joinToString("").toCamelCase()
         )
       }
-
-      props.size == 2 -> {
+      2    -> {
         // 解决剩余的名称为aInB的情况
         val parts = props[1].split("In")
         when (parts.size) {
@@ -158,8 +157,7 @@ object CriteriaResolver {
           else -> listOf(props[1].joinToString("").toCamelCase())
         }
       }
-
-      else            -> listOf(property)
+      else -> listOf(property)
     }
     val parameters = paramNames.map { paramName ->
       val parameterData: MatchedParameter? = ParameterResolver.resolve(paramName, function)

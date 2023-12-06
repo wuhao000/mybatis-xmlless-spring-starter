@@ -174,7 +174,7 @@ class MappingResolverProxy {
     val schema = GlobalConfigUtils.getGlobalConfig(configuration).dbConfig.schema
     return when {
       joinProperty != null -> joinProperty.let {
-        val targetTableName = TableName.resolve(it.targetTable, null, schema)
+        val targetTableName = TableName.resolve(it.targetTable, null)
         PropertyJoinInfo(
             ColumnName(joinProperty.selectColumn, field.name),
             targetTableName,
@@ -203,7 +203,7 @@ class MappingResolverProxy {
     }
   }
 
-  private fun resolveJoinFromJoinObject(joinObject: JoinObject, field: Field): JoinInfo? {
+  private fun resolveJoinFromJoinObject(joinObject: JoinObject, field: Field): JoinInfo {
     val targetTableName = if (joinObject.targetTable.isBlank()) {
       val tableInfo = TableInfoHelper.getTableInfo(field.type) ?: error("无法解析字段${field.name}关联的表")
       TableName.resolve(tableInfo.tableName, joinObject.associationPrefix)

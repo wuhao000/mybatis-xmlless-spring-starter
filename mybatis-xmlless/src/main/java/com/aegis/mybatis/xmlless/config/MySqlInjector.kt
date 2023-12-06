@@ -4,7 +4,6 @@ import com.aegis.mybatis.xmlless.methods.XmlLessMethods
 import com.baomidou.mybatisplus.core.injector.AbstractMethod
 import com.baomidou.mybatisplus.core.injector.AbstractSqlInjector
 import com.baomidou.mybatisplus.core.injector.DefaultSqlInjector
-import com.baomidou.mybatisplus.core.injector.methods.*
 import com.baomidou.mybatisplus.core.mapper.BaseMapper
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import org.springframework.stereotype.Component

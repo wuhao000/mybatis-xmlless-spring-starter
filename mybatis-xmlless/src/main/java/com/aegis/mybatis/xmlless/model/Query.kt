@@ -8,6 +8,7 @@ import com.aegis.mybatis.xmlless.constant.Strings.SCRIPT_END
 import com.aegis.mybatis.xmlless.constant.Strings.SCRIPT_START
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
+import com.aegis.mybatis.xmlless.kotlin.endsWithAny
 import com.aegis.mybatis.xmlless.model.component.FromDeclaration
 import com.aegis.mybatis.xmlless.model.component.ISqlPart
 import com.aegis.mybatis.xmlless.model.component.SubQueryDeclaration
@@ -270,8 +271,8 @@ data class Query(
     val columns = mappings.insertFields(this.properties)
     val template: String
     val values = when {
-      method.name.endsWith("All")           -> {
-        template = if (method.name.endsWith("OrUpdateAll")) {
+      method.name.endsWithAny("All", "Batch")           -> {
+        template = if (method.name.endsWithAny("OrUpdateAll", "OrUpdateBatch")) {
           BATCH_INSERT_OR_UPDATE
         } else {
           BATCH_INSERT
@@ -395,7 +396,7 @@ data class Query(
   ): ISqlPart {
     val onlyIncludesTables = if (isCount) {
       criterion.map {
-        it.columns.mapNotNull { it.table }
+        it.columns.mapNotNull { column -> column.table }
       }.flatten().distinct()
     } else {
       null
@@ -458,10 +459,6 @@ data class Query(
 
   private fun tableName(): TableName {
     return TableName(mappings.tableInfo.tableName, mappings.tableInfo.tableName.replace('.', '_'))
-  }
-
-  private fun trimCondition(sql: String): String {
-    return sql.trim().trim(" AND").trim(" OR")
   }
 
   private fun wrapSetScript(sql: String, noSetPrefix: Boolean): String {

@@ -17,7 +17,8 @@ data class ResolvedQuery(
     val returnType: Class<*>?,
     /** 待解析的方法 */
     val function: Method,
-    var unresolvedReason: String? = null) {
+    var unresolvedReason: String? = null
+) {
 
   /**  sql语句 */
   val sql: String? = query?.toSql()

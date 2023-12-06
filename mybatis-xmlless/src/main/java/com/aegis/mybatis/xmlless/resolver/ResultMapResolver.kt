@@ -125,6 +125,7 @@ object ResultMapResolver {
       builder.column(mapping.column)
     }
     builder.typeHandler(mapping.typeHandler)
+    println(mapping.field.toString() + "," + mapping.typeHandler)
     return builder.build()
   }
 

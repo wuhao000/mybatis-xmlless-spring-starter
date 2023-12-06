@@ -9,6 +9,7 @@ import com.aegis.mybatis.dao.QueryForm
 import com.aegis.mybatis.dao.ScoreDAO
 import com.aegis.mybatis.dao.StudentDAO
 import com.aegis.mybatis.dao.StudentDAO2
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.BeanUtils
 import org.springframework.beans.factory.annotation.Autowired
@@ -41,6 +42,7 @@ class StudentDAOTest : BaseTest() {
    * 测试统计全部
    */
   @Test
+  @DisplayName("统计数量")
   fun count() {
     insertStudents()
     assert(dao.count() > 0)
@@ -50,6 +52,7 @@ class StudentDAOTest : BaseTest() {
    * 测试单条删除
    */
   @Test
+  @DisplayName("根据ID删除")
   fun deleteById() {
     if (!dao.existsById(deleteId)) {
       dao.save(
@@ -69,6 +72,7 @@ class StudentDAOTest : BaseTest() {
    * 测试条件删除
    */
   @Test
+  @DisplayName("根据名称删除")
   fun deleteByName() {
     val id = "testDeleteByName"
     val name = "张三"
@@ -86,6 +90,7 @@ class StudentDAOTest : BaseTest() {
    * 测试exists
    */
   @Test
+  @DisplayName("id是否存在")
   fun existsById() {
     insertStudents()
     assert(!dao.existsById("4321"))
@@ -96,6 +101,7 @@ class StudentDAOTest : BaseTest() {
    * 测试查询全部
    */
   @Test
+  @DisplayName("查询全部")
   fun findAll() {
     if (!dao.existsById(id)) {
       dao.save(Student(id, "王五", mobile, 22))
@@ -113,6 +119,7 @@ class StudentDAOTest : BaseTest() {
    * 测试分页查询
    */
   @Test
+  @DisplayName("分页查询")
   fun findAllPageable() {
     insertStudents()
     dao.findAllPageable(

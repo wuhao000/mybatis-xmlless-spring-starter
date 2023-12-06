@@ -75,6 +75,9 @@ class UserDAOTest : BaseTest() {
 
   @Test
   fun findAll() {
+    dao.save(User(name = "w", deleted = false))
+    dao.save(User(name = "wt", deleted = false))
+    dao.save(User(name = "wtf", deleted = false))
     val page = dao.findAll(
         PageRequest.of(
             0, 20, Sort.Direction.DESC, "id"
@@ -133,6 +136,23 @@ class UserDAOTest : BaseTest() {
         deleted = false
     )
     dao.saveAll(listOf(user1, user2))
+    assert(user1.id > 0)
+    assert(user2.id > 0)
+    dao.deleteById(user1.id)
+    dao.deleteById(user2.id)
+  }
+
+  @Test
+  fun saveBatch() {
+    val user1 = User(
+        name = "test",
+        deleted = false
+    )
+    val user2 = User(
+        name = "w",
+        deleted = false
+    )
+    dao.saveBatch(listOf(user1, user2))
     assert(user1.id > 0)
     assert(user2.id > 0)
     dao.deleteById(user1.id)

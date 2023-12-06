@@ -12,12 +12,11 @@ import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
 import java.lang.reflect.AnnotatedElement
 import java.lang.reflect.Field
 import java.lang.reflect.Parameter
-import kotlin.reflect.jvm.jvmErasure
+import java.util.*
 
 
 class SpecificValue(
-    val stringValue: String,
-    val nonStringValue: String
+    val stringValue: String, val nonStringValue: String
 )
 
 /**
@@ -68,32 +67,20 @@ data class QueryCriteria(
     if (operator == Operations.Between) {
       val realParams = realParams()
       val s1 = QueryCriteria(
-          property,
-          Operations.Gte,
-          append,
-          parameters.dropLast(1),
-          specificValue,
-          mappings
+          property, Operations.Gte, append, parameters.dropLast(1), specificValue, mappings
       ).apply {
         extraTestConditions = listOf(
             TestConditionDeclaration(
-                realParams[1],
-                TestType.IsNull
+                realParams[1], TestType.IsNull
             )
         )
       }.toSql(mappings)
       val s2 = QueryCriteria(
-          property,
-          Operations.Lte,
-          append,
-          parameters.drop(1),
-          specificValue,
-          mappings
+          property, Operations.Lte, append, parameters.drop(1), specificValue, mappings
       ).apply {
         extraTestConditions = listOf(
             TestConditionDeclaration(
-                realParams[0],
-                TestType.IsNull
+                realParams[0], TestType.IsNull
             )
         )
       }.toSql(mappings)
@@ -117,23 +104,26 @@ data class QueryCriteria(
 
     return when {
       // 条件变量为确定的值时
-      value != null                                -> String.format(
-          operator.getValueTemplate(),
-          columnResult, operator.operator, value
+      value != null                                                      -> String.format(
+          operator.getValueTemplate(), columnResult, operator.operator, value
       ) + " " + append
 
-      mapping != null && mapping.isJsonArray       -> buildJsonQuery(columnResult, operator, mapping)
-      operator == Operations.In
-          && mapping?.joinInfo is PropertyJoinInfo -> String.format(
+      mapping != null && mapping.isJsonArray                             -> buildJsonQuery(
+          columnResult,
+          operator,
+          mapping
+      )
+
+      operator == Operations.In && mapping?.joinInfo is PropertyJoinInfo -> String.format(
           operator.getTemplate(),
           mappings.tableInfo.tableName + "." + mappings.tableInfo.keyColumn,
-          operator.operator, *scriptParams(mapping).toTypedArray()
+          operator.operator,
+          *scriptParams(mapping).toTypedArray()
       ) + " " + append
 
-      else                                         -> {
+      else                                                               -> {
         String.format(
-            operator.getTemplate(),
-            columnResult, operator.operator, *scriptParams().toTypedArray()
+            operator.getTemplate(), columnResult, operator.operator, *scriptParams().toTypedArray()
         ) + " " + append
       }
     }
@@ -141,8 +131,7 @@ data class QueryCriteria(
 
   override fun toString(): String {
     return String.format(
-        operator.getTemplate(),
-        property, operator.operator, *scriptParams().toTypedArray()
+        operator.getTemplate(), property, operator.operator, *scriptParams().toTypedArray()
     )
   }
 
@@ -155,20 +144,22 @@ data class QueryCriteria(
   }
 
   private fun buildJsonQuery(
-      columnResult: String,
-      operator: Operations,
-      mapping: FieldMapping
+      columnResult: String, operator: Operations, mapping: FieldMapping
   ): String {
     val type = TypeResolver.resolveRealType(mapping.type)
     val quote = type == String::class.java
     if (operator in listOf(Operations.Eq, Operations.EqDefault)) {
       return String.format(
           """JSON_CONTAINS(%s -> '$[*]', '${quote("\${%s}", quote)}', '$')""",
-          columnResult, *scriptParams().toTypedArray()
+          columnResult,
+          *scriptParams().toTypedArray()
       )
     } else if (operator in listOf(Operations.In)) {
       return String.format(
-          FOREACH, realParams()[0], "item", " OR ",
+          FOREACH,
+          realParams()[0],
+          "item",
+          " OR ",
           "JSON_CONTAINS(${columnResult} -> '\$[*]', '${quote("\${item}", quote)}', '\$')"
       )
     }
@@ -192,15 +183,14 @@ data class QueryCriteria(
 
   private fun getTests(): String {
     val parameter = getOnlyParameter() ?: return ""
-    val parameterTest = AnnotationResolver.resolve(parameter)
-      ?: AnnotationResolver.resolve<Criteria>(parameter)?.test
+    val parameterTest = AnnotationResolver.resolve(parameter) ?: AnnotationResolver.resolve<Criteria>(parameter)?.test
     if (parameterTest != null) {
       return resolveTests(parameterTest)
     }
     var tests = listOf<TestConditionDeclaration>()
     when (parameter) {
-      is Parameter   -> tests = resolveTestsFromType(parameter.type)
-      is Field -> tests = resolveTestsFromType(parameter.type)
+      is Parameter -> tests = resolveTestsFromType(parameter.type)
+      is Field     -> tests = resolveTestsFromType(parameter.type)
     }
     return (tests + extraTestConditions).joinToString(Strings.TESTS_CONNECTOR) { it.toSql() }
 
@@ -221,12 +211,11 @@ data class QueryCriteria(
         it.expression
       } else {
         when {
-          Collection::class.java.isAssignableFrom(clazz) -> ".size " + TestType.GtZero.expression
-          clazz == String::class
-              || clazz == java.lang.String::class.java   -> ".length() " + TestType.GtZero.expression
+          Collection::class.java.isAssignableFrom(clazz)                  -> ".size " + TestType.GtZero.expression
+          clazz == String::class || clazz == java.lang.String::class.java -> ".length() " + TestType.GtZero.expression
 
-          clazz.isArray                                  -> ".length " + TestType.GtZero.expression
-          else                                           -> ".size " + TestType.GtZero.expression
+          clazz.isArray                                                   -> ".length " + TestType.GtZero.expression
+          else                                                            -> ".size " + TestType.GtZero.expression
         }
       }
     }
@@ -274,7 +263,7 @@ data class QueryCriteria(
 
       paramName != null     -> when {
         paramName.matches("\\d+".toRegex()) -> paramName
-        paramName == "true"                 -> paramName.toUpperCase()
+        paramName == "true"                 -> paramName.uppercase(Locale.getDefault())
         else                                -> null
       }
 
@@ -288,8 +277,7 @@ data class QueryCriteria(
     if (operator == Operations.In) {
       if (propertyMapping != null && propertyMapping.joinInfo is PropertyJoinInfo) {
         return listOf(
-            "(SELECT ${propertyMapping.joinInfo.targetColumn} FROM ${propertyMapping.joinInfo.joinTable.name} WHERE " +
-                "${propertyMapping.joinInfo.propertyColumn.name} = #{${realParams[0]}})"
+            "(SELECT ${propertyMapping.joinInfo.targetColumn} FROM ${propertyMapping.joinInfo.joinTable.name} WHERE " + "${propertyMapping.joinInfo.propertyColumn.name} = #{${realParams[0]}})"
         )
       }
       return listOf(String.format(FOREACH, realParams[0], "item", ", ", "#{item}"))
@@ -302,7 +290,6 @@ data class QueryCriteria(
 
 enum class Append {
 
-  AND,
-  OR;
+  AND, OR;
 
 }

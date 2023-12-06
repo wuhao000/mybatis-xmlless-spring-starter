@@ -13,7 +13,6 @@ import org.apache.ibatis.annotations.Param
  * @author 吴昊
  * @since 0.0.4
  */
-@Mapper
 interface BaseDAO<T, ID> {
 
   /**

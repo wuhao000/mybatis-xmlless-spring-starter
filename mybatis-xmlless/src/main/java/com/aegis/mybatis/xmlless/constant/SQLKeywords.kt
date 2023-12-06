@@ -1,7 +1,6 @@
 package com.aegis.mybatis.xmlless.constant
 
 import kotlin.reflect.full.memberProperties
-import kotlin.reflect.jvm.javaField
 
 /**
  *

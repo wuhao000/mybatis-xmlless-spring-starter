@@ -6,7 +6,9 @@ import com.aegis.mybatis.xmlless.config.getFieldInfoMap
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.toCamelCase
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
-import com.aegis.mybatis.xmlless.model.component.*
+import com.aegis.mybatis.xmlless.model.component.FromDeclaration
+import com.aegis.mybatis.xmlless.model.component.JoinConditionDeclaration
+import com.aegis.mybatis.xmlless.model.component.JoinDeclaration
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.baomidou.mybatisplus.core.metadata.TableInfo
@@ -20,7 +22,6 @@ import java.util.*
  * @author 吴昊
  * @since 0.0.1
  */
-@Suppress("ArrayInDataClass")
 data class FieldMappings(
     val mappings: List<FieldMapping>,
     val tableInfo: TableInfo,
@@ -39,9 +40,9 @@ data class FieldMappings(
       limitInSubQuery: Boolean
   ): FromDeclaration {
     val tableName = if (limitInSubQuery) {
-      TableName(tableInfo.tableName, tableInfo.tableName.replace('.', '_'), null)
+      TableName(tableInfo.tableName, tableInfo.tableName.replace('.', '_'))
     } else {
-      TableName(tableInfo.tableName, "", null)
+      TableName(tableInfo.tableName, "")
     }
     val declaration = FromDeclaration()
     declaration.tableName = tableName
@@ -134,20 +135,19 @@ data class FieldMappings(
     val column = resolveFromFieldInfo(property, method)
     if (column != null) {
       return listOf(SelectColumn(TableName(tableInfo.tableName), column, null, null))
-    } else {
-      // 从关联属性中匹配
-      val resolvedFromJoinProperty = resolveFromPropertyJoinInfo(property)
-      if (resolvedFromJoinProperty != null) {
-        return listOf(resolvedFromJoinProperty)
-      }
-      // 从关联对象中匹配
-      val resolvedFromJoinObject = resolveFromObjectJoinInfo(property)
-      if (resolvedFromJoinObject.isNotEmpty()) {
-        return resolvedFromJoinObject
-      }
+    }
+    // 从关联属性中匹配
+    val resolvedFromJoinProperty = resolveFromPropertyJoinInfo(property)
+    if (resolvedFromJoinProperty != null) {
+      return listOf(resolvedFromJoinProperty)
+    }
+    // 从关联对象中匹配
+    val resolvedFromJoinObject = resolveFromObjectJoinInfo(property)
+    if (resolvedFromJoinObject.isNotEmpty()) {
+      return resolvedFromJoinObject
     }
     if (!validate) {
-      return listOf(SelectColumn(TableName(tableInfo.tableName), column ?: property.toUnderlineCase(), null, null))
+      return listOf(SelectColumn(TableName(tableInfo.tableName), property.toUnderlineCase(), null, null))
     } else {
       throw BuildSQLException("无法解析持久化类${modelClass.simpleName}的属性${property}对应的列名称, 持久化类或关联对象中不存在此属性")
     }
@@ -182,7 +182,7 @@ data class FieldMappings(
       joinTableName: TableName? = null,
       onlyIncludesTables: List<TableName>? = null
   ): List<JoinDeclaration> {
-    return mappings.filter {
+    return mappings.asSequence().filter {
       !it.selectIgnore && it.joinInfo != null && (
           when {
             selectedProperties.isIncludeNotEmpty() -> it.property in selectedProperties
@@ -190,8 +190,10 @@ data class FieldMappings(
           }) || (it.joinInfo != null && it.joinInfo.joinTable.alias in includedTableAlias)
     }.mapNotNull { it.joinInfo }
         .distinctBy { it.joinTable.alias }
-        .filter { onlyIncludesTables == null || onlyIncludesTables.map { it.name }
-            .contains(it.joinTable.name) }
+        .filter {
+          onlyIncludesTables == null || onlyIncludesTables.map { tableName -> tableName.name }
+              .contains(it.joinTable.name)
+        }
         .mapNotNull { joinInfo ->
           val joinPropertyName = joinInfo.getJoinProperty(tableInfo)
           val joinProperty = mappings.firstOrNull { it.property == joinPropertyName }
@@ -216,7 +218,7 @@ data class FieldMappings(
 
             else                -> null
           }
-        }
+        }.toList()
   }
 
   private fun createJoinCondition(
@@ -234,7 +236,7 @@ data class FieldMappings(
    * 从表信息中解析对象属性名称对应的数据库表的列名称
    */
   private fun resolveFromFieldInfo(property: String, method: Method?): String? {
-    val column =  mappings.firstOrNull { it.joinInfo == null && it.property == property }?.column
+    val column = mappings.firstOrNull { it.joinInfo == null && it.property == property }?.column
     if (column != null) {
       return column
     }

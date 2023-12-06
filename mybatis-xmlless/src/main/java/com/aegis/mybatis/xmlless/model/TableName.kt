@@ -8,7 +8,7 @@ package com.aegis.mybatis.xmlless.model
  * @param name 表名称
  * @param alias 表别名
  */
-class TableName(name: String, alias: String = "", schema: String? = null) : NameAlias(name, alias) {
+class TableName(name: String, alias: String = "") : NameAlias(name, alias) {
   fun getAliasOrName(): String {
     if (alias.isNotBlank()) {
       return alias
@@ -19,11 +19,10 @@ class TableName(name: String, alias: String = "", schema: String? = null) : Name
   companion object {
     fun resolve(
         targetTable: String,
-        aliasPrefix: String? = null,
-        schema: String? = null
+        aliasPrefix: String? = null
     ): TableName {
       val nameAlias = NameAlias.resolve(targetTable, aliasPrefix)
-      return TableName(nameAlias.name, nameAlias.alias, schema)
+      return TableName(nameAlias.name, nameAlias.alias)
     }
   }
 

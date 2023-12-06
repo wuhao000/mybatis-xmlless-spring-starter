@@ -1,9 +1,8 @@
 package com.aegis.mybatis.xmlless.starter
 
-import com.aegis.mybatis.xmlless.generator.GenIdUtil
+import com.aegis.mybatis.xmlless.generator.IdGeneratorUtil
 import com.aegis.mybatis.xmlless.generator.SnowflakeKeyGenerator
 import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer
-import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusProperties
 import com.baomidou.mybatisplus.autoconfigure.SpringBootVFS
 import com.baomidou.mybatisplus.core.MybatisConfiguration
@@ -21,7 +20,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.BeanUtils
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.boot.autoconfigure.AutoConfigureAfter
-import org.springframework.boot.autoconfigure.AutoConfigureBefore
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
@@ -66,7 +64,7 @@ class MyBatisXmlLessAutoConfiguration(
 
   init {
     copyProperties(properties, mybatisProperties)
-    GenIdUtil.registerGenerator("SNOWFLAKE", SnowflakeKeyGenerator())
+    IdGeneratorUtil.registerGenerator("SNOWFLAKE", SnowflakeKeyGenerator())
   }
 
   @Bean

@@ -29,8 +29,6 @@ class ServerDAOTest : BaseTest() {
     assertNotNull(server2)
     println(server1.provider)
     println(server2.provider)
-    assertNotNull(server1.provider)
-    assertNotNull(server2.provider)
     assertNotNull(server2.parent)
     assertEquals(server1.name, server2.parent?.name)
   }

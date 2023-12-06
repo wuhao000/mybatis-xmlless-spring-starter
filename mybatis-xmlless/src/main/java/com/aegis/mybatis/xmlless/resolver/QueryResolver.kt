@@ -7,7 +7,6 @@ import com.aegis.mybatis.xmlless.annotations.Logic
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.config.MappingResolver
-import com.baomidou.mybatisplus.core.override.XmlLessPageMapperMethod
 import com.aegis.mybatis.xmlless.constant.PAGEABLE_SORT
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.split
@@ -17,10 +16,12 @@ import com.aegis.mybatis.xmlless.kotlin.toWords
 import com.aegis.mybatis.xmlless.model.*
 import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.metadata.TableInfo
+import com.baomidou.mybatisplus.core.override.XmlLessPageMapperMethod
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import com.fasterxml.jackson.databind.JavaType
 import org.apache.ibatis.annotations.ResultMap
 import org.apache.ibatis.builder.MapperBuilderAssistant
+import org.slf4j.LoggerFactory
 import org.springframework.core.ResolvableType
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -28,9 +29,6 @@ import org.springframework.data.domain.Sort
 import java.lang.reflect.Method
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.isSuperclassOf
-import kotlin.reflect.jvm.jvmErasure
 
 /**
  *
@@ -39,6 +37,7 @@ import kotlin.reflect.jvm.jvmErasure
  */
 object QueryResolver {
 
+  private val log = LoggerFactory.getLogger(QueryResolver::class.java)
   private val QUERY_CACHE = hashMapOf<String, ResolvedQuery>()
   private val SPECIAL_NAME_PART = listOf("OrUpdate", "OrUpdateAll")
 
@@ -106,7 +105,7 @@ object QueryResolver {
       putQueryCache(function, mapperClass, resolvedQuery)
       return resolvedQuery
     } catch (e: Exception) {
-      e.printStackTrace()
+      log.error("解析方法 ${function.name} 失败", e)
       return ResolvedQuery(null, null, null, function, e.message)
     }
   }
@@ -133,7 +132,7 @@ object QueryResolver {
         remainWords
       }
       propertiesWords.split("And")
-          .filter { !(it.size == 1 && it.first() == "All") }
+          .filter { !(it.size == 1 && (it.first() == "All" || it.first() == "Batch")) }
           .map { it.joinToString("").toCamelCase() }
     }
     val conditionWords = if (byIndex >= 0) {

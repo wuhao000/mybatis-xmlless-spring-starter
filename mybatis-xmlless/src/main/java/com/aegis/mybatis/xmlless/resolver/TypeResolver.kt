@@ -3,8 +3,6 @@ package com.aegis.mybatis.xmlless.resolver
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.lang.reflect.WildcardType
-import kotlin.reflect.KClass
-import kotlin.reflect.KType
 
 /**
  * 类型解析
@@ -27,6 +25,7 @@ object TypeResolver {
           typeArg as Class<*>
         }
       }
+
       else                 -> throw IllegalStateException("无法确定${type}的类型")
     }
   }

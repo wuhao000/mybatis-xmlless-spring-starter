@@ -43,8 +43,7 @@ abstract class JoinInfo(
    * 返回join属性的原始类型
    */
   fun rawType(): Class<*> {
-    val type = javaType
-    return when (type) {
+    return when (val type = javaType) {
       is Class<*>          -> type
       is ParameterizedType -> type.rawType as Class<*>
       else                 -> throw BuildSQLException("无法识别的类型：$javaType")

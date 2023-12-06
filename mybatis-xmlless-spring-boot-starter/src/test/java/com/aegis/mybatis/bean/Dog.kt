@@ -19,10 +19,10 @@ class Dog {
   var id: Int = 0
   var name: String? = null
 
-  @JsonMappingProperty
+  @field: JsonMappingProperty
   var names: List<String>? = null
 
-  @JsonMappingProperty
+  @field: JsonMappingProperty
   var ages: List<Int>? = null
 
 }

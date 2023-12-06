@@ -4,7 +4,6 @@ import com.aegis.mybatis.xmlless.config.paginition.XmlLessException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.lang.reflect.Method
-import kotlin.reflect.jvm.javaMethod
 
 
 /**
@@ -12,8 +11,10 @@ import kotlin.reflect.jvm.javaMethod
  * @author 吴昊
  * @since 0.0.1
  */
-class ResolvedQueries(private val mapperClass: Class<*>,
-                      private val unmappedMethods: List<Method> = listOf()) {
+class ResolvedQueries(
+    private val mapperClass: Class<*>,
+    private val unmappedMethods: List<Method> = listOf()
+) {
 
   private val queries = mutableListOf<ResolvedQuery>()
 
@@ -45,7 +46,7 @@ class ResolvedQueries(private val mapperClass: Class<*>,
         }
     sb.append("\n===================================================")
 //    if (log.isDebugEnabled) {
-      log.info("\n\n" + sb.toString() + "\n")
+    log.info("\n\n" + sb.toString() + "\n")
 //    }
     logUnresolved()
   }
