@@ -18,11 +18,12 @@ import org.junit.jupiter.api.Test
  */
 class StudentDAOResolverTest : BaseResolverTest(
     Student::class.java, StudentDAO::class.java,
-//    "findByNameOrAge",
+    "findByNameOrAge",
     "findByAgeBetween",
     "findByAgeBetweenMinAndMax",
-//    "findAllPageable",
-//    "findAllPage"
+    "findAllPageable",
+    "findAllPage",
+    "findById"
 ) {
 
   @Test

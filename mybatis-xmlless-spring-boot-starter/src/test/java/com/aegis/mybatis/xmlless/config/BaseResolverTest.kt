@@ -34,10 +34,9 @@ open class BaseResolverTest(
   @BeforeAll
   fun init() {
     tableInfo = createTableInfo(modelClass)
-    queries = getFunctions()
-        .map {
-          QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
-        }
+    queries = getFunctions().map {
+      QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
+    }
   }
 
   fun getFunctions(): List<Method> {

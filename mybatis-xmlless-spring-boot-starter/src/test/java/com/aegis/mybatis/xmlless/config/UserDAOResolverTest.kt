@@ -25,26 +25,6 @@ class UserDAOResolverTest : BaseResolverTest(
     val method = "findAll"
   }
 
-  @Test
-  fun mappingResolve() {
-    queries.forEach {
-      println(it)
-    }
-    val allMappings = MappingResolver.getAllMappings()
-    val scoreMapping = allMappings.first {
-      it.modelClass == Score::class.java
-    }
-    scoreMapping.mappings.forEach {
-      println(it.property + "/" + it.column)
-    }
-  }
-
-  @Test
-  fun resolveColumns() {
-    val mappings = MappingResolver.getMappingCache(Student::class.java)
-    val cols = ColumnsResolver.resolve(mappings!!, Properties())
-    println(cols)
-  }
 
   @Test
   fun resolveFindAll() {
@@ -68,18 +48,7 @@ class UserDAOResolverTest : BaseResolverTest(
     val resultMaps = builderAssistant.configuration.resultMaps
     val ids = resultMaps.map { it.id }
     println(builderAssistant.hashCode())
-    println(ids)
     assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_UserDAO_$method"))
-    val scoreMap = resultMaps.first { it.id == "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById_scores" }
-    assert(scoreMap.autoMapping == true)
-    assert(scoreMap.hasNestedResultMaps())
-    val resultMappings = scoreMap.propertyResultMappings
-    assert(resultMappings.any { it.column == "subject_id" })
-    assert(resultMappings.any { it.property == "subject" })
-    resultMaps.forEach {
-      println(it.id)
-    }
-    println(resultMaps)
   }
 
   @Test

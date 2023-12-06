@@ -30,8 +30,7 @@ class DogDAOResultMapTest : BaseResolverTest(
           it, tableInfo, modelClass, mapperClass, builderAssistant
       )
       val rmId = query.resultMap
-      val rm = builderAssistant.configuration
-          .getResultMap(rmId)
+      val rm = builderAssistant.configuration.getResultMap(rmId)
       println(query)
       println(rmId)
       println(rm.type)

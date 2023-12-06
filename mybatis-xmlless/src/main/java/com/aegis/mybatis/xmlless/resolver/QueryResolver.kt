@@ -110,12 +110,16 @@ object QueryResolver {
     }
   }
 
-  fun resolveJavaType(function: Method, clazz: Class<*>, forceSingleValue: Boolean = false): JavaType? {
-    return if (!forceSingleValue && Collection::class.java.isAssignableFrom(function.returnType)) {
-      toJavaType(ResolvableType.forMethodReturnType(function, clazz).generics[0].type)
+  fun resolveJavaType(method: Method, clazz: Class<*>, forceSingleValue: Boolean = false): JavaType? {
+    val type = if (!forceSingleValue && Collection::class.java.isAssignableFrom(method.returnType)) {
+      ResolvableType.forMethodReturnType(method, clazz).generics[0]
     } else {
-      toJavaType(ResolvableType.forMethodReturnType(function, clazz).type)
+      ResolvableType.forMethodReturnType(method, clazz)
     }
+    if (type.type is ParameterizedType) {
+      return toJavaType(type.type)
+    }
+    return toJavaType(type.resolve() ?: type.type)
   }
 
   /**
