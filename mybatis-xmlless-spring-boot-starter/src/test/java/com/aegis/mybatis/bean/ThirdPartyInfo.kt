@@ -1,10 +1,7 @@
 package com.aegis.mybatis.bean
 
 import com.baomidou.mybatisplus.annotation.TableLogic
-import com.fasterxml.jackson.annotation.JsonFormat
 import jakarta.persistence.*
-import org.springframework.format.annotation.DateTimeFormat
-import tk.mybatis.mapper.annotation.KeySql
 import java.util.*
 
 /**

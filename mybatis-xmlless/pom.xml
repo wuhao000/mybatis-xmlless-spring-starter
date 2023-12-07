@@ -18,11 +18,6 @@
       <groupId>com.aegis</groupId>
       <artifactId>mybatis-xmlless-annotation</artifactId>
     </dependency>
-    <dependency>
-      <groupId>tk.mybatis</groupId>
-      <artifactId>mapper-core</artifactId>
-      <version>${tk.mybatis.version}</version>
-    </dependency>
   </dependencies>
 
   <build>

@@ -4,8 +4,6 @@ import org.apache.ibatis.executor.Executor
 import org.apache.ibatis.executor.keygen.KeyGenerator
 import org.apache.ibatis.mapping.MappedStatement
 import org.slf4j.LoggerFactory
-import tk.mybatis.mapper.MapperException
-import tk.mybatis.mapper.util.MetaObjectUtil
 import java.sql.Statement
 import java.util.*
 import kotlin.experimental.and
@@ -21,9 +19,27 @@ import kotlin.experimental.inv
  * @since 1.0.0
  */
 class SnowflakeKeyGenerator : KeyGenerator {
+
   private var sequenceOffset: Byte = 0
   private var sequence: Long = 0
   private var lastMilliseconds: Long = 0
+
+  companion object {
+    var epoch: Long = 0
+    private val log = LoggerFactory.getLogger(SnowflakeKeyGenerator::class.java)
+    private const val SEQUENCE_MASK = 4095L
+    private const val WORKER_ID_LEFT_SHIFT_BITS = 12L
+    private const val TIMESTAMP_LEFT_SHIFT_BITS = 22L
+    private const val maxTolerateTimeDifferenceMilliseconds = 10
+    private const val workerId: Long = 0
+
+    init {
+      val calendar = Calendar.getInstance()
+      calendar[2010, 0] = 1
+      epoch = calendar.getTimeInMillis()
+    }
+  }
+
   @Synchronized
   fun generateKey(): Number {
     var currentMilliseconds = System.currentTimeMillis()
@@ -40,6 +56,26 @@ class SnowflakeKeyGenerator : KeyGenerator {
     }
     lastMilliseconds = currentMilliseconds
     return currentMilliseconds - epoch shl TIMESTAMP_LEFT_SHIFT_BITS.toInt() or (workerId shl WORKER_ID_LEFT_SHIFT_BITS.toInt()) or sequence
+  }
+
+  @Synchronized
+  fun generateId(): String {
+    return generateKey().toString()
+  }
+
+  override fun processBefore(executor: Executor, ms: MappedStatement, stmt: Statement?, parameter: Any) {
+    val metaObject = MetaObjectUtil.forObject(parameter)
+    if (ms.keyProperties.size != 1) {
+      error("主键列数量不正确")
+    }
+    val property = ms.keyProperties.first()
+    if (metaObject.getValue(property) == null) {
+      val id = generateId()
+      metaObject.setValue(property, id)
+    }
+  }
+
+  override fun processAfter(executor: Executor, ms: MappedStatement, stmt: Statement, parameter: Any) {
   }
 
   private fun waitTolerateTimeDifferenceIfNeed(currentMilliseconds: Long): Boolean {
@@ -81,43 +117,4 @@ class SnowflakeKeyGenerator : KeyGenerator {
     sequenceOffset = (sequenceOffset.inv() and 1)
   }
 
-  @Synchronized
-  fun generateId(): String {
-    return generateKey().toString()
-  }
-
-  override fun processBefore(executor: Executor, ms: MappedStatement, stmt: Statement?, parameter: Any) {
-    try {
-      val metaObject = MetaObjectUtil.forObject(parameter)
-      if (ms.keyProperties.size != 1) {
-        error("主键列数量不正确")
-      }
-      val property = ms.keyProperties.first()
-      if (metaObject.getValue(property) == null) {
-        val id = generateId()
-        metaObject.setValue(property, id)
-      }
-    } catch (e: Exception) {
-      throw MapperException("生成 ID 失败!", e)
-    }
-  }
-  override fun processAfter(executor: Executor, ms: MappedStatement, stmt: Statement, parameter: Any) {
-
-  }
-
-  companion object {
-    var epoch: Long = 0
-    private val log = LoggerFactory.getLogger(SnowflakeKeyGenerator::class.java)
-    private const val SEQUENCE_MASK = 4095L
-    private const val WORKER_ID_LEFT_SHIFT_BITS = 12L
-    private const val TIMESTAMP_LEFT_SHIFT_BITS = 22L
-    private const val maxTolerateTimeDifferenceMilliseconds = 10
-    private const val workerId: Long = 0
-
-    init {
-      val calendar = Calendar.getInstance()
-      calendar[2010, 0] = 1
-      epoch = calendar.getTimeInMillis()
-    }
-  }
 }
