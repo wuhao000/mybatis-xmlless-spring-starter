@@ -2,6 +2,7 @@ package com.aegis.mybatis.dao
 
 import com.aegis.mybatis.bean.Server
 import com.aegis.mybatis.xmlless.XmlLessMapper
+import com.baomidou.mybatisplus.core.mapper.BaseMapper
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param
 
@@ -13,7 +14,7 @@ import org.apache.ibatis.annotations.Param
  * @since 0.0.9
  */
 @Mapper
-interface ServerDAO : XmlLessMapper<Server> {
+interface ServerDAO : XmlLessMapper<Server>, BaseMapper<Server> {
 
   /**
    *

@@ -53,7 +53,6 @@ class StringTypeHandler : BaseTypeHandler<String>() {
  * @author 吴昊
  * @since 0.0.4
  */
-@Suppress("MemberVisibilityCanBePrivate")
 class Student() {
 
   var age: Int = 0

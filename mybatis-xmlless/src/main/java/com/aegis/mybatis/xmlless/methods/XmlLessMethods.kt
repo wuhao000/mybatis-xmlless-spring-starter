@@ -46,15 +46,17 @@ class XmlLessMethods : AbstractMethod("") {
     // 修正表信息，主要是针对一些JPA注解的支持以及本项目中自定义的一些注解的支持，
     MappingResolver.fixTableInfo(modelClass, tableInfo, builderAssistant)
     // 判断Mapper方法是否已经定义了sql声明，如果没有定义才进行注入，这样如果存在Mapper方法在xml文件中有定义则会优先使用，如果没有定义才会进行推断
-    val unmappedFunctions = mapperClass.methods.filter {
+    val unmappedMethods = mapperClass.methods.filter {
       it.declaringClass != Object::class.java
+    }.filter {
+      !configuration.hasStatement("${mapperClass.name}$DOT${it.name}")
+    }.filter {
+      // 过滤mybatis-plus的生成方法
+      !it.declaringClass.name.startsWith("com.baomidou.mybatisplus.core.mapper")
     }
-        .filter {
-          !configuration.hasStatement("${mapperClass.name}$DOT${it.name}")
-        }
     // 解析未定义的方法，进行sql推断
-    val resolvedQueries = ResolvedQueries(mapperClass, unmappedFunctions)
-    unmappedFunctions.forEach { method ->
+    val resolvedQueries = ResolvedQueries(mapperClass, unmappedMethods)
+    unmappedMethods.forEach { method ->
       val resolvedQuery: ResolvedQuery =
           QueryResolver.resolve(method, tableInfo, modelClass, mapperClass, builderAssistant)
       resolvedQueries.add(resolvedQuery)

@@ -23,14 +23,10 @@ import org.apache.ibatis.session.SqlSession
 import java.util.*
 
 /**
- *
- *
  * 继承至MapperRegistry
- *
  *
  * @since 2017-04-19
  */
-@Suppress("UNCHECKED_CAST")
 class MybatisXmlLessMapperRegistry(private val config: Configuration) : MapperRegistry(config) {
 
   private val knownMappers = HashMap<Class<*>, XmlLessPageMapperProxyFactory<*>>()
@@ -42,10 +38,7 @@ class MybatisXmlLessMapperRegistry(private val config: Configuration) : MapperRe
   override fun <T> addMapper(type: Class<T>) {
     if (type.isInterface) {
       if (hasMapper(type)) {
-        // 如果之前注入 直接返回
         return
-        // throw new BindingException("Type " + type +
-        // " is already known to the MybatisPlusMapperRegistry.");
       }
       var loadCompleted = false
       try {
