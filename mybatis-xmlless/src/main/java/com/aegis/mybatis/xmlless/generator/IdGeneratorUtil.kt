@@ -6,19 +6,16 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * id生成工具
  */
-object GenIdUtil {
+object IdGeneratorUtil {
 
   private val CACHE: MutableMap<String, KeyGenerator> = ConcurrentHashMap()
 
   fun registerGenerator(name: String, generator: KeyGenerator) {
-    if (CACHE.containsKey(name)) {
-      error("已经存在名为 $name 的 ID 生成器")
-    }
-    CACHE[name] = generator
+    CACHE[name.uppercase()] = generator
   }
 
   fun getGenerator(name: String): KeyGenerator {
-    return CACHE[name] ?: error("不存在名为 $name 的 ID 生成器")
+    return CACHE[name.uppercase()] ?: error("不存在名为 $name 的 ID 生成器")
   }
 
 }

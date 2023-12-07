@@ -9,17 +9,17 @@ import kotlin.reflect.full.functions
 import kotlin.reflect.jvm.javaMethod
 
 /**
- * TODO
  *
  * @author 吴昊
  * @date 2020/6/18 9:00
- * @since 3.1.2 TODO
+ * @since 3.1.2
  * @version 1.0
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class StudentDAOResultMapTest : BaseResolverTest(
     Student::class.java, StudentDetailDAO::class.java,
 //    "findFavorites",
+    "findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd",
     "findAll"
 ) {
 

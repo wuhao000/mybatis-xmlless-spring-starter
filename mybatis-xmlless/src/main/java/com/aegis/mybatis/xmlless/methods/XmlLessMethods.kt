@@ -2,7 +2,7 @@ package com.aegis.mybatis.xmlless.methods
 
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
-import com.aegis.mybatis.xmlless.generator.GenIdUtil
+import com.aegis.mybatis.xmlless.generator.IdGeneratorUtil
 import com.aegis.mybatis.xmlless.model.QueryType
 import com.aegis.mybatis.xmlless.model.ResolvedQueries
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
@@ -54,13 +54,13 @@ class XmlLessMethods : AbstractMethod("") {
         }
     // 解析未定义的方法，进行sql推断
     val resolvedQueries = ResolvedQueries(mapperClass, unmappedFunctions)
-    unmappedFunctions.forEach { function ->
+    unmappedFunctions.forEach { method ->
       val resolvedQuery: ResolvedQuery =
-          QueryResolver.resolve(function, tableInfo, modelClass, mapperClass, builderAssistant)
+          QueryResolver.resolve(method, tableInfo, modelClass, mapperClass, builderAssistant)
       resolvedQueries.add(resolvedQuery)
       // query为null则表明推断失败，resolvedQuery中将包含推断失败的原因，会在后面进行统一输出，方便开发人员了解sql推断的具体结果和失败的具体原因
       if (resolvedQuery.query != null && resolvedQuery.sql != null) {
-        resolve(resolvedQuery, modelClass, function, mapperClass, tableInfo)
+        resolve(resolvedQuery, modelClass, method, mapperClass, tableInfo)
       }
     }
     resolvedQueries.log()
@@ -120,7 +120,7 @@ class XmlLessMethods : AbstractMethod("") {
           // 如果id类型为自增，则将自增的id回填到插入的对象中
           val generator = MappingResolver.resolveKeyGenerator(modelClass)
           val keyGenerator = if (generator != null) {
-            GenIdUtil.getGenerator(generator)
+            IdGeneratorUtil.getGenerator(generator)
           } else if (tableInfo.idType == IdType.AUTO) {
             Jdbc3KeyGenerator.INSTANCE
           } else {

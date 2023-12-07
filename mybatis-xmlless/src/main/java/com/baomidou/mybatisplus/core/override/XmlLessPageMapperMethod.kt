@@ -9,8 +9,6 @@ import com.aegis.mybatis.xmlless.model.JsonWrapper
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.baomidou.mybatisplus.core.metadata.IPage
 import org.apache.ibatis.binding.MapperMethod
-import org.apache.ibatis.binding.MapperMethod.MethodSignature
-import org.apache.ibatis.binding.MapperMethod.SqlCommand
 import org.apache.ibatis.mapping.SqlCommandType
 import org.apache.ibatis.session.Configuration
 import org.apache.ibatis.session.SqlSession
@@ -88,14 +86,13 @@ internal class XmlLessPageMapperMethod(
     ) {
       if (forceSingleValue) {
         val size = (result as MutableCollection<Any?>).size
-        if (size > 1) {
+        return if (size > 1) {
           throw XmlLessException("Need result size to be 1, but got [$size]")
-        } else if (size == 0){
-          return null
+        } else if (size == 0) {
+          null
         } else {
           val value = result.first()
-          val json = extractJson(value)
-          return when (json) {
+          when (val json = extractJson(value)) {
             null -> null
             else -> mapper.readValue<Any?>(json, type)
           }

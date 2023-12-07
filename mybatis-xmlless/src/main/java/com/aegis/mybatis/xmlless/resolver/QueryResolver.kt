@@ -7,7 +7,6 @@ import com.aegis.mybatis.xmlless.annotations.Logic
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.config.MappingResolver
-import com.baomidou.mybatisplus.core.override.XmlLessPageMapperMethod
 import com.aegis.mybatis.xmlless.constant.PAGEABLE_SORT
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.split
@@ -17,10 +16,12 @@ import com.aegis.mybatis.xmlless.kotlin.toWords
 import com.aegis.mybatis.xmlless.model.*
 import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.metadata.TableInfo
+import com.baomidou.mybatisplus.core.override.XmlLessPageMapperMethod
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import com.fasterxml.jackson.databind.JavaType
 import org.apache.ibatis.annotations.ResultMap
 import org.apache.ibatis.builder.MapperBuilderAssistant
+import org.slf4j.LoggerFactory
 import org.springframework.core.ResolvableType
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -28,9 +29,6 @@ import org.springframework.data.domain.Sort
 import java.lang.reflect.Method
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.isSuperclassOf
-import kotlin.reflect.jvm.jvmErasure
 
 /**
  *
@@ -39,6 +37,7 @@ import kotlin.reflect.jvm.jvmErasure
  */
 object QueryResolver {
 
+  private val log = LoggerFactory.getLogger(QueryResolver::class.java)
   private val QUERY_CACHE = hashMapOf<String, ResolvedQuery>()
   private val SPECIAL_NAME_PART = listOf("OrUpdate", "OrUpdateAll")
 
@@ -56,24 +55,25 @@ object QueryResolver {
   }
 
   fun resolve(
-      function: Method, tableInfo: TableInfo,
+      method: Method, tableInfo: TableInfo,
       modelClass: Class<*>, mapperClass: Class<*>,
       builderAssistant: MapperBuilderAssistant
   ): ResolvedQuery {
-    if (getQueryCache(function, mapperClass) != null) {
-      return getQueryCache(function, mapperClass)!!
+    if (getQueryCache(method, mapperClass) != null) {
+      return getQueryCache(method, mapperClass)!!
     }
     try {
+      val methodInfo = MethodInfo(method)
       val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
-      val paramNames = ParameterResolver.resolveNames(function)
-      val resolvedNameAnnotation = function.getAnnotation(ResolvedName::class.java)
-      val resolvedName = getResolvedName(function)
+      val paramNames = ParameterResolver.resolveNames(method)
+      val resolvedNameAnnotation = method.getAnnotation(ResolvedName::class.java)
+      val resolvedName = getResolvedName(method)
       val resolveSortsResult = resolveSorts(resolvedName)
-      val resolveTypeResult = resolveType(resolveSortsResult.remainName, function)
-      val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords, function)
+      val resolveTypeResult = resolveType(resolveSortsResult.remainName, method)
+      val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords, method)
       val conditions = CriteriaResolver.resolveConditions(
           resolvePropertiesResult.conditionWords,
-          function, mappings, resolveTypeResult.type
+          method, mappings, resolveTypeResult.type
       )
       val query = Query(
           resolveTypeResult.type,
@@ -83,40 +83,44 @@ object QueryResolver {
           ),
           conditions,
           resolveSortsResult.sorts,
-          function,
+          method,
           mappings,
           null,
           resolvedNameAnnotation
       )
-      function.parameters.forEachIndexed { index, param ->
+      method.parameters.forEachIndexed { index, param ->
         if (Pageable::class.java.isAssignableFrom(param.type)) {
           val paramName = paramNames[index]
           query.limitation = Limitation("$paramName.offset", "$paramName.pageSize")
           query.extraSortScript = String.format(PAGEABLE_SORT, paramName, paramName)
         }
       }
-      val returnType = resolveReturnType(function, mapperClass)
+      val returnType = resolveReturnType(method, mapperClass)
       val resolvedQuery = ResolvedQuery(
           query,
           resolveResultMap(
-              function, query,
+              method, query,
               mapperClass, returnType, builderAssistant
-          ), returnType, function
+          ), returnType, method
       )
-      putQueryCache(function, mapperClass, resolvedQuery)
+      putQueryCache(method, mapperClass, resolvedQuery)
       return resolvedQuery
     } catch (e: Exception) {
-      e.printStackTrace()
-      return ResolvedQuery(null, null, null, function, e.message)
+      log.error("解析方法 ${method.name} 失败", e)
+      return ResolvedQuery(null, null, null, method, e.message)
     }
   }
 
-  fun resolveJavaType(function: Method, clazz: Class<*>, forceSingleValue: Boolean = false): JavaType? {
-    return if (!forceSingleValue && Collection::class.java.isAssignableFrom(function.returnType)) {
-      toJavaType(ResolvableType.forMethodReturnType(function, clazz).generics[0].type)
+  fun resolveJavaType(method: Method, clazz: Class<*>, forceSingleValue: Boolean = false): JavaType? {
+    val type = if (!forceSingleValue && Collection::class.java.isAssignableFrom(method.returnType)) {
+      ResolvableType.forMethodReturnType(method, clazz).generics[0]
     } else {
-      toJavaType(ResolvableType.forMethodReturnType(function, clazz).type)
+      ResolvableType.forMethodReturnType(method, clazz)
     }
+    if (type.type is ParameterizedType) {
+      return toJavaType(type.type)
+    }
+    return toJavaType(type.resolve() ?: type.type)
   }
 
   /**
@@ -133,7 +137,7 @@ object QueryResolver {
         remainWords
       }
       propertiesWords.split("And")
-          .filter { !(it.size == 1 && it.first() == "All") }
+          .filter { !(it.size == 1 && (it.first() == "All" || it.first() == "Batch")) }
           .map { it.joinToString("").toCamelCase() }
     }
     val conditionWords = if (byIndex >= 0) {

@@ -11,13 +11,12 @@ import com.baomidou.mybatisplus.annotation.TableId
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
-import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
 import jakarta.persistence.*
 import org.apache.ibatis.builder.MapperBuilderAssistant
-import org.apache.ibatis.session.Configuration
 import org.springframework.core.annotation.AnnotationUtils
 import java.lang.reflect.Field
 import java.util.*
+import kotlin.reflect.KClass
 
 class MappingResolverProxy {
 
@@ -109,7 +108,7 @@ class MappingResolverProxy {
       val fieldInfo = fieldInfoMap[field.name]!!
       field.annotationIncompatible(Transient::class.java, MyBatisIgnore::class.java)
 
-      val joinInfo = resolveJoin(field, builderAssistant.configuration)
+      val joinInfo = resolveJoin(field)
       if (joinInfo is ObjectJoinInfo) {
         val joinClass = joinInfo.realType()
         val joinTableInfo = TableInfoHelper.getTableInfo(joinInfo.realType())
@@ -164,23 +163,25 @@ class MappingResolverProxy {
     }
   }
 
-  private fun resolveJoin(field: Field, configuration: Configuration): JoinInfo? {
+  private fun resolveJoin(field: Field): JoinInfo? {
     val joinProperty = field.getDeclaredAnnotation(JoinProperty::class.java)
     val joinObject = field.getDeclaredAnnotation(JoinObject::class.java)
     val count = field.getDeclaredAnnotation(Count::class.java)
     if (joinProperty != null && joinObject != null) {
       throw IllegalStateException("@JoinObject and @JoinProperty cannot appear on field $field at the same time.")
     }
-    val schema = GlobalConfigUtils.getGlobalConfig(configuration).dbConfig.schema
     return when {
       joinProperty != null -> joinProperty.let {
-        val targetTableName = TableName.resolve(it.targetTable, null, schema)
+        val targetTableName = tableName(it)
         PropertyJoinInfo(
-            ColumnName(joinProperty.selectColumn, field.name),
+            ColumnName(
+                resolveSelectedColumn(joinProperty),
+                field.name
+            ),
             targetTableName,
             it.joinType,
             it.joinProperty,
-            it.targetColumn,
+            resolveTargetColumn(joinProperty),
             field.genericType
         )
       }
@@ -203,7 +204,35 @@ class MappingResolverProxy {
     }
   }
 
-  private fun resolveJoinFromJoinObject(joinObject: JoinObject, field: Field): JoinInfo? {
+  private fun tableName(it: JoinProperty): TableName {
+    if (it.targetEntity != Any::class) {
+      return TableName.resolve(TableInfoHelper.getTableInfo(it.targetEntity.java).tableName, null)
+    }
+    return TableName.resolve(it.targetTable, null)
+  }
+
+  private fun resolveTargetColumn(joinProperty: JoinProperty): String {
+    return resolveFromEntity(joinProperty.targetEntity, joinProperty.targetProperty, joinProperty.targetColumn)
+  }
+
+  private fun resolveFromEntity(targetEntity: KClass<*>, targetProperty: String, targetColumn: String): String {
+    if (targetEntity != Any::class) {
+      val joinEntityInfo = TableInfoHelper.getTableInfo(targetEntity.java)
+      if (targetProperty.isNotBlank()) {
+        return joinEntityInfo.fieldList.find { it.property == targetProperty }?.column
+          ?: error(
+              "无法解析${targetEntity}的属性${targetProperty}对应的数据库字段"
+          )
+      }
+    }
+    return targetColumn
+  }
+
+  private fun resolveSelectedColumn(joinProperty: JoinProperty): String {
+    return resolveFromEntity(joinProperty.targetEntity, joinProperty.selectProperty, joinProperty.selectColumn)
+  }
+
+  private fun resolveJoinFromJoinObject(joinObject: JoinObject, field: Field): JoinInfo {
     val targetTableName = if (joinObject.targetTable.isBlank()) {
       val tableInfo = TableInfoHelper.getTableInfo(field.type) ?: error("无法解析字段${field.name}关联的表")
       TableName.resolve(tableInfo.tableName, joinObject.associationPrefix)

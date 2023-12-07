@@ -18,11 +18,14 @@ import org.junit.jupiter.api.Test
  */
 class StudentDAOResolverTest : BaseResolverTest(
     Student::class.java, StudentDAO::class.java,
-//    "findByNameOrAge",
+    "findByNameOrAge",
     "findByAgeBetween",
     "findByAgeBetweenMinAndMax",
-//    "findAllPageable",
-//    "findAllPage"
+    "findAllPageable",
+    "findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd",
+    "findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable",
+    "findAllPage",
+    "findById"
 ) {
 
   @Test
@@ -53,7 +56,19 @@ class StudentDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveFindBySubjectId() {
-    val q = queries.find { it.function.name == "findBySubjectId" }
+    val q = queries.find { it.method.name == "findBySubjectId" }
+    println(q)
+  }
+
+  @Test
+  fun resolveFindByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd() {
+    val q = queries.find { it.method.name == "findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd" }
+    println(q)
+  }
+
+  @Test
+  fun resolveFindByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable() {
+    val q = queries.find { it.method.name == "findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable" }
     println(q)
   }
 

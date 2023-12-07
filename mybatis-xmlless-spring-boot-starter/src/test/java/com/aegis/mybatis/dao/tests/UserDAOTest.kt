@@ -5,17 +5,15 @@ import com.aegis.mybatis.bean.Role
 import com.aegis.mybatis.bean.User
 import com.aegis.mybatis.dao.RoleDAO
 import com.aegis.mybatis.dao.UserDAO
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page
 import jakarta.annotation.Resource
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import kotlin.test.assertNull
 
 
 /**
@@ -31,8 +29,13 @@ class UserDAOTest : BaseTest() {
 
   @Resource
   private lateinit var dao: UserDAO
+
   @Resource
   private lateinit var roleDAO: RoleDAO
+
+  companion object {
+    private val log: Logger = LoggerFactory.getLogger(UserDAOTest::class.java)
+  }
 
   /**
    * 根据 entity 条件，删除记录
@@ -47,7 +50,15 @@ class UserDAOTest : BaseTest() {
    *
    * @param idList 主键ID列表(不能为 null 以及 empty)
    */
+  @Test
   fun deleteBatchIds() {
+    val user1 = User(name = "abc")
+    val user2 = User(name = "abcf")
+    dao.save(user1)
+    dao.save(user2)
+    assert(user1.id > 0)
+    assert(user2.id > 0)
+    dao.deleteByIdIn(listOf(user1.id, user2.id))
   }
 
   /**
@@ -55,7 +66,14 @@ class UserDAOTest : BaseTest() {
    *
    * @param id 主键ID
    */
+  @Test
   fun deleteById() {
+    val user = User(name = "abc")
+    dao.save(user)
+    assert(user.id > 0)
+    assertNotNull(dao.findById(user.id))
+    dao.deleteById(user.id)
+    assertNull(dao.findById(user.id))
   }
 
   /**
@@ -75,6 +93,9 @@ class UserDAOTest : BaseTest() {
 
   @Test
   fun findAll() {
+    dao.save(User(name = "w", deleted = false))
+    dao.save(User(name = "wt", deleted = false))
+    dao.save(User(name = "wtf", deleted = false))
     val page = dao.findAll(
         PageRequest.of(
             0, 20, Sort.Direction.DESC, "id"
@@ -139,6 +160,22 @@ class UserDAOTest : BaseTest() {
     dao.deleteById(user2.id)
   }
 
+  @Test
+  fun saveBatch() {
+    val user1 = User(
+        name = "test",
+        deleted = false
+    )
+    val user2 = User(
+        name = "w",
+        deleted = false
+    )
+    dao.saveBatch(listOf(user1, user2))
+    assert(user1.id > 0)
+    assert(user2.id > 0)
+    dao.deleteById(user1.id)
+    dao.deleteById(user2.id)
+  }
 
   /**
    * 查询（根据 columnMap 条件）
@@ -172,8 +209,6 @@ class UserDAOTest : BaseTest() {
   fun selectMaps() {
   }
 
-
-
   /**
    * 根据 whereEntity 条件，更新记录
    *
@@ -189,10 +224,6 @@ class UserDAOTest : BaseTest() {
    * @param entity 实体对象
    */
   fun updateById() {
-  }
-
-  companion object {
-    private val log: Logger = LoggerFactory.getLogger(UserDAOTest::class.java)
   }
 
 }

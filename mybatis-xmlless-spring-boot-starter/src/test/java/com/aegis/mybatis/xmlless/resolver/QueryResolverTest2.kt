@@ -2,6 +2,7 @@ package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.jackson.createObjectMapper
 import com.aegis.mybatis.bean.Dog
+import com.aegis.mybatis.bean.EducationInfo
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.DogDAO
 import com.aegis.mybatis.dao.StudentDAO
@@ -24,29 +25,36 @@ class QueryResolverTest2 {
 
   val objectMapper = createObjectMapper()
 
+
   @Test
   fun resolveReturnType() {
-    val kclass = StudentDetailDAO::class
-    val fn = kclass.functions
-        .first { it.name == "findEducation" }
-    val javaType = QueryResolver.resolveJavaType(fn.javaMethod!!, kclass.java)
+    val clazz = StudentDetailDAO::class.java
+    val method = StudentDetailDAO::findEducation.javaMethod!!
+    val t = ResolvableType.forMethodReturnType(method, clazz)
+    val javaType = QueryResolver.resolveJavaType(method, clazz)
     val rs = objectMapper.readValue<Any>(
         """[{
           | "school": "南京大学"
           |}]""".trimMargin(), javaType
     )
     println(javaType)
-    println(rs)
+    assert(rs is List<*>)
+    rs as List<*>
+    assert(rs.size == 1)
+    assert(rs.first() is EducationInfo)
   }
 
   @Test
   fun resolveReturnType2() {
-    val fn = DogDAO::class.functions
+    val modelClass = Dog::class.java
+    val mapperClass = DogDAO::class.java
+    val method = DogDAO::class.java.methods
         .first { it.name == "findById" }
-    val javaType = QueryResolver.resolveJavaType(fn.javaMethod!!, DogDAO::class.java)
-    val returnType = QueryResolver.resolveReturnType(fn.javaMethod!!, DogDAO::class.java)
-    assertEquals(Dog::class.java, javaType?.rawClass)
-    assertEquals(Dog::class.java, returnType)
+    val javaType = QueryResolver.resolveJavaType(method, mapperClass)
+    val returnType = QueryResolver.resolveReturnType(method, mapperClass)
+    println(ResolvableType.forMethodReturnType(method, mapperClass).type)
+    assertEquals(modelClass, javaType?.rawClass)
+    assertEquals(modelClass, returnType)
   }
 
   @Test
@@ -59,10 +67,11 @@ class QueryResolverTest2 {
 
   @Test
   fun resolveReturnType4() {
-    val fn = DogDAO::class.functions
+    val method = DogDAO::class.java.methods
         .first { it.name == "findAll" }
-    val javaType = QueryResolver.resolveJavaType(fn.javaMethod!!, DogDAO::class.java)
-    val returnType = QueryResolver.resolveReturnType(fn.javaMethod!!, DogDAO::class.java)
+    val mapperClass = DogDAO::class.java
+    val javaType = QueryResolver.resolveJavaType(method, mapperClass)
+    val returnType = QueryResolver.resolveReturnType(method, mapperClass)
     assertEquals(Dog::class.java, javaType?.rawClass)
     assertEquals(Dog::class.java, returnType)
   }

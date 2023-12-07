@@ -30,8 +30,8 @@ class SnowflakeKeyGenerator : KeyGenerator {
     private const val SEQUENCE_MASK = 4095L
     private const val WORKER_ID_LEFT_SHIFT_BITS = 12L
     private const val TIMESTAMP_LEFT_SHIFT_BITS = 22L
-    private const val maxTolerateTimeDifferenceMilliseconds = 10
-    private const val workerId: Long = 0
+    private const val MAX_TOLERATE_TIME_DIFFERENCE_MILLISECONDS = 10
+    private const val WORKER_ID: Long = 0
 
     init {
       val calendar = Calendar.getInstance()
@@ -55,7 +55,7 @@ class SnowflakeKeyGenerator : KeyGenerator {
       sequence = sequenceOffset.toLong()
     }
     lastMilliseconds = currentMilliseconds
-    return currentMilliseconds - epoch shl TIMESTAMP_LEFT_SHIFT_BITS.toInt() or (workerId shl WORKER_ID_LEFT_SHIFT_BITS.toInt()) or sequence
+    return currentMilliseconds - epoch shl TIMESTAMP_LEFT_SHIFT_BITS.toInt() or (WORKER_ID shl WORKER_ID_LEFT_SHIFT_BITS.toInt()) or sequence
   }
 
   @Synchronized
@@ -85,7 +85,7 @@ class SnowflakeKeyGenerator : KeyGenerator {
       } else {
         val timeDifferenceMilliseconds = lastMilliseconds - currentMilliseconds
         try {
-          check(timeDifferenceMilliseconds < maxTolerateTimeDifferenceMilliseconds) {
+          check(timeDifferenceMilliseconds < MAX_TOLERATE_TIME_DIFFERENCE_MILLISECONDS) {
             String.format(
                 "Clock is moving backwards, last time is %d milliseconds, current time is %d milliseconds",
                 lastMilliseconds, currentMilliseconds

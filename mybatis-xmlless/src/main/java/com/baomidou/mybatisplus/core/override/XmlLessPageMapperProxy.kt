@@ -19,7 +19,6 @@ import com.baomidou.mybatisplus.core.override.MybatisMapperProxy.MapperMethodInv
 import org.apache.ibatis.lang.UsesJava7
 import org.apache.ibatis.reflection.ExceptionUtil
 import org.apache.ibatis.session.SqlSession
-import java.lang.invoke.MethodHandles
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier

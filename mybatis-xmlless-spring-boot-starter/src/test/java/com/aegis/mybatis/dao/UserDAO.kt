@@ -33,6 +33,11 @@ interface UserDAO : XmlLessMapper<User> {
   fun deleteById(id: Int)
 
   /**
+   * @param ids
+   */
+  fun deleteByIdIn(ids: List<Int>)
+
+  /**
    *
    * @param pageable
    * @return
@@ -79,6 +84,11 @@ interface UserDAO : XmlLessMapper<User> {
    * @param user
    */
   fun saveAll(user: List<User>)
+
+  /**
+   * @param user
+   */
+  fun saveBatch(user: List<User>)
 
   /**
    *

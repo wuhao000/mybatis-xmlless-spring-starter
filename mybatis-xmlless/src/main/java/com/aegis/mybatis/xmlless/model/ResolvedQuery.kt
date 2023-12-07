@@ -16,8 +16,9 @@ data class ResolvedQuery(
     /**  sql查询返回的java类型 */
     val returnType: Class<*>?,
     /** 待解析的方法 */
-    val function: Method,
-    var unresolvedReason: String? = null) {
+    val method: Method,
+    var unresolvedReason: String? = null
+) {
 
   /**  sql语句 */
   val sql: String? = query?.toSql()
@@ -30,7 +31,7 @@ data class ResolvedQuery(
       "已解析"
     } else {
       "未成功解析"
-    }} 方法:\t$function\n")
+    }} 方法:\t$method\n")
     if (isValid()) {
       val prefix = "\t\t- "
       sb.append(prefix).append("类型: $type\n")

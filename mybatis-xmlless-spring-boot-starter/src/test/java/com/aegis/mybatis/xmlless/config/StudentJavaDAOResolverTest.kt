@@ -17,7 +17,9 @@ import org.junit.jupiter.api.Test
  * @since 0.0.1
  */
 class StudentJavaDAOResolverTest : BaseResolverTest(
-    Student::class.java, StudentDAO2::class.java, "findAllPage"
+    Student::class.java, StudentDAO2::class.java,
+    "findById",
+    "findAllPage"
 ) {
 
   @Test
@@ -48,7 +50,7 @@ class StudentJavaDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveFindBySubjectId() {
-    val q = queries.find { it.function.name == "findBySubjectId" }
+    val q = queries.find { it.method.name == "findBySubjectId" }
     println(q)
   }
 
@@ -66,17 +68,17 @@ class StudentJavaDAOResolverTest : BaseResolverTest(
     ids.forEach {
       println(it)
     }
-    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById"))
-    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById_scores"))
-    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById_scores_subject"))
-    val scoreMap = resultMaps.first { it.id == "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById_scores" }
+    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_StudentDAO2_findById"))
+    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_StudentDAO2_findById_scores"))
+    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_StudentDAO2_findById_scores_subject"))
+    val scoreMap = resultMaps.first { it.id == "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO2_findById_scores" }
     assert(scoreMap.autoMapping == true)
     assert(scoreMap.hasNestedResultMaps())
     val resultMappings = scoreMap.propertyResultMappings
     assert(resultMappings.any { it.column == "subject_id" })
     assert(resultMappings.any { it.property == "subject" })
     val resultMap = builderAssistant.configuration.getResultMap(
-        "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById"
+        "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO2_findById"
     )
     val mappings = resultMap.propertyResultMappings
     mappings.forEach {
@@ -100,7 +102,7 @@ class StudentJavaDAOResolverTest : BaseResolverTest(
     }
     val resultMaps = builderAssistant.configuration.resultMaps
     val resultMap = resultMaps.first {
-      it.id == "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById"
+      it.id == "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO2_findById"
     }
     resultMap.propertyResultMappings.forEach {
       println("${it.property}/${it.column}/${it.javaType}")

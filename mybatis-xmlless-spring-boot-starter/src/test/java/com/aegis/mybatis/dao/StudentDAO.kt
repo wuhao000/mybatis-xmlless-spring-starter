@@ -234,12 +234,30 @@ interface StudentDAO : XmlLessMapper<Student> {
 
   fun findByNameOrAge(form: QueryForm): List<Student>
 
+  fun findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd(form: QueryForm): List<Student>
+
+  @ResolvedName("findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd")
+  fun findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable3(
+      form: QueryForm, pageable: Pageable): Page<Student>
+
+  @ResolvedName("findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd")
+  fun findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable(
+      @Param("form") form: QueryForm, pageable: Pageable): Page<Student>
+
+
+  @ResolvedName("findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd")
+  fun findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable2(
+      @Param("form") form: QueryForm, @Param("p") pageable: Pageable): Page<Student>
+
   fun findByAgeBetween(min: Int?, max: Int?): List<Student>
+
   fun findByAgeBetweenMinAndMax(min: Int?, max: Int?): List<Student>
 }
 
 
 class QueryForm(
     val name: String? = null,
-    val age: Int? = null
+    val age: Int? = null,
+    val start: Date? = null,
+    val end: Date? = null
 )

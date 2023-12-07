@@ -1,7 +1,6 @@
 package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.bean.Dog
-import com.aegis.mybatis.bean.Score
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.DogDAO
 import com.aegis.mybatis.xmlless.annotations.MyBatisIgnore
@@ -24,16 +23,6 @@ class DogDAOResolverTest : BaseResolverTest(
     "findById"
 ) {
 
-  @Test
-  fun mappingResolve() {
-    val allMappings = MappingResolver.getAllMappings()
-    val scoreMapping = allMappings.first {
-      it.modelClass == Score::class.java
-    }
-    scoreMapping.mappings.forEach {
-      println(it.property + "/" + it.column)
-    }
-  }
 
   @Test
   fun resolve2() {
@@ -44,7 +33,7 @@ class DogDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveColumns() {
-    val mappings = MappingResolver.getMappingCache(Student::class.java)
+    val mappings = MappingResolver.getMappingCache(Dog::class.java)
     val cols = ColumnsResolver.resolve(mappings!!, Properties())
     cols.map {
       it.toSql()
@@ -59,7 +48,7 @@ class DogDAOResolverTest : BaseResolverTest(
 
   @Test
   fun findById() {
-    val q = queries.find { it.function.name == "findById" }
+    val q = queries.find { it.method.name == "findById" }
     println(q)
   }
 
@@ -71,32 +60,14 @@ class DogDAOResolverTest : BaseResolverTest(
     ids.forEach {
       println(it)
     }
-    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById"))
-    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById_scores"))
-    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById_scores_subject"))
-    val scoreMap = resultMaps.first { it.id == "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById_scores" }
-    assert(scoreMap.autoMapping == true)
-    assert(scoreMap.hasNestedResultMaps())
-    val resultMappings = scoreMap.propertyResultMappings
-    assert(resultMappings.any { it.column == "subject_id" })
-    assert(resultMappings.any { it.property == "subject" })
+    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_DogDAO_findById"))
     val resultMap = builderAssistant.configuration.getResultMap(
-        "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById"
+        "$currentNameSpace.com_aegis_mybatis_dao_DogDAO_findById"
     )
     val mappings = resultMap.propertyResultMappings
     mappings.forEach {
       println("${it.property}/${it.column}/${it.javaType}/${it.typeHandler?.javaClass}")
     }
-  }
-
-  @Test
-  fun resolveSpecValue() {
-    mapperClass.methods
-        .first { it.name == "findByGraduatedEqTrue" }.also {
-          val query = QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
-          println(query.toString())
-          assert(query.toString().contains("graduated = TRUE"))
-        }
   }
 
   @Test
@@ -106,7 +77,7 @@ class DogDAOResolverTest : BaseResolverTest(
     }
     val resultMaps = builderAssistant.configuration.resultMaps
     val resultMap = resultMaps.first {
-      it.id == "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById"
+      it.id == "$currentNameSpace.com_aegis_mybatis_dao_DogDAO_findById"
     }
     resultMap.propertyResultMappings.forEach {
       println("${it.property}/${it.column}/${it.javaType}")

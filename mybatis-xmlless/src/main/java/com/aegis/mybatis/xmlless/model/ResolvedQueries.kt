@@ -4,7 +4,6 @@ import com.aegis.mybatis.xmlless.config.paginition.XmlLessException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.lang.reflect.Method
-import kotlin.reflect.jvm.javaMethod
 
 
 /**
@@ -12,8 +11,10 @@ import kotlin.reflect.jvm.javaMethod
  * @author 吴昊
  * @since 0.0.1
  */
-class ResolvedQueries(private val mapperClass: Class<*>,
-                      private val unmappedMethods: List<Method> = listOf()) {
+class ResolvedQueries(
+    private val mapperClass: Class<*>,
+    private val unmappedMethods: List<Method> = listOf()
+) {
 
   private val queries = mutableListOf<ResolvedQuery>()
 
@@ -29,24 +30,18 @@ class ResolvedQueries(private val mapperClass: Class<*>,
     val sb = StringBuilder()
     sb.append("===================================================")
     sb.append("\n\n\t类: $mapperClass\n")
-    if (unmappedMethods.isNotEmpty()) {
-      sb.append("\n 未映射的方法:")
-      unmappedMethods.forEach {
-        sb.append("\n" + "\t".repeat(3) + it.name)
-      }
-    }
-    queries.sortedBy { it.function.name }
+    queries.sortedBy { it.method.name }
         .filter { it.query != null }.forEach {
           sb.append(it.toString())
         }
-    queries.sortedBy { it.function.name }
+    queries.sortedBy { it.method.name }
         .filter { it.query == null }.forEach {
           sb.append(it.toString())
         }
     sb.append("\n===================================================")
-//    if (log.isDebugEnabled) {
+    if (log.isDebugEnabled) {
       log.info("\n\n" + sb.toString() + "\n")
-//    }
+    }
     logUnresolved()
   }
 
@@ -55,8 +50,8 @@ class ResolvedQueries(private val mapperClass: Class<*>,
     val unResolved = queries.filter { it.query == null }
     if (unResolved.isNotEmpty()) {
       sb.append("以下方法未能成功解析:")
-      unResolved.sortedBy { it.function.name }.forEach {
-        sb.append("\n\t\t- ${it.function.declaringClass.name}." + it.function.name + ", 原因: " + it.unresolvedReason)
+      unResolved.sortedBy { it.method.name }.forEach {
+        sb.append("\n\t\t- ${it.method.declaringClass.name}." + it.method.name + ", 原因: " + it.unresolvedReason)
       }
       throw XmlLessException(sb.toString())
     }

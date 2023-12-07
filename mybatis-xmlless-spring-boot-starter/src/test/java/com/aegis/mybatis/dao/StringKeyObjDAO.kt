@@ -23,4 +23,6 @@ interface StringKeyObjDAO : XmlLessMapper<StringKeyObj> {
    */
   fun findAll(): List<StringKeyObj>
 
+  fun existsById(id: String): Boolean
+
 }

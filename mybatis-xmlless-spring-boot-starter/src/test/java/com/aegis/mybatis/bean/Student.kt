@@ -2,6 +2,9 @@ package com.aegis.mybatis.bean
 
 import com.aegis.mybatis.xmlless.annotations.*
 import com.baomidou.mybatisplus.annotation.TableField
+import jakarta.persistence.Column
+import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
 import org.apache.ibatis.type.BaseTypeHandler
 import org.apache.ibatis.type.JdbcType
 import java.sql.CallableStatement
@@ -9,8 +12,6 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.time.LocalDate
 import java.time.LocalDateTime
-import jakarta.persistence.Column
-import jakarta.persistence.Id
 
 @JsonMappingProperty
 data class EducationInfo(
@@ -57,6 +58,7 @@ class Student() {
 
   var age: Int = 0
   var birthday: LocalDate? = null
+
   @Count(
       targetTable = "t_score",
       targetColumn = "student_id",
@@ -65,21 +67,27 @@ class Student() {
   @Transient
   var count: Int = 0
   var createTime: LocalDateTime? = null
-  @JsonMappingProperty
+
+  @field: JsonMappingProperty
   var detail: StudentDetail? = null
-  @JsonMappingProperty
+
+  @field: JsonMappingProperty
   var education: List<EducationInfo>? = null
   var email: String? = null
-  @JsonMappingProperty
+
+  @field: JsonMappingProperty
   var favorites: List<String> = listOf()
+
   @Column(name = "sex")
   @TableField("sex")
   var gender: Int = 1
   var graduated: Boolean = false
+
   @Id
   var id: String = ""
   var name: String = ""
-  @JsonMappingProperty
+
+  @field: JsonMappingProperty
   var nickNames: List<String>? = null
 
   @Handler(StringTypeHandler::class)
@@ -96,8 +104,10 @@ class Student() {
   var scores: MutableList<Score>? = null
   var state: StudentState = StudentState.normal
 
-  constructor(id: String, name: String, phoneNumber: String,
-              gender: Int, state: StudentState = StudentState.normal) : this() {
+  constructor(
+      id: String, name: String, phoneNumber: String,
+      gender: Int, state: StudentState = StudentState.normal
+  ) : this() {
     this.id = id
     this.name = name
     this.phoneNumber = phoneNumber

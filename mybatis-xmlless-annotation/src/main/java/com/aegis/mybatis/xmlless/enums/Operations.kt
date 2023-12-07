@@ -19,8 +19,8 @@ enum class Operations(
   Between("BETWEEN", 2),
   Eq("=", 1),
   EqDefault("=", 0),
-  EqFalse(" = FALSE", 0),
-  EqTrue(" = TRUE", 0),
+  EqFalse("= FALSE", 0),
+  EqTrue("= TRUE", 0),
   Gt("&gt;", 1),
   Gte("&gt;=", 1),
   In("IN", 1),
@@ -41,13 +41,13 @@ enum class Operations(
 
     fun valueOf(words: List<String>): Operations? {
       val name = words.joinToString("")
-      return values().firstOrNull {
+      return entries.firstOrNull {
         it.name == name
       }
     }
 
     private fun names(): List<String> {
-      return Operations.values().map { it.name }
+      return entries.map { it.name }
     }
   }
 

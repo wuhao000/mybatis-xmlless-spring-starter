@@ -12,7 +12,7 @@ import com.aegis.mybatis.xmlless.model.TableName
  */
 class FromDeclaration : ISqlPart {
 
-  var tableName: TableName = TableName("", "", null)
+  var tableName: TableName = TableName("", "")
   var joins: List<JoinDeclaration> = listOf()
 
   override fun toSql(): String {

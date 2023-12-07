@@ -48,9 +48,7 @@ import org.apache.ibatis.session.Configuration
 import org.apache.ibatis.session.ResultHandler
 import org.apache.ibatis.session.RowBounds
 import org.apache.ibatis.type.JdbcType
-import org.apache.ibatis.type.TypeHandler
 import org.apache.ibatis.type.UnknownTypeHandler
-import org.springframework.data.domain.Page
 import java.io.IOException
 import java.io.InputStream
 import java.lang.reflect.GenericArrayType
@@ -135,15 +133,14 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
     for (arg in args) {
       val flags: MutableList<ResultFlag> = ArrayList()
       flags.add(ResultFlag.CONSTRUCTOR)
-      if (arg!!.id) {
+      if (arg.id) {
         flags.add(ResultFlag.ID)
       }
-      val typeHandler =
-          (if (arg.typeHandler == UnknownTypeHandler::class.java) {
-            null
-          } else {
-            arg.typeHandler
-          }) as Class<out TypeHandler<*>?>?
+      val typeHandler = if (arg.typeHandler != UnknownTypeHandler::class.java) {
+        arg.typeHandler.java
+      } else {
+        null
+      }
       val resultMapping = assistant.buildResultMapping(
           resultType,
           nullOrEmpty(arg.name),
@@ -189,12 +186,11 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
       } else {
         discriminator.jdbcType
       }
-      val typeHandler =
-          (if (discriminator.typeHandler == UnknownTypeHandler::class.java) {
-            null
-          } else {
-            discriminator.typeHandler
-          }) as Class<out TypeHandler<*>?>?
+      val typeHandler = if (discriminator.typeHandler != UnknownTypeHandler::class.java) {
+        discriminator.typeHandler.java
+      } else {
+        null
+      }
       val cases = discriminator.cases
       val discriminatorMap: MutableMap<String, String> = HashMap()
       for (c in cases) {
@@ -223,15 +219,14 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
   private fun applyResults(results: Array<Result>, resultType: Class<*>, resultMappings: MutableList<ResultMapping>) {
     for (result in results) {
       val flags: MutableList<ResultFlag> = ArrayList()
-      if (result!!.id) {
+      if (result.id) {
         flags.add(ResultFlag.ID)
       }
-      val typeHandler =
-          (if (result.typeHandler == UnknownTypeHandler::class.java) {
-            null
-          } else {
-            result.typeHandler
-          }) as Class<out TypeHandler<*>?>?
+      val typeHandler = if (result.typeHandler != UnknownTypeHandler::class.java) {
+        result.typeHandler.java
+      } else {
+        null
+      }
       val resultMapping = assistant.buildResultMapping(
           resultType,
           nullOrEmpty(result.property),
@@ -292,7 +287,7 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
   }
 
   private fun convertToProperties(properties: Array<Property>): Properties? {
-    if (properties.size == 0) {
+    if (properties.isEmpty()) {
       return null
     }
     val props = Properties()
@@ -323,7 +318,7 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
     val results = method.getAnnotation(
         Results::class.java
     )
-    if (results != null && !results.id.isEmpty()) {
+    if (results != null && results.id.isNotEmpty()) {
       return type.getName() + StringPool.DOT + results.id
     }
     val suffix = StringBuilder()
@@ -331,7 +326,7 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
       suffix.append(StringPool.DASH)
       suffix.append(c.getSimpleName())
     }
-    if (suffix.length < 1) {
+    if (suffix.isEmpty()) {
       suffix.append("-void")
     }
     return type.getName() + StringPool.DOT + method.name + suffix
@@ -382,26 +377,30 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
         }
       }
     } else if (resolvedReturnType is ParameterizedType) {
-      val parameterizedType = resolvedReturnType
-      val rawType = parameterizedType.rawType as Class<*>
+      val rawType = resolvedReturnType.rawType as Class<*>
       if (MutableCollection::class.java.isAssignableFrom(rawType) || Cursor::class.java.isAssignableFrom(rawType)) {
-        val actualTypeArguments = parameterizedType.actualTypeArguments
+        val actualTypeArguments = resolvedReturnType.actualTypeArguments
         if (actualTypeArguments != null && actualTypeArguments.size == 1) {
-          val returnTypeParameter = actualTypeArguments[0]
-          if (returnTypeParameter is Class<*>) {
-            returnType = returnTypeParameter
-          } else if (returnTypeParameter is ParameterizedType) {
-            // (gcode issue #443) actual type can be a also a parameterized type
-            returnType = returnTypeParameter.rawType as Class<*>
-          } else if (returnTypeParameter is GenericArrayType) {
-            val componentType = returnTypeParameter.genericComponentType as Class<*>
-            // (gcode issue #525) support List<byte[]>
-            returnType = java.lang.reflect.Array.newInstance(componentType, 0).javaClass
+          when (val returnTypeParameter = actualTypeArguments[0]) {
+            is Class<*>          -> {
+              returnType = returnTypeParameter
+            }
+
+            is ParameterizedType -> {
+              // (gcode issue #443) actual type can be a also a parameterized type
+              returnType = returnTypeParameter.rawType as Class<*>
+            }
+
+            is GenericArrayType  -> {
+              val componentType = returnTypeParameter.genericComponentType as Class<*>
+              // (gcode issue #525) support List<byte[]>
+              returnType = java.lang.reflect.Array.newInstance(componentType, 0).javaClass
+            }
           }
         }
       } else if (method.isAnnotationPresent(MapKey::class.java) && MutableMap::class.java.isAssignableFrom(rawType)) {
         // (gcode issue 504) Do not look into Maps if there is not MapKey annotation
-        val actualTypeArguments = parameterizedType.actualTypeArguments
+        val actualTypeArguments = resolvedReturnType.actualTypeArguments
         if (actualTypeArguments != null && actualTypeArguments.size == 2) {
           val returnTypeParameter = actualTypeArguments[1]
           if (returnTypeParameter is Class<*>) {
@@ -427,14 +426,22 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
       if (type == null) {
         return SqlCommandType.UNKNOWN
       }
-      if (type == SelectProvider::class.java) {
-        type = Select::class.java
-      } else if (type == InsertProvider::class.java) {
-        type = Insert::class.java
-      } else if (type == UpdateProvider::class.java) {
-        type = Update::class.java
-      } else if (type == DeleteProvider::class.java) {
-        type = Delete::class.java
+      when (type) {
+        SelectProvider::class.java -> {
+          type = Select::class.java
+        }
+
+        InsertProvider::class.java -> {
+          type = Insert::class.java
+        }
+
+        UpdateProvider::class.java -> {
+          type = Update::class.java
+        }
+
+        DeleteProvider::class.java -> {
+          type = Delete::class.java
+        }
       }
     }
     return SqlCommandType.valueOf(type.getSimpleName().uppercase())
@@ -523,17 +530,17 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
   }
 
   private fun hasNestedSelect(result: Result?): Boolean {
-    if (result!!.one.select.length > 0 && result.many.select.length > 0) {
+    if (result!!.one.select.isNotEmpty() && result.many.select.isNotEmpty()) {
       throw BuilderException("Cannot use both @One and @Many annotation in the same @Result")
     }
-    return result.one.select.length > 0 || result.many.select.length > 0
+    return result.one.select.isNotEmpty() || result.many.select.isNotEmpty()
   }
 
   private fun isLazy(result: Result?): Boolean {
     var isLazy = configuration.isLazyLoadingEnabled
-    if (result!!.one.select.length > 0 && FetchType.DEFAULT != result.one.fetchType) {
+    if (result!!.one.select.isNotEmpty() && FetchType.DEFAULT != result.one.fetchType) {
       isLazy = result.one.fetchType == FetchType.LAZY
-    } else if (result.many.select.length > 0 && FetchType.DEFAULT != result.many.fetchType) {
+    } else if (result.many.select.isNotEmpty() && FetchType.DEFAULT != result.many.fetchType) {
       isLazy = result.many.fetchType == FetchType.LAZY
     }
     return isLazy
@@ -566,7 +573,7 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
 
   private fun nestedSelectId(result: Result?): String {
     var nestedSelect = result!!.one.select
-    if (nestedSelect.length < 1) {
+    if (nestedSelect.isEmpty()) {
       nestedSelect = result.many.select
     }
     if (!nestedSelect.contains(StringPool.DOT)) {
@@ -576,7 +583,7 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
   }
 
   private fun nullOrEmpty(value: String?): String? {
-    return if (value == null || value.trim { it <= ' ' }.length == 0) {
+    return if (value == null || value.trim { it <= ' ' }.isEmpty()) {
       null
     } else {
       value
@@ -612,7 +619,7 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
       if (refType == Void.TYPE && refName.isEmpty()) {
         throw BuilderException("Should be specified either value() or name() attribute in the @CacheNamespaceRef")
       }
-      if (refType != Void.TYPE && !refName.isEmpty()) {
+      if (refType != Void.TYPE && refName.isNotEmpty()) {
         throw BuilderException("Cannot use both value() and name() attribute in the @CacheNamespaceRef")
       }
       val namespace = if (refType != Void.TYPE) {
@@ -727,7 +734,7 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
         val resultMaps = resultMapAnnotation.value
         val sb = StringBuilder()
         for (resultMap in resultMaps) {
-          if (sb.length > 0) {
+          if (sb.isNotEmpty()) {
             sb.append(StringPool.COMMA)
           }
           sb.append(resultMap)
@@ -766,7 +773,7 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
   }
 
   private fun resultsIf(results: Results?): Array<Result> {
-    return results?.value ?: arrayOf<Result>()
+    return results?.value ?: arrayOf()
   }
 
 }

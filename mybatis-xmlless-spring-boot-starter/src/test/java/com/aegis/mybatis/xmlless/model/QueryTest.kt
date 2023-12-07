@@ -164,10 +164,10 @@ class QueryTest : BaseResolverTest(TestEntity::class.java,
 
   @Test
   fun resolveGroupBy() {
-    val query1 = this.queries.first { it.function.name == "findByNameAndDescLikeKeyword" }.query!!
+    val query1 = this.queries.first { it.method.name == "findByNameAndDescLikeKeyword" }.query!!
     println(query1.toSql())
     assertEquals(2, query1.resolveGroups().size)
-    val query2 = this.queries.first { it.function.name == "findByNameOrDescLikeKeyword" }.query!!
+    val query2 = this.queries.first { it.method.name == "findByNameOrDescLikeKeyword" }.query!!
     println(query2.toSql())
     assertEquals(1, query2.resolveGroups().size)
   }
