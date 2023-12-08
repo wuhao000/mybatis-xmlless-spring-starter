@@ -18,6 +18,8 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.Month
+import java.time.YearMonth
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -300,6 +302,45 @@ class StudentDAOTest : BaseTest() {
     assert(dao.findByPhoneNumberLikeLeft(mobile.substring(2, 6)).isEmpty())
     assert(dao.findByPhoneNumberLikeRight(mobile.substring(mobile.length - 6, mobile.length)).isNotEmpty())
     assert(dao.findByPhoneNumberLikeRight(mobile.substring(2, 6)).isEmpty())
+  }
+
+  @Test
+  fun findByCreateTimeEqDate() {
+    dao.save(
+        Student("3", "李四", "17705184916", 22).apply {
+          createTime = LocalDateTime.of(2021, 1, 1, 12, 0, 0)
+        }
+    )
+    val s = dao.findByCreateTimeEqDate(LocalDate.of(2021, 1, 1))
+    assertEquals(1, s.size)
+    dao.deleteById("3")
+  }
+
+  @Test
+  fun findByCreateTimeEqMonth() {
+    dao.save(
+        Student("3", "李四", "17705184916", 22).apply {
+          createTime = LocalDateTime.of(2021, 1, 1, 12, 0, 0)
+        }
+    )
+    val s = dao.findByCreateTimeEqMonth(LocalDate.of(2021, 1, 6))
+    assertEquals(1, s.size)
+    dao.deleteById("3")
+  }
+
+
+  @Test
+  fun findByCreateTimeEqMonth2() {
+    dao.save(
+        Student("3", "李四", "17705184916", 22).apply {
+          createTime = LocalDateTime.of(2021, 1, 1, 12, 0, 0)
+        }
+    )
+    val s = dao.findByCreateTimeEqMonth(LocalDate.of(2021, 1, 6))
+    val s2 = dao.findByCreateTimeEqMonth(LocalDate.of(2021, 2, 6))
+    assertEquals(1, s.size)
+    assertEquals(0, s2.size)
+    dao.deleteById("3")
   }
 
   /**

@@ -18,11 +18,15 @@ enum class Operations(
 
   Between("BETWEEN", 2),
   Eq("=", 1),
+  EqDate("=", 1),
   EqDefault("=", 0),
   EqFalse("= FALSE", 0),
+  EqMonth("=", 1),
   EqTrue("= TRUE", 0),
   Gt("&gt;", 1),
+  GtDate("&gt;", 1),
   Gte("&gt;=", 1),
+  GteDate("&gt;=", 1),
   In("IN", 1),
   IsNotNull("IS NOT NULL", 0),
   IsNull("IS NULL", 0),
@@ -30,7 +34,10 @@ enum class Operations(
   LikeLeft("LIKE", 1),
   LikeRight("LIKE", 1),
   Lt("&lt;", 1),
+  LtDate("&lt;", 1),
+  LteDate("&lt;", 1),
   Lte("&lt;=", 1),
+  NeDate("!=", 1),
   Ne("!=", 1),
   NotNull("IS NOT NULL", 0);
 
@@ -57,6 +64,9 @@ enum class Operations(
       else  -> "${PROPERTY_PREFIX}%s${PROPERTY_SUFFIX}"
     }
     return when (this) {
+      LtDate, LteDate, NeDate, GtDate, GteDate,
+      EqDate    -> "AND date_format(%s, '%%Y-%%m-%%d') %s date_format($valueHolder, '%%Y-%%m-%%d')"
+      EqMonth   -> "AND date_format(%s, '%%Y-%%m') %s date_format($valueHolder, '%%Y-%%m')"
       Like      -> "%s %s CONCAT('%%', $valueHolder,'%%')"
       LikeLeft  -> "%s %s CONCAT($valueHolder, '%%')"
       LikeRight -> "%s %s CONCAT('%%', $valueHolder)"
@@ -65,6 +75,7 @@ enum class Operations(
           NotNull, IsNotNull,
           IsNull, EqTrue, EqFalse
       )         -> NO_VALUE
+
       Between   -> "%s %s $valueHolder AND $valueHolder"
       else      -> "%s %s $valueHolder"
     }

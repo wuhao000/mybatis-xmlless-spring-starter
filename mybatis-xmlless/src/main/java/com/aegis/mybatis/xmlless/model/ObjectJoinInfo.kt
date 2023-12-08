@@ -1,16 +1,13 @@
 package com.aegis.mybatis.xmlless.model
 
-import com.aegis.mybatis.xmlless.annotations.JoinObject
-import com.aegis.mybatis.xmlless.annotations.JoinProperty
-import com.aegis.mybatis.xmlless.annotations.MyBatisIgnore
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.model.component.JoinDeclaration
 import com.aegis.mybatis.xmlless.util.FieldUtil
+import com.aegis.mybatis.xmlless.util.getTableInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
-import jakarta.persistence.Transient
 import jakarta.persistence.criteria.JoinType
 import java.lang.reflect.Type
 import java.util.*
@@ -19,11 +16,7 @@ import java.util.*
  * Created by 吴昊 on 2018/12/17.
  */
 class ObjectJoinInfo(
-    val selectProperties: Properties,
-    joinTable: TableName,
-    type: JoinType,
-    joinProperty: String,
-    targetColumn: String,
+    val selectProperties: Properties, joinTable: TableName, type: JoinType, joinProperty: String, targetColumn: String,
     /**  关联表查询的列的别名前缀 */
     val associationPrefix: String,
     /**  join的对象或者属性的类型 */
@@ -31,7 +24,7 @@ class ObjectJoinInfo(
 ) : JoinInfo(joinTable, type, joinProperty, targetColumn, javaType) {
 
   override fun getJoinTableInfo(): TableInfo? {
-    return TableInfoHelper.getTableInfo(realType())
+    return getTableInfo(realType())
   }
 
   override fun selectFields(level: Int, prefix: String?): List<SelectColumn> {
@@ -48,13 +41,11 @@ class ObjectJoinInfo(
       if (mappings != null) {
         val mappingList = if (selectProperties.isIncludeNotEmpty()) {
           mappings.mappings.filter {
-            it.joinInfo != null && it.joinInfo is ObjectJoinInfo
-                && it.property in selectProperties
+            it.joinInfo != null && it.joinInfo is ObjectJoinInfo && it.property in selectProperties
           }
         } else {
           mappings.mappings.filter {
-            it.joinInfo != null && it.joinInfo is ObjectJoinInfo
-                && it.property !in selectProperties.excludes
+            it.joinInfo != null && it.joinInfo is ObjectJoinInfo && it.property !in selectProperties.excludes
           }
         }
         return mappingList.map { it.joinInfo!!.selectFields(level + 1, associationPrefix) }.flatten() + list
@@ -75,9 +66,7 @@ class ObjectJoinInfo(
     val realType = this.realType()
     val mappings = MappingResolver.getMappingCache(realType)
     return mappings?.selectJoins(
-        level + 1,
-        selectProperties,
-        listOf(), this.joinTable
+        level + 1, selectProperties, listOf(), this.joinTable
     ) ?: listOf()
   }
 
@@ -110,8 +99,7 @@ class ObjectJoinInfo(
   }
 
   private fun wrappedColumns(prefix: String? = null): List<SelectColumn> {
-    val fullPrefix = listOf(prefix, associationPrefix).filter { !it.isNullOrBlank() }
-        .joinToString("")
+    val fullPrefix = listOf(prefix, associationPrefix).filter { !it.isNullOrBlank() }.joinToString("")
     return resolveJoinColumns().map {
       when {
         it.alias != null -> if (prefix != null) {

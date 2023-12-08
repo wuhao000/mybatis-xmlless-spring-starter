@@ -15,6 +15,8 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.Month
+import java.time.YearMonth
 import java.util.*
 
 /**
@@ -148,6 +150,11 @@ interface StudentDAO : XmlLessMapper<Student> {
    * @return
    */
   fun findByPhoneNumberLikeLeft(@Param("phoneNumber") phoneNumber: String): List<Student>
+
+  fun findByCreateTimeEqDate(createTime: LocalDate): List<Student>
+
+  fun findByCreateTimeEqMonth(createTime: LocalDate): List<Student>
+
 
   /**
    *

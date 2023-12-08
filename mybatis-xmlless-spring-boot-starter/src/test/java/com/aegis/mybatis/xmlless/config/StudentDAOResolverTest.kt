@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test
  */
 class StudentDAOResolverTest : BaseResolverTest(
     Student::class.java, StudentDAO::class.java,
+    "findByCreateTimeEqDate",
     "findByNameOrAge",
     "findByAgeBetween",
     "findByAgeBetweenMinAndMax",
@@ -56,9 +57,10 @@ class StudentDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveFindBySubjectId() {
-    val q = queries.find { it.method.name == "findBySubjectId" }
+    val q = queries.find { it.method.name == "findByCreateTimeEqDate" }
     println(q)
   }
+
 
   @Test
   fun resolveFindByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd() {

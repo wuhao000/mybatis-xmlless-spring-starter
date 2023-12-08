@@ -11,8 +11,8 @@ import com.aegis.mybatis.xmlless.model.component.JoinConditionDeclaration
 import com.aegis.mybatis.xmlless.model.component.JoinDeclaration
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
+import com.aegis.mybatis.xmlless.util.getTableInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
-import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import java.lang.reflect.Method
 import java.util.*
 
@@ -220,6 +220,21 @@ data class FieldMappings(
         }.toList()
   }
 
+  fun getLogicDelFlagValue(logic: Logic): Any? {
+    val logicDelMapping = this.mappings.find { it.isLogicDelFlag }
+    return if (logicDelMapping != null) {
+      when (logic.flag) {
+        DeleteValue.Deleted -> logicDelMapping.logicDelValue
+        else                -> logicDelMapping.logicNotDelValue
+      }
+    } else {
+      when (logic.flag) {
+        DeleteValue.Deleted -> 1
+        else                -> 0
+      }
+    }
+  }
+
   private fun createJoinCondition(
       joinInfo: JoinInfo,
       joinTableName: TableName?,
@@ -242,7 +257,12 @@ data class FieldMappings(
     if (method != null) {
       val type = QueryResolver.resolveJavaType(method, modelClass, false)
       if (type != null) {
-        val returnTableInfo = TableInfoHelper.getTableInfo(type.rawClass)
+        val returnTableInfo = getTableInfo(type.rawClass) ?: error(
+            "无法解析方法${
+              method.declaringClass.name + "."
+                  + method.name
+            }的返回类型${type.rawClass}"
+        )
         return returnTableInfo.getFieldInfoMap(type.rawClass)[property]?.column
       }
     }
@@ -317,21 +337,6 @@ data class FieldMappings(
       )
     }
     return null
-  }
-
-  fun getLogicDelFlagValue(logic: Logic): Any? {
-    val logicDelMapping = this.mappings.find { it.isLogicDelFlag }
-    return if (logicDelMapping != null) {
-      when (logic.flag) {
-        DeleteValue.Deleted -> logicDelMapping.logicDelValue
-        else                -> logicDelMapping.logicNotDelValue
-      }
-    } else {
-      when (logic.flag) {
-        DeleteValue.Deleted -> 1
-        else                -> 0
-      }
-    }
   }
 
 }

@@ -5,6 +5,7 @@ import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.model.*
 import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.TypeResolver
+import com.aegis.mybatis.xmlless.util.getTableInfo
 import com.baomidou.mybatisplus.annotation.IdType
 import com.baomidou.mybatisplus.annotation.TableField
 import com.baomidou.mybatisplus.annotation.TableId
@@ -45,9 +46,7 @@ class MappingResolverProxy {
       // 防止无限循环
       if (fieldType != modelClass) {
         MappingResolver.fixTableInfo(
-            fieldType,
-            TableInfoHelper.initTableInfo(builderAssistant, fieldType),
-            builderAssistant
+            fieldType, TableInfoHelper.initTableInfo(builderAssistant, fieldType), builderAssistant
         )
       }
     }
@@ -58,13 +57,11 @@ class MappingResolverProxy {
       val column = field.getDeclaredAnnotation(Column::class.java)
       if (column.name.isNotBlank()) {
         val tableField = tableInfo.getFieldInfoMap(modelClass).values.find { it.property == field.name }
-          ?: error(
-              """can not find table field ${field.name} for table ${
-                tableInfo.tableName
-              }, optional fields are ${
-                tableInfo.fieldList.joinToString(",") { it.property }
-              }"""
-          )
+          ?: error("""can not find table field ${field.name} for table ${
+            tableInfo.tableName
+          }, optional fields are ${
+            tableInfo.fieldList.joinToString(",") { it.property }
+          }""")
         val columnField = TableFieldInfo::class.java.getDeclaredField("column")
         columnField.isAccessible = true
         columnField.set(tableField, column.name)
@@ -109,10 +106,10 @@ class MappingResolverProxy {
     }
     val mapping = FieldMappings(fields.map { field ->
       val fieldInfo = fieldInfoMap[field.name]!!
-      val joinInfo = resolveJoin(field)
+      val joinInfo = resolveJoin(field, builderAssistant)
       if (joinInfo is ObjectJoinInfo) {
         val joinClass = joinInfo.realType()
-        val joinTableInfo = TableInfoHelper.getTableInfo(joinInfo.realType())
+        val joinTableInfo = getTableInfo(joinInfo.realType(), builderAssistant)
         // 防止无限循环
         if (joinTableInfo != null && joinClass != modelClass) {
           MappingResolver.resolve(joinClass, joinTableInfo, builderAssistant)
@@ -135,8 +132,7 @@ class MappingResolverProxy {
    */
   private fun Field.annotationIncompatible(annotation1: Class<out Annotation>, annotation2: Class<out Annotation>) {
     if (AnnotationUtils.findAnnotation(this, annotation1) != null && AnnotationUtils.findAnnotation(
-            this,
-            annotation2
+            this, annotation2
         ) != null
     ) {
       throw IllegalStateException(
@@ -164,7 +160,7 @@ class MappingResolverProxy {
     }
   }
 
-  private fun resolveJoin(field: Field): JoinInfo? {
+  private fun resolveJoin(field: Field, builderAssistant: MapperBuilderAssistant): JoinInfo? {
     val joinProperty = field.getDeclaredAnnotation(JoinProperty::class.java)
     val joinObject = field.getDeclaredAnnotation(JoinObject::class.java)
     val count = field.getDeclaredAnnotation(Count::class.java)
@@ -173,21 +169,20 @@ class MappingResolverProxy {
     }
     return when {
       joinProperty != null -> joinProperty.let {
-        val targetTableName = tableName(it.toEntity, it.toTable)
+        val targetTableName = tableName(it.toEntity, it.toTable, builderAssistant)
         PropertyJoinInfo(
             ColumnName(
-                resolveSelectedColumn(joinProperty),
-                field.name
+                resolveSelectedColumn(joinProperty, builderAssistant), field.name
             ),
             targetTableName,
             it.joinType,
             it.joinOnThisProperty,
-            resolveTargetColumn(joinProperty.toEntity, joinProperty.toTable),
+            resolveTargetColumn(joinProperty.toEntity, joinProperty.toTable, builderAssistant),
             field.genericType
         )
       }
 
-      joinObject != null   -> resolveJoinFromJoinObject(joinObject, field)
+      joinObject != null   -> resolveJoinFromJoinObject(joinObject, field, builderAssistant)
       count != null        -> {
         val targetTableName = TableName.resolve(count.targetTable)
         PropertyJoinInfo(
@@ -205,18 +200,31 @@ class MappingResolverProxy {
     }
   }
 
-  private fun tableName(toEntity: JoinEntity, toTable: JoinTable, aliasPrefix: String? = null): TableName {
+  private fun tableName(
+      toEntity: JoinEntity,
+      toTable: JoinTable,
+      builderAssistant: MapperBuilderAssistant
+  ): TableName {
     if (toEntity.targetEntity != Any::class) {
-      return TableName.resolve(TableInfoHelper.getTableInfo(toEntity.targetEntity.java).tableName, aliasPrefix)
+      return TableName.resolve(
+          getTableInfo(toEntity.targetEntity.java, builderAssistant)?.tableName
+            ?: error("无法解析${toEntity.targetEntity.java}对应的表信息"), null
+      )
     }
-    return TableName.resolve(toTable.targetTable, aliasPrefix)
+    return TableName.resolve(toTable.targetTable, null)
   }
 
-  private fun resolveTargetColumn(toEntity: JoinEntity, toTable: JoinTable): String {
+  private fun resolveTargetColumn(
+      toEntity: JoinEntity,
+      toTable: JoinTable,
+      builderAssistant: MapperBuilderAssistant
+  ): String {
     if (toEntity.targetEntity == Any::class) {
       return toTable.joinOnColumn
     }
-    val joinEntityInfo = TableInfoHelper.getTableInfo(toEntity.targetEntity.java)
+    val joinEntityInfo =
+        getTableInfo(toEntity.targetEntity.java, builderAssistant)
+          ?: error("无法解析${toEntity.targetEntity}对应的数据库表信息")
     if (toEntity.joinOnProperty.isBlank()) {
       return joinEntityInfo.keyColumn
     }
@@ -227,25 +235,34 @@ class MappingResolverProxy {
       ?: error("无法解析${toEntity.targetEntity}的属性${toEntity.joinOnProperty}对应的数据库字段")
   }
 
-  private fun resolveFromEntity(targetEntity: KClass<*>, targetProperty: String): String {
-    val joinEntityInfo = TableInfoHelper.getTableInfo(targetEntity.java)
+  private fun resolveFromEntity(
+      targetEntity: KClass<*>,
+      targetProperty: String,
+      builderAssistant: MapperBuilderAssistant
+  ): String {
+    val joinEntityInfo =
+        getTableInfo(targetEntity.java, builderAssistant) ?: error("无法解析${targetEntity}对应的数据库表信息")
     return joinEntityInfo.fieldList.find { it.property == targetProperty }?.column
       ?: error("无法解析${targetEntity}的属性${targetProperty}对应的数据库字段")
   }
 
-  private fun resolveSelectedColumn(joinProperty: JoinProperty): String {
+  private fun resolveSelectedColumn(joinProperty: JoinProperty, builderAssistant: MapperBuilderAssistant): String {
     if (joinProperty.toEntity.targetEntity == Any::class) {
       return joinProperty.toTable.columnMapTo
     }
     return resolveFromEntity(
-        joinProperty.toEntity.targetEntity,
-        joinProperty.toEntity.propertyMapTo
+        joinProperty.toEntity.targetEntity, joinProperty.toEntity.propertyMapTo, builderAssistant
+
     )
   }
 
-  private fun resolveJoinFromJoinObject(joinObject: JoinObject, field: Field): JoinInfo {
-    val targetColumn = resolveTargetColumn(joinObject.toEntity, joinObject.toTable)
-    val targetTableName = resolveJoinTableName(joinObject, field)
+  private fun resolveJoinFromJoinObject(
+      joinObject: JoinObject,
+      field: Field,
+      builderAssistant: MapperBuilderAssistant
+  ): JoinInfo {
+    val targetColumn = resolveTargetColumn(joinObject.toEntity, joinObject.toTable, builderAssistant)
+    val targetTableName = resolveJoinTableName(joinObject, field, builderAssistant)
     val selectedProperties = field.getAnnotation(SelectedProperties::class.java)
     return ObjectJoinInfo(
         Properties(
@@ -260,14 +277,19 @@ class MappingResolverProxy {
     )
   }
 
-  private fun resolveJoinTableName(joinObject: JoinObject, field: Field): TableName {
+  private fun resolveJoinTableName(
+      joinObject: JoinObject,
+      field: Field,
+      builderAssistant: MapperBuilderAssistant
+  ): TableName {
     val prefix = field.name + "_"
     if (joinObject.toEntity.targetEntity != Any::class) {
-      val tableInfo = TableInfoHelper.getTableInfo(joinObject.toEntity.targetEntity.java)
+      val tableInfo = getTableInfo(joinObject.toEntity.targetEntity.java, builderAssistant)
+        ?: error("无法解析${joinObject.toEntity.targetEntity}对应的表信息")
       return TableName.resolve(tableInfo.tableName, prefix)
     }
     if (joinObject.toTable.targetTable.isBlank()) {
-      val tableInfo = TableInfoHelper.getTableInfo(field.type) ?: error("无法解析字段${field.name}关联的表")
+      val tableInfo = getTableInfo(field.type, builderAssistant) ?: error("无法解析字段${field.name}关联的表")
       return TableName.resolve(tableInfo.tableName, prefix)
     }
     return TableName.resolve(joinObject.toTable.targetTable, prefix)
