@@ -23,7 +23,7 @@ data class Role(
     @GeneratedValue(strategy = GenerationType.AUTO)
     var id: Int = 0,
     var name: String = "",
-    @field: JsonMappingProperty
+    @JsonMappingProperty
     var deps: List<Int> = listOf(),
     @JoinObject(
         toEntity = JoinEntity(Dep::class, joinOnProperty = "id"),

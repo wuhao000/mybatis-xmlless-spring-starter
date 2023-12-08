@@ -31,7 +31,7 @@ data class User(
   @TableField(exist = false)
   var count: Int = 0
 
-  @field: JsonMappingProperty
+  @JsonMappingProperty
   var roles: List<Int> = listOf()
 
   @JoinObject(

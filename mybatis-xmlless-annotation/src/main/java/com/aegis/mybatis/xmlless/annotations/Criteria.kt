@@ -16,7 +16,6 @@ import org.intellij.lang.annotations.Language
  */
 @Target(allowedTargets = [
   AnnotationTarget.VALUE_PARAMETER,
-  AnnotationTarget.PROPERTY,
   AnnotationTarget.FIELD
 ])
 annotation class Criteria(

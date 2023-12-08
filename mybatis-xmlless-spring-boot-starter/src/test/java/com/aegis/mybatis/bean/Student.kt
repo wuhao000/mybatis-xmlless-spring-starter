@@ -69,14 +69,14 @@ class Student() {
   @CreatedDate
   var createTime: LocalDateTime? = null
 
-  @field: JsonMappingProperty
+  @JsonMappingProperty
   var detail: StudentDetail? = null
 
-  @field: JsonMappingProperty
+  @JsonMappingProperty
   var education: List<EducationInfo>? = null
   var email: String? = null
 
-  @field: JsonMappingProperty
+  @JsonMappingProperty
   var favorites: List<String> = listOf()
 
   @Column(name = "sex")
@@ -88,7 +88,7 @@ class Student() {
   var id: String = ""
   var name: String = ""
 
-  @field: JsonMappingProperty
+  @JsonMappingProperty
   var nickNames: List<String>? = null
 
   @Handler(StringTypeHandler::class)

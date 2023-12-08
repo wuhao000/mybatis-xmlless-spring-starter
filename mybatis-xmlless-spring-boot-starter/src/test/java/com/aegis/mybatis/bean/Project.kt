@@ -19,7 +19,7 @@ class Project {
   @Id
   var id: String = ""
 
-  @field: JsonMappingProperty
+  @JsonMappingProperty
   var tapdWorkspaceId: Set<Long>? = null
 
 }

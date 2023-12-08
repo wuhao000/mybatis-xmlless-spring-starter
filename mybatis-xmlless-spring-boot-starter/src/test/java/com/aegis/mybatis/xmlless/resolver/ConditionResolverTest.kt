@@ -257,7 +257,7 @@ open class Form {
 }
 
 class Form2: Form() {
-  @field: Criteria(
+  @Criteria(
       test = TestExpression(
           value = [TestType.EqTrue]
       ),
