@@ -1,13 +1,13 @@
 package com.aegis.mybatis.xmlless.resolver
 
 import cn.hutool.core.util.ReflectUtil
-import com.aegis.mybatis.xmlless.annotations.Criteria
 import com.aegis.mybatis.xmlless.annotations.Logic
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.kotlin.split
 import com.aegis.mybatis.xmlless.kotlin.toCamelCase
 import com.aegis.mybatis.xmlless.model.*
+import com.aegis.mybatis.xmlless.util.FieldUtil
 import com.baomidou.mybatisplus.annotation.TableLogic
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import org.apache.ibatis.annotations.Param
@@ -52,12 +52,11 @@ object CriteriaResolver {
       if (parameter.criteria != null) {
         parameterConditions.add(resolveCriteria(parameter, paramNames[index], method, mappings))
       } else if (ParameterResolver.isComplexParameter(parameter.type)) {
-        ReflectUtil.getFields(TypeResolver.resolveRealType(parameter.type)).forEach { property ->
-          val propertyCriteria = property.getDeclaredAnnotation(Criteria::class.java)
-            ?: property.getAnnotation(Criteria::class.java)
-          if (propertyCriteria != null) {
+        ReflectUtil.getFields(TypeResolver.resolveRealType(parameter.type)).forEach { field ->
+          val criteriaInfo = FieldUtil.getCriteriaInfo(field)
+          if (criteriaInfo != null) {
             parameterConditions.add(
-                resolveCriteriaFromProperty(propertyCriteria, property, paramNames[index], method, mappings)
+                resolveCriteriaFromProperty(criteriaInfo, field, paramNames[index], method, mappings)
             )
           }
         }
@@ -99,7 +98,7 @@ object CriteriaResolver {
         }?.let {
           SpecificValue(it.stringValue, it.nonStringValue)
         },
-        mappings
+        mappings,
     )
   }
 
@@ -152,7 +151,7 @@ object CriteriaResolver {
       }
       // 如果条件参数是方法参数中的属性，则需要加上方法参数名称前缀
       val finalParamName = when {
-        parameterData?.property != null && parameterData.parameter.param != null
+        parameterData?.property != null && parameterData.parameter.specificParamName != null
              -> parameterData.paramName + DOT + paramName
 
         else -> paramName
@@ -205,19 +204,21 @@ object CriteriaResolver {
       }
 
       1    -> {
-        listOf(if (props.size > 1) {
-          // 解决剩余的名称为aInB的情况
-          val parts = props[1].split("In")
-          chooseFromParameter(
-              methodInfo, if (parts.size == 2) {
+        listOf(
+            if (props.size > 1) {
+              // 解决剩余的名称为aInB的情况
+              val parts = props[1].split("In")
+              chooseFromParameter(
+                  methodInfo, if (parts.size == 2) {
                 parts[1].joinToString("").toCamelCase()
               } else {
                 props[1].joinToString("").toCamelCase()
               }, parameterOffsetHolder
-          )
-        } else {
-          chooseFromParameter(methodInfo, property, parameterOffsetHolder)
-        })
+              )
+            } else {
+              chooseFromParameter(methodInfo, property, parameterOffsetHolder)
+            }
+        )
       }
 
       else -> listOf(property)
@@ -252,7 +253,7 @@ object CriteriaResolver {
   }
 
   private fun resolveCriteriaFromProperty(
-      criteria: Criteria, property: Field,
+      criteria: CriteriaInfo, property: Field,
       paramName: String, function: Method, mappings: FieldMappings
   ): QueryCriteria {
     val propertyName = when {

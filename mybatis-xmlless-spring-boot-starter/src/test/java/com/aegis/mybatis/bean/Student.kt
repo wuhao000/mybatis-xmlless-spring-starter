@@ -7,6 +7,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import org.apache.ibatis.type.BaseTypeHandler
 import org.apache.ibatis.type.JdbcType
+import org.springframework.data.annotation.CreatedDate
 import java.sql.CallableStatement
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -65,6 +66,7 @@ class Student() {
   )
   @Transient
   var count: Int = 0
+  @CreatedDate
   var createTime: LocalDateTime? = null
 
   @field: JsonMappingProperty
@@ -93,13 +95,11 @@ class Student() {
   var phoneNumber: String = ""
 
   @JoinObject(
-      targetTable = "t_score",
-      targetColumn = "student_id",
-      joinProperty = "id",
-      associationPrefix = "score_"
+      toEntity = JoinEntity(Score::class, joinOnProperty = "studentId"),
+      joinOnProperty = "id"
   )
   @SelectedProperties(["score", "subjectId", "subject"])
-  @MyBatisIgnore(insert = true, update = true)
+  @JoinColumn(insertable = false, updatable = false)
   var scores: MutableList<Score>? = null
   var state: StudentState = StudentState.normal
 

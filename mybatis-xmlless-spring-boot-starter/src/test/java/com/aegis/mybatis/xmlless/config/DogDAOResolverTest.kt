@@ -7,8 +7,10 @@ import com.aegis.mybatis.xmlless.annotations.MyBatisIgnore
 import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
+import com.aegis.mybatis.xmlless.util.FieldUtil
 import org.junit.jupiter.api.Test
 import org.springframework.core.annotation.AnnotationUtils
+import kotlin.reflect.jvm.javaField
 
 
 /**
@@ -27,7 +29,14 @@ class DogDAOResolverTest : BaseResolverTest(
   @Test
   fun resolve2() {
     Student::class.java.declaredFields.forEach {
-      println(AnnotationUtils.findAnnotation(it, MyBatisIgnore::class.java))
+      if (it == Student::scores.javaField) {
+        assert(FieldUtil.isInsertIgnore(it))
+        assert(FieldUtil.isUpdateIgnore(it))
+      }
+      if (it == Student::createTime.javaField) {
+        assert(!FieldUtil.isInsertIgnore(it))
+        assert(FieldUtil.isUpdateIgnore(it))
+      }
     }
   }
 

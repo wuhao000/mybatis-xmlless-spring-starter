@@ -14,7 +14,6 @@ import jakarta.persistence.criteria.JoinType
   AnnotationTarget.FIELD,
   AnnotationTarget.ANNOTATION_CLASS
 ])
-@MyBatisIgnore(insert = true, update = true)
 annotation class Count(
     val targetTable: String,
     val joinProperty: String = "",

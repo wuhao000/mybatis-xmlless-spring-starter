@@ -1,4 +1,4 @@
-package com.aegis.mybatis.xmlless.resolver
+package com.aegis.mybatis.xmlless.util
 
 import java.lang.reflect.AnnotatedElement
 import kotlin.reflect.KProperty
@@ -8,7 +8,7 @@ import kotlin.reflect.jvm.javaField
 /**
  * Created by 吴昊 on 2018/12/24.
  */
-object AnnotationResolver {
+object AnnotationUtil {
 
   inline fun <reified T : Annotation> resolve(parameter: AnnotatedElement): T? {
     return when (parameter) {

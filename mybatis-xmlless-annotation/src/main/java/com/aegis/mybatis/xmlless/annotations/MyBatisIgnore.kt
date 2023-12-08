@@ -8,7 +8,10 @@ package com.aegis.mybatis.xmlless.annotations
   AnnotationTarget.ANNOTATION_CLASS
 ])
 annotation class MyBatisIgnore(
+    @Deprecated("use @Column(insertable = false) or @JoinColumn(insertable = false) instead")
     val insert: Boolean = false,
+    @Deprecated("use @Column(updatable = false) or @JoinColumn(updatable = false) instead")
     val update: Boolean = false,
+    @Deprecated("use @Transient instead")
     val select: Boolean = false
 )

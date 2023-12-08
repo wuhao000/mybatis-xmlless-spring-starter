@@ -7,6 +7,7 @@ import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.model.component.JoinDeclaration
+import com.aegis.mybatis.xmlless.util.FieldUtil
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import jakarta.persistence.Transient
@@ -24,7 +25,7 @@ class ObjectJoinInfo(
     joinProperty: String,
     targetColumn: String,
     /**  关联表查询的列的别名前缀 */
-    val associationPrefix: String? = null,
+    val associationPrefix: String,
     /**  join的对象或者属性的类型 */
     javaType: Type
 ) : JoinInfo(joinTable, type, joinProperty, targetColumn, javaType) {
@@ -100,10 +101,7 @@ class ObjectJoinInfo(
       }
 
       else                 -> TableInfoHelper.getAllFields(realType()).filter {
-        it.getAnnotation(MyBatisIgnore::class.java)?.select != true
-            && !it.isAnnotationPresent(Transient::class.java)
-            && !it.isAnnotationPresent(JoinObject::class.java)
-            && !it.isAnnotationPresent(JoinProperty::class.java)
+        FieldUtil.canBeSelect(it)
       }.map {
         val columnName = it.name.toUnderlineCase().lowercase(Locale.getDefault())
         SelectColumn(null, columnName, associationPrefix + columnName, null)

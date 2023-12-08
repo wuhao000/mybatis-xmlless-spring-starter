@@ -26,4 +26,6 @@ class SimpleStudent(
     @Id
     var id: String = "",
     var name: String = "",
+    var phoneNumber: String = "",
+    var sex: Int = 1
 )

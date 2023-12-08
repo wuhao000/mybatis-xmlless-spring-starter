@@ -1,5 +1,6 @@
 package com.aegis.mybatis.bean
 
+import com.aegis.mybatis.xmlless.annotations.JoinEntity
 import com.aegis.mybatis.xmlless.annotations.JoinObject
 import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
@@ -25,10 +26,8 @@ data class Role(
     @field: JsonMappingProperty
     var deps: List<Int> = listOf(),
     @JoinObject(
-        targetTable = "t_dep",
-        targetColumn = "id",
-        joinProperty = "deps",
-        associationPrefix = "dep_"
+        toEntity = JoinEntity(Dep::class, joinOnProperty = "id"),
+        joinOnProperty = "deps"
     )
     @SelectedProperties(["id", "name"])
     var depList: MutableList<Dep> = arrayListOf(),

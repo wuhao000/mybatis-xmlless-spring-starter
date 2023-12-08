@@ -1,12 +1,11 @@
 package com.aegis.mybatis.bean
 
 import com.aegis.mybatis.xmlless.annotations.JoinObject
+import com.aegis.mybatis.xmlless.annotations.JoinTable
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.JoinTable
 
 
 /**
@@ -22,10 +21,8 @@ data class Server(
     var parentId: Int? = null,
     var providerId: Int = 0,
     @JoinObject(
-        targetColumn = "id",
-        targetTable = "t_server AS parent_server",
-        associationPrefix = "parent_",
-        joinProperty = "parentId"
+        toTable = JoinTable("t_server AS parent_server", joinOnColumn = "id"),
+        joinOnProperty = "parentId"
     )
     @SelectedProperties(["name", "ip"])
     var parent: Server? = null
@@ -33,10 +30,8 @@ data class Server(
 
   var order: Int = 1
   @JoinObject(
-      targetColumn = "id",
-      targetTable = "t_server_provider AS server_provider",
-      associationPrefix = "provider_",
-      joinProperty = "providerId"
+      toTable = JoinTable("t_server_provider AS server_provider", joinOnColumn = "id"),
+      joinOnProperty = "providerId"
   )
   var provider: ServerProvider? = null
 

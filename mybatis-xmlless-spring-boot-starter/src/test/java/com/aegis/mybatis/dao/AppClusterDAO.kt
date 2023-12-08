@@ -18,6 +18,8 @@ import org.springframework.data.domain.Pageable
 @Mapper
 interface AppClusterDAO : XmlLessMapper<AppCluster> {
 
+  fun save(cluster: AppCluster): Int
+
   @ResolvedName("findByNameOrUrlLikeKeywords")
   fun findAll(@Param("keywords") keywords: String?,
               @Param("pageable") pageable: Pageable): Page<AppCluster>

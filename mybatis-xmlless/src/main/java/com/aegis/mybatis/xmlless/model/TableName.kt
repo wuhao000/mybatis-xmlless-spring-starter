@@ -9,12 +9,6 @@ package com.aegis.mybatis.xmlless.model
  * @param alias 表别名
  */
 class TableName(name: String, alias: String = "") : NameAlias(name, alias) {
-  fun getAliasOrName(): String {
-    if (alias.isNotBlank()) {
-      return alias
-    }
-    return name
-  }
 
   companion object {
     fun resolve(
@@ -23,6 +17,21 @@ class TableName(name: String, alias: String = "") : NameAlias(name, alias) {
     ): TableName {
       val nameAlias = NameAlias.resolve(targetTable, aliasPrefix)
       return TableName(nameAlias.name, nameAlias.alias)
+    }
+  }
+
+  fun getAliasOrName(): String {
+    if (alias.isNotBlank()) {
+      return alias
+    }
+    return name
+  }
+
+  override fun toString(): String {
+    return if (alias.isNotBlank()) {
+      "$name AS $alias"
+    } else {
+      name
     }
   }
 

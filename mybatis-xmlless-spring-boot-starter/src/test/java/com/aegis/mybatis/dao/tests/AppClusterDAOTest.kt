@@ -1,10 +1,12 @@
 package com.aegis.mybatis.dao.tests
 
 import com.aegis.mybatis.BaseTest
+import com.aegis.mybatis.bean.AppCluster
 import com.aegis.mybatis.dao.AppClusterDAO
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
+import kotlin.test.assertEquals
 
 
 /**
@@ -17,8 +19,10 @@ open class AppClusterDAOTest : BaseTest() {
 
   @Test
   fun findAllPageable() {
-    val res = dao.findAll("a", PageRequest.of(0, 20))
-    println(res.totalElements)
+    dao.save(AppCluster())
+    dao.save(AppCluster())
+    val res = dao.findAll(null, PageRequest.of(0, 20))
+    assertEquals(2, res.totalElements)
   }
 
 }

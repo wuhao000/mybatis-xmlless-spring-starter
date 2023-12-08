@@ -1,23 +1,17 @@
 package com.aegis.mybatis.xmlless.model
 
-import com.aegis.mybatis.xmlless.annotations.Criteria
-import com.aegis.mybatis.xmlless.annotations.TestExpression
 import com.aegis.mybatis.xmlless.constant.Strings
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.enums.TestType
 import com.aegis.mybatis.xmlless.model.component.TestConditionDeclaration
-import com.aegis.mybatis.xmlless.resolver.AnnotationResolver
 import com.aegis.mybatis.xmlless.resolver.TypeResolver
+import com.aegis.mybatis.xmlless.util.FieldUtil
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
 import java.lang.reflect.AnnotatedElement
 import java.lang.reflect.Field
 import java.lang.reflect.Parameter
 import java.util.*
 
-
-class SpecificValue(
-    val stringValue: String, val nonStringValue: String
-)
 
 /**
  *
@@ -53,7 +47,7 @@ data class QueryCriteria(
   fun hasExpression(): Boolean {
     val parameter = getOnlyParameter()
     if (parameter != null) {
-      val criteria = parameter.getAnnotation(Criteria::class.java)
+      val criteria = FieldUtil.getCriteriaInfo(parameter)
       if (criteria != null && criteria.expression.isNotBlank()) {
         return criteria.expression.isNotBlank()
       }
@@ -92,7 +86,7 @@ data class QueryCriteria(
   fun toSqlWithoutTest(mappings: FieldMappings): String {
     val parameter = getOnlyParameter()
     if (parameter != null) {
-      val criteria = parameter.getAnnotation(Criteria::class.java)
+      val criteria = FieldUtil.getCriteriaInfo(parameter)
       if (criteria != null && criteria.expression.isNotBlank()) {
         return criteria.expression + " " + append
       }
@@ -183,7 +177,7 @@ data class QueryCriteria(
 
   private fun getTests(): String {
     val parameter = getOnlyParameter() ?: return getOnlyParameterName() ?: ""
-    val parameterTest = AnnotationResolver.resolve(parameter) ?: AnnotationResolver.resolve<Criteria>(parameter)?.test
+    val parameterTest = FieldUtil.getCriteriaInfo(parameter)?.testInfo
     if (parameterTest != null) {
       return resolveTests(parameterTest)
     }
@@ -193,10 +187,9 @@ data class QueryCriteria(
       is Field     -> tests = resolveTestsFromType(parameter.type)
     }
     return (tests + extraTestConditions).joinToString(Strings.TESTS_CONNECTOR) { it.toSql() }
-
   }
 
-  private fun resolveTests(parameterTest: TestExpression): String {
+  private fun resolveTests(parameterTest: TestInfo): String {
     val parameter = getOnlyParameter()
     val realParams = realParams()
     val clazz = if (parameter is Parameter) {
@@ -287,9 +280,30 @@ data class QueryCriteria(
 
 }
 
+/**
+ * 特殊值
+ *
+ * @author 吴昊
+ * @date 2023/12/07
+ * @version 1.0
+ * @since v4.0.0
+ */
+class SpecificValue(
+    val stringValue: String, val nonStringValue: String
+)
 
+
+/**
+ * 条件连接后缀类型
+ *
+ * @author 吴昊
+ * @date 2023/12/07
+ * @version 1.0
+ * @since v4.0.0
+ */
 enum class Append {
 
-  AND, OR;
+  AND,
+  OR;
 
 }

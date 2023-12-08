@@ -10,6 +10,7 @@ import com.aegis.mybatis.xmlless.constant.PROPERTY_SUFFIX
 import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.HANDLER_PREFIX
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
+import com.aegis.mybatis.xmlless.util.FieldUtil
 import com.baomidou.mybatisplus.annotation.TableLogic
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import jakarta.persistence.Transient
@@ -68,11 +69,9 @@ data class FieldMapping(
   val logicNotDelValue: Any?
 
   init {
-    val transient = field.getDeclaredAnnotation(Transient::class.java)
-    insertIgnore = transient != null || AnnotationUtils.findAnnotation(field, MyBatisIgnore::class.java)?.insert == true
-    updateIgnore = transient != null || AnnotationUtils.findAnnotation(field, MyBatisIgnore::class.java)?.update == true
-        || AnnotationUtils.findAnnotation(field, CreatedDate::class.java) != null
-    selectIgnore = transient != null || AnnotationUtils.findAnnotation(field, MyBatisIgnore::class.java)?.select == true
+    insertIgnore = FieldUtil.isInsertIgnore(field)
+    updateIgnore = FieldUtil.isUpdateIgnore(field)
+    selectIgnore = FieldUtil.isSelectIgnore(field)
     typeHandler = resolveTypeHandler(field)
     logicDelValue = parseLogicFlagValue(if (isLogicDelFlag) {
       val delValue = field.getAnnotation(TableLogic::class.java)?.delval
@@ -107,10 +106,11 @@ data class FieldMapping(
   }
 
   fun getInsertPropertyExpression(prefix: String? = null): String {
-    if (this.field.isAnnotationPresent(CreatedDate::class.java)) {
+    if (AnnotationUtils.findAnnotation(field, CreatedDate::class.java) != null) {
+      val unwrapProperty = getPropertyExpression(prefix, false)
       return """<choose>
-      <when test="$property != null">
-        ${PROPERTY_PREFIX}${property}${PROPERTY_SUFFIX}
+      <when test="$unwrapProperty != null">
+        ${getPropertyExpression(prefix)}
       </when>
       <otherwise>
         sysdate()

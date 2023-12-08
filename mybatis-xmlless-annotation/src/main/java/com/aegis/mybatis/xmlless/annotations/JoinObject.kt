@@ -9,15 +9,10 @@ import jakarta.persistence.criteria.JoinType
 @Target(allowedTargets = [
   AnnotationTarget.FIELD
 ])
-@MyBatisIgnore(insert = true, update = true)
 annotation class JoinObject(
-    /**  连接的表名称 */
-    val targetTable: String = "",
+    val toEntity: JoinEntity = JoinEntity(Any::class),
+    val toTable: JoinTable = JoinTable("", ""),
     val joinType: JoinType = JoinType.LEFT,
     /**  当前对象用于连接的属性名称（非表字段名称），如果为空则默认为主键 */
-    val joinProperty: String = "",
-    /**  连接表用于连接的字段 */
-    val targetColumn: String = "",
-    val associationPrefix: String
+    val joinOnProperty: String = ""
 )
-

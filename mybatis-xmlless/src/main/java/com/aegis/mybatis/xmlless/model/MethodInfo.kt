@@ -3,8 +3,8 @@ package com.aegis.mybatis.xmlless.model
 import cn.hutool.core.util.ReflectUtil
 import com.aegis.kotlin.isNotNullAndNotBlank
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
-import com.aegis.mybatis.xmlless.annotations.Criteria
 import com.aegis.mybatis.xmlless.resolver.ParameterResolver
+import com.aegis.mybatis.xmlless.util.FieldUtil
 import org.apache.ibatis.annotations.Param
 import java.lang.reflect.Method
 import java.lang.reflect.Parameter
@@ -40,11 +40,11 @@ data class MethodInfo(
       if (it.isComplex) {
         list.addAll(
             it.createOptionalParameters(
-                parameters.size > 1 || parameters.first().param != null
+                parameters.size > 1 || parameters.first().specificParamName != null
             )
         )
-      } else if (it.param != null) {
-        list.add(OptionalParam(null, it.param.value))
+      } else if (it.specificParamName != null) {
+        list.add(OptionalParam(null, it.specificParamName))
       } else {
         list.add(OptionalParam(null, it.name))
       }
@@ -70,15 +70,15 @@ data class ParameterInfo(
 ) {
 
   /** 条件注解 */
-  val criteria: Criteria? = parameter.getAnnotation(Criteria::class.java)
+  val criteria: CriteriaInfo? = FieldUtil.getCriteriaInfo(parameter)
 
   /** Param注解 */
-  val param: Param? = parameter.getAnnotation(Param::class.java)
+  val specificParamName: String? = parameter.getAnnotation(Param::class.java)?.value
 
 
   fun createOptionalParameters(forcePrefix: Boolean): List<OptionalParam> {
     val list = mutableListOf<OptionalParam>()
-    val prefix = param?.value ?: name
+    val prefix = specificParamName ?: name
     ReflectUtil.getFields(type).forEach { field ->
       val fieldParam = field.getAnnotation(Param::class.java)
       val paramName = fieldParam?.value
@@ -86,7 +86,7 @@ data class ParameterInfo(
       if (forcePrefix) {
         list.add(OptionalParam(prefix, name))
       } else {
-        list.add(OptionalParam(param?.value ?: paramName, name))
+        list.add(OptionalParam(specificParamName ?: paramName, name))
       }
     }
     return list.toList()

@@ -1,9 +1,10 @@
 package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
-import com.aegis.mybatis.xmlless.annotations.JsonResult
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.model.*
+import com.aegis.mybatis.xmlless.util.ModelUtil
+import com.aegis.mybatis.xmlless.util.MethodUtil
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.apache.ibatis.builder.ResultMapResolver
@@ -21,18 +22,6 @@ import java.lang.reflect.Method
  * @since 0.0.8
  */
 object ResultMapResolver {
-
-  fun isJsonType(
-      modelClass: Class<*>,
-      query: Query?,
-      function: Method?
-  ): Boolean {
-    if (function != null && function.isAnnotationPresent(JsonResult::class.java)) {
-      return true
-    }
-    return (modelClass.isAnnotationPresent(JsonMappingProperty::class.java)
-        && query != null && query.properties.includes.size == 1)
-  }
 
   fun resolveResultMap(
       id: String,
@@ -70,6 +59,18 @@ object ResultMapResolver {
     return copyId
   }
 
+  private fun isJsonType(
+      modelClass: Class<*>,
+      query: Query?,
+      method: Method?
+  ): Boolean {
+    if (method != null && MethodUtil.isJsonResult(method)) {
+      return true
+    }
+
+    return ModelUtil.isJsonMappingClass(modelClass) && query != null && query.properties.includes.size == 1
+  }
+
   private fun buildByMapping(
       id: String, builderAssistant: MapperBuilderAssistant,
       mapping: FieldMapping, tableInfo: TableInfo, modelClass: Class<*>
@@ -103,8 +104,9 @@ object ResultMapResolver {
             builder.column(joinInfo.propertyColumn.alias)
           }
         }
+
         is ObjectJoinInfo   -> {
-          if (!joinInfo.associationPrefix.isNullOrBlank()) {
+          if (joinInfo.associationPrefix.isNotBlank()) {
             builder.columnPrefix(joinInfo.associationPrefix)
           }
           builder.javaType(joinInfo.rawType())
@@ -192,10 +194,12 @@ object ResultMapResolver {
       when {
         query != null && (query.properties.isIncludeNotEmpty()
             && !isMappingPropertyInQuery(mapping, query))      -> null
+
         (optionalProperties.isIncludeNotEmpty()
             && mapping.property !in optionalProperties)
             || mapping.property in optionalProperties.excludes -> null
-        else                                             -> buildByMapping(
+
+        else                                                   -> buildByMapping(
             copyId,
             builderAssistant,
             mapping,

@@ -116,7 +116,7 @@ data class FieldMappings(
                 SelectColumn(
                     it.joinInfo!!.joinTable,
                     joinProperty.toUnderlineCase().lowercase(Locale.getDefault()),
-                    if (it.joinInfo is ObjectJoinInfo && !it.joinInfo.associationPrefix.isNullOrBlank()) {
+                    if (it.joinInfo is ObjectJoinInfo && it.joinInfo.associationPrefix.isNotBlank()) {
                       it.joinInfo.associationPrefix + joinProperty.toUnderlineCase().lowercase(Locale.getDefault())
                     } else {
                       null
@@ -163,8 +163,7 @@ data class FieldMappings(
       }.flatten()
     }
     return mappings.asSequence().filter {
-      !it.selectIgnore
-          && it.property !in properties.excludes
+      !it.selectIgnore && it.property !in properties.excludes
     }.map { mapping ->
       when {
         mapping.joinInfo != null -> mapping.joinInfo.selectFields(1)

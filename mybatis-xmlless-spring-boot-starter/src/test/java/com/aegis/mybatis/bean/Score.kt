@@ -22,8 +22,7 @@ class Score {
   var score: Int = 0
   var studentId: String = ""
   @JoinObject(
-      joinProperty = "subjectId",
-      associationPrefix = "subject_"
+      joinOnProperty = "subjectId"
   )
   @SelectedProperties(["id", "name"])
   var subject: Subject? = null
