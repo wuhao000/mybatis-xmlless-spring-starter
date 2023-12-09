@@ -8,12 +8,12 @@ import org.apache.ibatis.session.SqlSession
 /**
  * Created by 吴昊 on 2018/12/13.
  *
- * @author wuhao
+ * @author 吴昊
  * @date 2018
  * @version 0.1
  * @since 0.1
  */
-class MybatisXmlLessConfiguration() : MybatisConfiguration() {
+class MybatisXmlLessConfiguration : MybatisConfiguration() {
 
   private val mybatisXmlLessMapperRegistry = MybatisXmlLessMapperRegistry(this)
 

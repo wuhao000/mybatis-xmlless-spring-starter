@@ -17,7 +17,7 @@ data class ResolvedQuery(
     val returnType: Class<*>?,
     /** 待解析的方法 */
     val method: Method,
-    var unresolvedReason: String? = null
+    val unresolvedReason: String? = null
 ) {
 
   /**  sql语句 */

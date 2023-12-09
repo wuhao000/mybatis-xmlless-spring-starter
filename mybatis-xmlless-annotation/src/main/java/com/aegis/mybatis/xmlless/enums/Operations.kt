@@ -1,10 +1,10 @@
 package com.aegis.mybatis.xmlless.enums
 
+import com.aegis.kotlin.toWords
 import com.aegis.mybatis.xmlless.constant.IN_TEMPLATE
 import com.aegis.mybatis.xmlless.constant.NO_VALUE
 import com.aegis.mybatis.xmlless.constant.PROPERTY_PREFIX
 import com.aegis.mybatis.xmlless.constant.PROPERTY_SUFFIX
-import com.aegis.mybatis.xmlless.kotlin.toWords
 
 /**
  * 数据库支持的操作符

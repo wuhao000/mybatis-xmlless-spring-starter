@@ -55,7 +55,7 @@ class XmlLessMethods : AbstractMethod("") {
       !it.declaringClass.name.startsWith("com.baomidou.mybatisplus.core.mapper")
     }
     // 解析未定义的方法，进行sql推断
-    val resolvedQueries = ResolvedQueries(mapperClass, unmappedMethods)
+    val resolvedQueries = ResolvedQueries(mapperClass)
     unmappedMethods.forEach { method ->
       val resolvedQuery: ResolvedQuery =
           QueryResolver.resolve(method, tableInfo, modelClass, mapperClass, builderAssistant)

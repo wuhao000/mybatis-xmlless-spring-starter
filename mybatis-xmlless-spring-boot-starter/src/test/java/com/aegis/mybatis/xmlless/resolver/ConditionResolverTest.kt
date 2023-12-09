@@ -1,12 +1,13 @@
 package com.aegis.mybatis.xmlless.resolver
 
+import com.aegis.kotlin.toWords
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.StudentDAO
 import com.aegis.mybatis.xmlless.annotations.*
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.enums.TestType
-import com.aegis.mybatis.xmlless.kotlin.toWords
 import com.aegis.mybatis.xmlless.model.FieldMappings
+import com.aegis.mybatis.xmlless.model.MethodInfo
 import com.aegis.mybatis.xmlless.model.QueryCriteria
 import com.aegis.mybatis.xmlless.model.QueryType
 import com.baomidou.mybatisplus.core.MybatisConfiguration
@@ -85,10 +86,9 @@ class ConditionResolverTest {
     val exp = "NameAndAge"
     assertEquals("NameAndAge", exp)
     val conditions = resolveConditions(exp, method, mappings, QueryType.Select)
-    assertEquals(3, conditions.size)
+    assertEquals(2, conditions.size)
     assertEquals("name = #{name}", conditions[0].toString())
     assertEquals("age = #{age}", conditions[1].toString())
-    assertEquals("age = #{age}", conditions[2].toSql(mappings))
   }
 
   @Test
@@ -163,7 +163,13 @@ class ConditionResolverTest {
     assertEquals("status = #{form.status}", conditions[1].toString())
     assertEquals("dictType = #{form.dictType}", conditions[2].toString())
     assertEquals("createTime BETWEEN #{form.beginTime} AND #{form.endTime}", conditions[3].toString())
-    assertEquals("<if test=\"form.dictName\">\n\tstudent.dict_name = #{form.dictName} AND\n</if>", conditions[0].toSql(mappings))
+    println(conditions[0].toSql(mappings))
+    assertEquals(
+        "<if test=\"form.dictName != null and form.dictName.length() &gt; 0\">\n" +
+            "\tt_student.DICT_NAME = #{form.dictName} AND\n" +
+            "</if>",
+        conditions[0].toSql(mappings)
+    )
   }
 
   @Test
@@ -186,12 +192,12 @@ class ConditionResolverTest {
 
   private fun resolveConditions(
       conditionExpression: String,
-      function: Method,
+      method: Method,
       mappings: FieldMappings,
       queryType: QueryType
   ): List<QueryCriteria> {
     return CriteriaResolver.resolveConditions(
-        conditionExpression.toWords(), function, mappings, queryType
+        conditionExpression.toWords(), MethodInfo(method, modelClass, mappings), mappings, queryType
     )
   }
 
@@ -203,27 +209,21 @@ class ConditionResolverTest {
  * @since 0.0.8
  */
 @Suppress("unused")
-class TestDAO {
+interface TestDAO {
 
-  fun findByAgeBetweenMinAndMax(min: Int, max: Int) {
-  }
+  fun findByAgeBetweenMinAndMax(min: Int, max: Int)
 
   @ResolvedName(name = "findByDictNameAndStatusAndDictTypeAndCreateTimeBetweenBeginTimeAndEndTime")
   @ExcludeProperties(properties = ["remark"])
-  fun selectDictTypeList(dictType: SysDictTypeQueryForm?): List<SysDictType> {
-    return listOf()
-  }
+  fun selectDictTypeList(dictType: SysDictTypeQueryForm?): List<SysDictType>
 
   @ResolvedName(name = "findByDictNameAndStatusAndDictTypeAndCreateTimeBetweenBeginTimeAndEndTime")
   fun selectDictTypeListPageable(
-      @Param("form") dictType: SysDictTypeQueryForm?,
+      @Param("form") form: SysDictTypeQueryForm?,
       @Param("pageable") pageable: Pageable?
-  ): @ExcludeProperties(properties = ["remark"]) Page<SysDictType> {
-    return Page.empty()
-  }
+  ): @ExcludeProperties(properties = ["remark"]) Page<SysDictType>
 
-  fun findByAgeBetween(minAge: Int, maxAge: Int) {
-  }
+  fun findByAgeBetween(minAge: Int, maxAge: Int)
 
   @ResolvedName(
       name = "findByName",
@@ -231,21 +231,17 @@ class TestDAO {
         ValueAssign(param = "name", stringValue = "wuhao")
       ]
   )
-  fun findByNameEq() {
-  }
+  fun findByNameEq()
 
-  fun findByNameLikeKeywords(keywords: String) {
-  }
+  fun findByNameLikeKeywords(keywords: String)
 
-  fun findByNameAndAge(form: Form) {
-  }
+  fun findByNameAndAge(form: Form)
 
   @ResolvedName("findByNameAndAge")
-  fun findByNameAndAge3(form: Form2) {
-  }
+  fun findByNameAndAge3(form: Form2)
 
-  fun findByNameAndAge2(@Param("f") form: Form) {
-  }
+  @ResolvedName("findByNameAndAge")
+  fun findByNameAndAge2(@Param("f") fffffform: Form)
 
 }
 
@@ -256,7 +252,7 @@ open class Form {
 
 }
 
-class Form2: Form() {
+class Form2 : Form() {
   @Criteria(
       test = TestExpression(
           value = [TestType.EqTrue]

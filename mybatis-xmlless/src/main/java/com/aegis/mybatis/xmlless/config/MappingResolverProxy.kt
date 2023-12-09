@@ -1,7 +1,7 @@
 package com.aegis.mybatis.xmlless.config
 
+import com.aegis.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.annotations.*
-import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.model.*
 import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.TypeResolver
@@ -17,19 +17,18 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import org.apache.ibatis.builder.MapperBuilderAssistant
-import org.springframework.core.annotation.AnnotationUtils
 import java.lang.reflect.Field
 import java.util.*
 import kotlin.reflect.KClass
 
 class MappingResolverProxy {
 
-  private val FIXED_CLASSES = hashSetOf<Class<*>>()
-  private val MAPPING_CACHE = hashMapOf<String, FieldMappings>()
+  private val fixedClasses = hashSetOf<Class<*>>()
+  private val mappingCache = hashMapOf<String, FieldMappings>()
 
   fun fixTableInfo(modelClass: Class<*>, tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant) {
     // 防止重复处理
-    if (FIXED_CLASSES.contains(modelClass)) {
+    if (fixedClasses.contains(modelClass)) {
       return
     }
     fixTableName(modelClass, tableInfo)
@@ -46,7 +45,9 @@ class MappingResolverProxy {
       // 防止无限循环
       if (fieldType != modelClass) {
         MappingResolver.fixTableInfo(
-            fieldType, TableInfoHelper.initTableInfo(builderAssistant, fieldType), builderAssistant
+            fieldType,
+            TableInfoHelper.initTableInfo(builderAssistant, fieldType),
+            builderAssistant
         )
       }
     }
@@ -57,11 +58,13 @@ class MappingResolverProxy {
       val column = field.getDeclaredAnnotation(Column::class.java)
       if (column.name.isNotBlank()) {
         val tableField = tableInfo.getFieldInfoMap(modelClass).values.find { it.property == field.name }
-          ?: error("""can not find table field ${field.name} for table ${
-            tableInfo.tableName
-          }, optional fields are ${
-            tableInfo.fieldList.joinToString(",") { it.property }
-          }""")
+          ?: error(
+              """can not find table field ${field.name} for table ${
+                tableInfo.tableName
+              }, optional fields are ${
+                tableInfo.fieldList.joinToString(",") { it.property }
+              }"""
+          )
         val columnField = TableFieldInfo::class.java.getDeclaredField("column")
         columnField.isAccessible = true
         columnField.set(tableField, column.name)
@@ -84,15 +87,15 @@ class MappingResolverProxy {
         keyColumnField.set(tableInfo, keyColumn)
       }
     }
-    FIXED_CLASSES.add(modelClass)
+    fixedClasses.add(modelClass)
   }
 
   fun getAllMappings(): List<FieldMappings> {
-    return MAPPING_CACHE.values.toList()
+    return mappingCache.values.toList()
   }
 
   fun getMappingCache(modelClass: Class<*>): FieldMappings? {
-    return MAPPING_CACHE[modelClass.name]
+    return mappingCache[modelClass.name]
   }
 
   fun resolve(modelClass: Class<*>, tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant): FieldMappings {
@@ -117,28 +120,12 @@ class MappingResolverProxy {
       }
       FieldMapping(field, fieldInfo, joinInfo)
     }, tableInfo, modelClass, builderAssistant.configuration.isMapUnderscoreToCamelCase)
-    MAPPING_CACHE[modelClass.name] = mapping
+    mappingCache[modelClass.name] = mapping
     return mapping
   }
 
   fun resolveFields(modelClass: Class<*>): List<Field> {
     return TableInfoHelper.getAllFields(modelClass)
-  }
-
-  /**
-   * 指定的两个注解不能同时出现在同一个field上
-   * @param annotation1
-   * @param annotation2
-   */
-  private fun Field.annotationIncompatible(annotation1: Class<out Annotation>, annotation2: Class<out Annotation>) {
-    if (AnnotationUtils.findAnnotation(this, annotation1) != null && AnnotationUtils.findAnnotation(
-            this, annotation2
-        ) != null
-    ) {
-      throw IllegalStateException(
-          "注解$annotation1 和 $annotation2 不能同时出现在 $this 上"
-      )
-    }
   }
 
   /**
@@ -162,28 +149,54 @@ class MappingResolverProxy {
 
   private fun resolveJoin(field: Field, builderAssistant: MapperBuilderAssistant): JoinInfo? {
     val joinProperty = field.getDeclaredAnnotation(JoinProperty::class.java)
+    val joinEntityProperty = field.getDeclaredAnnotation(JoinEntityProperty::class.java)
+    val joinTableColumn = field.getDeclaredAnnotation(JoinTableColumn::class.java)
     val joinObject = field.getDeclaredAnnotation(JoinObject::class.java)
     val count = field.getDeclaredAnnotation(Count::class.java)
     if (joinProperty != null && joinObject != null) {
       throw IllegalStateException("@JoinObject and @JoinProperty cannot appear on field $field at the same time.")
     }
     return when {
-      joinProperty != null -> joinProperty.let {
-        val targetTableName = tableName(it.toEntity, it.toTable, builderAssistant)
+      joinEntityProperty != null -> joinEntityProperty.let {
         PropertyJoinInfo(
             ColumnName(
-                resolveSelectedColumn(joinProperty, builderAssistant), field.name
+                resolveFromEntity(it.entity, it.propertyMapTo, builderAssistant),
+                field.name
             ),
-            targetTableName,
+            tableName(it.entity.java, it.joinOnThisProperty.toUnderlineCase() + "_", builderAssistant),
             it.joinType,
             it.joinOnThisProperty,
-            resolveTargetColumn(joinProperty.toEntity, joinProperty.toTable, builderAssistant),
+            resolveJoinOnColumn(it.entity.java, joinEntityProperty.joinOnProperty, builderAssistant),
             field.genericType
         )
       }
 
-      joinObject != null   -> resolveJoinFromJoinObject(joinObject, field, builderAssistant)
-      count != null        -> {
+      joinTableColumn != null    -> joinTableColumn.let {
+        PropertyJoinInfo(
+            ColumnName(it.columnMapTo, field.name),
+            TableName.resolve(it.table, null),
+            it.joinType,
+            it.joinOnThisProperty,
+            it.joinOnColumn,
+            field.genericType
+        )
+      }
+
+      joinProperty != null       -> joinProperty.let {
+        PropertyJoinInfo(
+            ColumnName(
+                resolveSelectedColumn(it, builderAssistant), field.name
+            ),
+            tableName(it.toEntity, it.toTable, it.joinOnThisProperty.toUnderlineCase() + "_", builderAssistant),
+            it.joinType,
+            it.joinOnThisProperty,
+            resolveJoinOnColumn(it.toEntity, it.toTable, builderAssistant),
+            field.genericType
+        )
+      }
+
+      joinObject != null         -> resolveJoinFromJoinObject(joinObject, field, builderAssistant)
+      count != null              -> {
         val targetTableName = TableName.resolve(count.targetTable)
         PropertyJoinInfo(
             ColumnName("COUNT(${targetTableName.alias}.${count.countColumn})", field.name),
@@ -196,25 +209,34 @@ class MappingResolverProxy {
         )
       }
 
-      else                 -> null
+      else                       -> null
     }
   }
 
   private fun tableName(
       toEntity: JoinEntity,
       toTable: JoinTable,
+      joinOnThisProperty: String,
       builderAssistant: MapperBuilderAssistant
   ): TableName {
     if (toEntity.targetEntity != Any::class) {
-      return TableName.resolve(
-          getTableInfo(toEntity.targetEntity.java, builderAssistant)?.tableName
-            ?: error("无法解析${toEntity.targetEntity.java}对应的表信息"), null
-      )
+      return tableName(toEntity.targetEntity.java, joinOnThisProperty, builderAssistant)
     }
-    return TableName.resolve(toTable.targetTable, null)
+    return TableName.resolve(toTable.targetTable, joinOnThisProperty)
   }
 
-  private fun resolveTargetColumn(
+  private fun tableName(
+      targetEntity: Class<*>,
+      joinOnThisProperty: String,
+      builderAssistant: MapperBuilderAssistant
+  ): TableName {
+    return TableName.resolve(
+        getTableInfo(targetEntity, builderAssistant)?.tableName
+          ?: error("无法解析${targetEntity}对应的表信息"), joinOnThisProperty
+    )
+  }
+
+  private fun resolveJoinOnColumn(
       toEntity: JoinEntity,
       toTable: JoinTable,
       builderAssistant: MapperBuilderAssistant
@@ -222,17 +244,24 @@ class MappingResolverProxy {
     if (toEntity.targetEntity == Any::class) {
       return toTable.joinOnColumn
     }
-    val joinEntityInfo =
-        getTableInfo(toEntity.targetEntity.java, builderAssistant)
-          ?: error("无法解析${toEntity.targetEntity}对应的数据库表信息")
-    if (toEntity.joinOnProperty.isBlank()) {
+    return resolveJoinOnColumn(toEntity.targetEntity.java, toEntity.joinOnProperty, builderAssistant)
+  }
+
+  private fun resolveJoinOnColumn(
+      targetEntity: Class<*>,
+      joinOnProperty: String,
+      builderAssistant: MapperBuilderAssistant
+  ): String {
+    val joinEntityInfo = getTableInfo(targetEntity, builderAssistant)
+      ?: error("无法解析${targetEntity}对应的数据库表信息")
+    if (joinOnProperty.isBlank()) {
       return joinEntityInfo.keyColumn
     }
-    if (toEntity.joinOnProperty == joinEntityInfo.keyProperty) {
+    if (joinOnProperty == joinEntityInfo.keyProperty) {
       return joinEntityInfo.keyColumn
     }
-    return joinEntityInfo.fieldList.find { it.property == toEntity.joinOnProperty }?.column
-      ?: error("无法解析${toEntity.targetEntity}的属性${toEntity.joinOnProperty}对应的数据库字段")
+    return joinEntityInfo.fieldList.find { it.property == joinOnProperty }?.column
+      ?: error("无法解析${targetEntity}的属性${joinOnProperty}对应的数据库字段")
   }
 
   private fun resolveFromEntity(
@@ -261,7 +290,7 @@ class MappingResolverProxy {
       field: Field,
       builderAssistant: MapperBuilderAssistant
   ): JoinInfo {
-    val targetColumn = resolveTargetColumn(joinObject.toEntity, joinObject.toTable, builderAssistant)
+    val targetColumn = resolveJoinOnColumn(joinObject.toEntity, joinObject.toTable, builderAssistant)
     val targetTableName = resolveJoinTableName(joinObject, field, builderAssistant)
     val selectedProperties = field.getAnnotation(SelectedProperties::class.java)
     return ObjectJoinInfo(

@@ -6,7 +6,7 @@ import com.aegis.mybatis.xmlless.XmlLessMapper
 /**
  * TODO
  *
- * @author wuhao
+ * @author 吴昊
  * @date 2023/12/6 18:26
  * @since v0.0.0
  * @version 1.0

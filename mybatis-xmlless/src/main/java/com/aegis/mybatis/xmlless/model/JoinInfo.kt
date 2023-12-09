@@ -1,13 +1,13 @@
 package com.aegis.mybatis.xmlless.model
 
+import com.aegis.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
-import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.resolver.TypeResolver
 import com.baomidou.mybatisplus.core.metadata.TableInfo
+import jakarta.persistence.criteria.JoinType
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.util.*
-import jakarta.persistence.criteria.JoinType
 
 /**
  *
@@ -25,7 +25,8 @@ abstract class JoinInfo(
     val type: JoinType,
     private val joinProperty: String,
     val targetColumn: String,
-    val javaType: Type) {
+    val javaType: Type
+) {
 
   /**
    * 返回用于关联表的属性名称
@@ -33,7 +34,9 @@ abstract class JoinInfo(
    */
   fun getJoinProperty(tableInfo: TableInfo): String {
     return when {
-      joinProperty.isEmpty() -> tableInfo.keyProperty ?: throw BuildSQLException("无法解析${tableInfo.entityType}的主键属性")
+      joinProperty.isEmpty() -> tableInfo.keyProperty
+        ?: throw BuildSQLException("无法解析${tableInfo.entityType}的主键属性")
+
       else                   -> joinProperty
     }
   }

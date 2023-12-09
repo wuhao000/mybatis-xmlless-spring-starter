@@ -6,7 +6,7 @@ import jakarta.persistence.Table
 
 /**
  *
- * @author wuhao
+ * @author 吴昊
  * @date 2023/12/6 18:24
  * @since v0.0.0
  * @version 1.0

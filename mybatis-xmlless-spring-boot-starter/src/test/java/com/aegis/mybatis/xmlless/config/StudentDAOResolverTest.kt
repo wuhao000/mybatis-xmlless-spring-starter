@@ -7,6 +7,7 @@ import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import org.junit.jupiter.api.Test
+import kotlin.reflect.jvm.javaMethod
 
 
 /**
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test
  */
 class StudentDAOResolverTest : BaseResolverTest(
     Student::class.java, StudentDAO::class.java,
+    "find",
     "findByCreateTimeEqDate",
     "findByNameOrAge",
     "findByAgeBetween",
@@ -57,56 +59,68 @@ class StudentDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveFindBySubjectId() {
-    val q = queries.find { it.method.name == "findByCreateTimeEqDate" }
+    val q = queries.find { it.method == StudentDAO::findByCreateTimeEqDate.javaMethod }
     println(q)
   }
 
 
   @Test
   fun resolveFindByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd() {
-    val q = queries.find { it.method.name == "findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd" }
+    val q = queries.find { it.method == StudentDAO::findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd.javaMethod }
     println(q)
   }
 
   @Test
   fun resolveFindByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable() {
-    val q = queries.find { it.method.name == "findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable" }
+    val q = queries.find { it.method == StudentDAO::findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable.javaMethod }
     println(q)
   }
 
   @Test
   fun resolveFindAllPage() {
-    val query = createQueryForMethod("findAllPageable")
+    val query = createQueryForMethod(StudentDAO::findAllPageable.javaMethod!!)
+    println(query)
+  }
+
+  @Test
+  fun find() {
+    val query = createQueryForMethod(StudentDAO::find.javaMethod!!)
+    println(query)
+  }
+
+  @Test
+  fun findByNameAndAgeAndUserNameOrCreateUserNameLikeKeywords() {
+    val query = createQueryForMethod(StudentDAO::findByNameAndAgeAndUserNameLikeKeywordsOrCreateUserNameLikeKeywords.javaMethod!!)
     println(query)
   }
 
   @Test
   fun resolveParameter() {
-    val query = createQueryForMethod("findByNameOrAge")
+    val query = createQueryForMethod(StudentDAO::findByNameOrAge.javaMethod!!)
     println(query)
   }
 
   @Test
   fun findByAgeBetween() {
-    val query = createQueryForMethod("findByAgeBetween")
+    val query = createQueryForMethod(StudentDAO::findByAgeBetween.javaMethod!!)
     println(query)
   }
 
   @Test
   fun findByAgeBetweenMinAndMax() {
-    val query = createQueryForMethod("findByAgeBetweenMinAndMax")
+    val query = createQueryForMethod(StudentDAO::findByAgeBetweenMinAndMax.javaMethod!!)
     println(query)
   }
 
   @Test
   fun resolveFindByPhoneNumberLikeLeft() {
-    val query = createQueryForMethod("findByPhoneNumberLikeLeft")
+    val query = createQueryForMethod(StudentDAO::findByPhoneNumberLikeLeft.javaMethod!!)
     println(query)
   }
 
   @Test
   fun resolvePartlyUpdate() {
-    val query = createQueryForMethod("updatePartly")
+    val query = createQueryForMethod(StudentDAO::updatePartly.javaMethod!!)
     println(query)
   }
 
@@ -160,12 +174,5 @@ class StudentDAOResolverTest : BaseResolverTest(
     }
   }
 
-  private fun createQueryForMethod(name: String): Any {
-    return mapperClass.methods
-        .filter { it.name == name }
-        .map {
-          QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
-        }.first()
-  }
 
 }

@@ -2,17 +2,16 @@
 
 package com.aegis.mybatis.xmlless.resolver
 
+import com.aegis.kotlin.toCamelCase
+import com.aegis.kotlin.toPascalCase
+import com.aegis.kotlin.toWords
 import com.aegis.mybatis.xmlless.annotations.ExcludeProperties
 import com.aegis.mybatis.xmlless.annotations.Logic
-import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.constant.PAGEABLE_SORT
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.split
-import com.aegis.mybatis.xmlless.kotlin.toCamelCase
-import com.aegis.mybatis.xmlless.kotlin.toPascalCase
-import com.aegis.mybatis.xmlless.kotlin.toWords
 import com.aegis.mybatis.xmlless.model.*
 import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.metadata.TableInfo
@@ -46,12 +45,12 @@ object QueryResolver {
     return QUERY_CACHE[key]
   }
 
-  fun getQueryCache(function: Method, mapperClass: Class<*>): ResolvedQuery? {
-    return QUERY_CACHE[mapperClass.name + DOT + function.name]
+  fun getQueryCache(method: Method, mapperClass: Class<*>): ResolvedQuery? {
+    return QUERY_CACHE[mapperClass.name + DOT + method.name]
   }
 
-  fun putQueryCache(function: Method, mapperClass: Class<*>, query: ResolvedQuery) {
-    QUERY_CACHE[mapperClass.name + DOT + function.name] = query
+  fun putQueryCache(method: Method, mapperClass: Class<*>, query: ResolvedQuery) {
+    QUERY_CACHE[mapperClass.name + DOT + method.name] = query
   }
 
   fun resolve(
@@ -63,34 +62,36 @@ object QueryResolver {
       return getQueryCache(method, mapperClass)!!
     }
     try {
-      val methodInfo = MethodInfo(method)
       val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
-      val paramNames = ParameterResolver.resolveNames(method)
-      val resolvedNameAnnotation = method.getAnnotation(ResolvedName::class.java)
-      val resolvedName = getResolvedName(method)
-      val resolveSortsResult = resolveSorts(resolvedName)
-      val resolveTypeResult = resolveType(resolveSortsResult.remainName, method)
+      val methodInfo = MethodInfo(method, modelClass, mappings)
+      val resolvedNames = getResolvedName(methodInfo)
+      val resolveSortsResult = resolveSorts(resolvedNames)
+      val resolveTypeResult = resolveType(resolveSortsResult.remainNames.first(), method)
       val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords, method)
+      val conditionWordsList = resolveSortsResult.remainNames.drop(1).map { it.toWords() }
       val conditions = CriteriaResolver.resolveConditions(
-          resolvePropertiesResult.conditionWords,
-          method, mappings, resolveTypeResult.type
-      )
+          resolvePropertiesResult.conditionWords, methodInfo, mappings, resolveTypeResult.type
+      ).map {
+        listOf(it)
+      } + conditionWordsList.map {
+        CriteriaResolver.resolveConditions(
+            it, methodInfo, mappings, resolveTypeResult.type
+        )
+      } + listOf(CriteriaResolver.createComplexParameterCondition(methodInfo, mappings))
       val query = Query(
           resolveTypeResult.type,
           Properties(
               resolvePropertiesResult.properties, resolvePropertiesResult.excludeProperties,
               resolvePropertiesResult.updateExcludeProperties
           ),
-          conditions,
+          conditions.filter { it.isNotEmpty() },
           resolveSortsResult.sorts,
-          method,
-          mappings,
-          null,
-          resolvedNameAnnotation
+          methodInfo,
+          mappings
       )
       method.parameters.forEachIndexed { index, param ->
         if (Pageable::class.java.isAssignableFrom(param.type)) {
-          val paramName = paramNames[index]
+          val paramName = methodInfo.paramNames[index]
           query.limitation = Limitation("$paramName.offset", "$paramName.pageSize")
           query.extraSortScript = String.format(PAGEABLE_SORT, paramName, paramName)
         }
@@ -110,6 +111,7 @@ object QueryResolver {
       return ResolvedQuery(null, null, null, method, e.message)
     }
   }
+
 
   fun resolveJavaType(method: Method, clazz: Class<*>, forceSingleValue: Boolean = false): JavaType? {
     val type = if (!forceSingleValue && Collection::class.java.isAssignableFrom(method.returnType)) {
@@ -198,33 +200,40 @@ object QueryResolver {
     }
   }
 
-  fun resolveSorts(name: String): ResolveSortsResult {
-    val orderByIndex = name.indexOf("OrderBy")
-    val sorts = if (orderByIndex > 0) {
-      val orderByString = name.substring(orderByIndex).replace("OrderBy", "")
-      val sortStrings = orderByString.split("And").filter { it.isNotBlank() }
-      sortStrings.map {
-        var direction = Sort.Direction.ASC
-        val sortProperty = when {
-          it.endsWith("Desc") -> {
-            direction = Sort.Direction.DESC
-            it.substring(0, it.length - 4)
-          }
+  fun resolveSorts(names: List<String>): ResolveSortsResult {
+    val remainNames = mutableListOf<String>()
+    val sorts = mutableListOf<Sort.Order>()
+    names.forEach { name ->
+      val orderByIndex = name.indexOf("OrderBy")
+      if (orderByIndex >= 0) {
+        val orderByString = name.substring(orderByIndex).replace("OrderBy", "")
+        val sortStrings = orderByString.split("And").filter { it.isNotBlank() }
+        sorts.addAll(
+            sortStrings.map {
+              var direction = Sort.Direction.ASC
+              val sortProperty = when {
+                it.endsWith("Desc") -> {
+                  direction = Sort.Direction.DESC
+                  it.substring(0, it.length - 4)
+                }
 
-          it.endsWith("Asc")  -> it.substring(0, it.length - 3)
-          else                -> it
-        }
-        Sort.Order(direction, sortProperty.toCamelCase())
+                it.endsWith("Asc")  -> it.substring(0, it.length - 3)
+                else                -> it
+              }
+              Sort.Order(direction, sortProperty.toCamelCase())
+            }
+        )
       }
-    } else {
-      listOf()
+      val remainName = if (orderByIndex >= 0) {
+        name.substring(0, orderByIndex)
+      } else {
+        name
+      }
+      if (remainName.isNotBlank()) {
+        remainNames.add(remainName)
+      }
     }
-    val remainName = if (orderByIndex > 0) {
-      name.substring(0, orderByIndex)
-    } else {
-      name
-    }
-    return ResolveSortsResult(sorts, remainName)
+    return ResolveSortsResult(sorts, remainNames)
   }
 
   fun resolveType(name: String, function: Method): ResolveTypeResult {
@@ -258,25 +267,26 @@ object QueryResolver {
     return typeFactory.constructType(type)
   }
 
-  private fun getResolvedName(function: Method): String {
-    val resolvedNameAnnotation = function.getAnnotation(ResolvedName::class.java)
-    return when {
+  private fun getResolvedName(methodInfo: MethodInfo): List<String> {
+    val resolvedNameAnnotation = methodInfo.resolvedName
+    val list = arrayListOf<String>()
+    when {
       resolvedNameAnnotation != null -> {
-        var finalName = ""
         if (resolvedNameAnnotation.name.isNotBlank()) {
-          finalName += "${resolvedNameAnnotation.name}And"
+          list.add(toPascalCaseName(resolvedNameAnnotation.name))
+        } else {
+          list.add("FindBy")
         }
-        val partName = resolvedNameAnnotation.partNames.joinToString("And") {
-          it.toPascalCase()
-        }
-        finalName + when {
-          partName.isNotEmpty() && finalName.isNotEmpty() -> "And$partName"
-          else                                            -> partName
-        }
+        list.addAll(resolvedNameAnnotation.partNames.map { toPascalCaseName(it) })
       }
 
-      else                           -> function.name
+      else                           -> list.add(methodInfo.name)
     }
+    return list.toList()
+  }
+
+  fun toPascalCaseName(name: String): String {
+    return name.split("\\s+".toRegex()).map { it.toPascalCase() }.joinToString("")
   }
 
   /**
@@ -296,7 +306,7 @@ object QueryResolver {
    * @author 吴昊
    * @since 0.0.2
    */
-  data class ResolveSortsResult(val sorts: List<Sort.Order>, val remainName: String)
+  data class ResolveSortsResult(val sorts: List<Sort.Order>, val remainNames: List<String>)
 
   /**
    * 从方法名中解析出的sql类型结果

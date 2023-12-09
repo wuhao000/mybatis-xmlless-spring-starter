@@ -27,7 +27,7 @@ import org.springframework.data.domain.Pageable;
  * @since 0.0.4
  */
 @Mapper
-public interface StudentDAO2 extends XmlLessMapper<Student> {
+public interface StudentJavaDAO extends XmlLessMapper<Student> {
 
   int count();
 

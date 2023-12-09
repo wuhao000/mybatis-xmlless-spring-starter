@@ -21,7 +21,7 @@ data class User(
     @TableField()
     @GeneratedValue(strategy = GenerationType.AUTO)
     var id: Int = 0,
-    @TableField()
+    @Column(name = "name")
     var name: String? = null,
     var deleted: Boolean = false
 ) {

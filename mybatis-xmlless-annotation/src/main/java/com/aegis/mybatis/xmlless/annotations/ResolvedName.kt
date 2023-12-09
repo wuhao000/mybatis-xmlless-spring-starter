@@ -1,5 +1,7 @@
 package com.aegis.mybatis.xmlless.annotations
 
+import org.intellij.lang.annotations.Language
+
 
 /**
  * 用在mapper的方法上面，解析sql时不再使用方法名而使用此别名，这样方法名可以更具语义化
@@ -18,6 +20,7 @@ package com.aegis.mybatis.xmlless.annotations
   AnnotationTarget.FUNCTION
 ])
 annotation class ResolvedName(val name: String,
+                              @Language("GenericSQL")
                               val partNames: Array<String> = [],
                               val values: Array<ValueAssign> = [],
                               val whereAppend: String = "",

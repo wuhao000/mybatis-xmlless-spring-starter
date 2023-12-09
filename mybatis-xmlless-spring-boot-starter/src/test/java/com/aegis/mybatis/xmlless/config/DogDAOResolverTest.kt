@@ -3,13 +3,11 @@ package com.aegis.mybatis.xmlless.config
 import com.aegis.mybatis.bean.Dog
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.DogDAO
-import com.aegis.mybatis.xmlless.annotations.MyBatisIgnore
 import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.aegis.mybatis.xmlless.util.FieldUtil
 import org.junit.jupiter.api.Test
-import org.springframework.core.annotation.AnnotationUtils
 import kotlin.reflect.jvm.javaField
 
 
@@ -91,14 +89,6 @@ class DogDAOResolverTest : BaseResolverTest(
     resultMap.propertyResultMappings.forEach {
       println("${it.property}/${it.column}/${it.javaType}")
     }
-  }
-
-  private fun createQueryForMethod(name: String): Any {
-    return mapperClass.methods
-        .filter { it.name == name }
-        .map {
-          QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
-        }.first()
   }
 
 }

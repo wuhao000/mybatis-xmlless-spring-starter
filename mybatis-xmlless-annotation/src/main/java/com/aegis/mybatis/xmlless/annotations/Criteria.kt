@@ -18,6 +18,7 @@ import org.intellij.lang.annotations.Language
   AnnotationTarget.VALUE_PARAMETER,
   AnnotationTarget.FIELD
 ])
+@Repeatable
 annotation class Criteria(
     @Language("GenericSQL")
     val expression: String = "",

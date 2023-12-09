@@ -2,8 +2,8 @@ package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.bean.User
 import com.aegis.mybatis.dao.UserDAO
-import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import org.junit.jupiter.api.Test
+import kotlin.reflect.jvm.javaMethod
 
 
 /**
@@ -24,18 +24,18 @@ class UserDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveFindAll() {
-    println(queries.first { it.method.name == "findAll" })
+    println(queries.first { it.method == UserDAO::findAll.javaMethod })
   }
 
   @Test
   fun resolvePartlyUpdate() {
-    val query = createQueryForMethod("update")
+    val query = createQueryForMethod(UserDAO::update.javaMethod!!)
     println(query)
   }
 
   @Test
   fun resolveSave() {
-    val query = createQueryForMethod("save")
+    val query = createQueryForMethod(UserDAO::save.javaMethod!!)
     println(query)
   }
 
@@ -57,10 +57,5 @@ class UserDAOResolverTest : BaseResolverTest(
     }
   }
 
-  private fun createQueryForMethod(name: String): Any {
-    return mapperClass.methods.filter { it.name == name }.map {
-      QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
-    }.first()
-  }
 
 }

@@ -169,7 +169,8 @@ class QueryTest : BaseResolverTest(TestEntity::class.java,
     assertEquals(2, query1.resolveGroups().size)
     val query2 = this.queries.first { it.method.name == "findByNameOrDescLikeKeyword" }.query!!
     println(query2.toSql())
-    assertEquals(1, query2.resolveGroups().size)
+    println(query2.resolveGroups())
+    assertEquals(2, query2.resolveGroups().size)
   }
 
   @Test

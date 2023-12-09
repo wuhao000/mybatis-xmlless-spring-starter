@@ -7,8 +7,7 @@ import com.aegis.mybatis.bean.StudentDetail
 import com.aegis.mybatis.bean.StudentState
 import com.aegis.mybatis.dao.QueryForm
 import com.aegis.mybatis.dao.ScoreDAO
-import com.aegis.mybatis.dao.StudentDAO
-import com.aegis.mybatis.dao.StudentDAO2
+import com.aegis.mybatis.dao.StudentJavaDAO
 import org.junit.jupiter.api.Test
 import org.springframework.beans.BeanUtils
 import org.springframework.beans.factory.annotation.Autowired
@@ -32,7 +31,7 @@ class StudentDAOJavaTest : BaseTest() {
   val name = "张三"
 
   @Autowired
-  private lateinit var dao: StudentDAO2
+  private lateinit var dao: StudentJavaDAO
 
   @Autowired
   private lateinit var scoreDAO: ScoreDAO

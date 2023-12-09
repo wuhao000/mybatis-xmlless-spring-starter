@@ -1,9 +1,8 @@
 package com.aegis.mybatis.xmlless.model
 
-import com.aegis.mybatis.xmlless.config.paginition.XmlLessException
+import com.aegis.mybatis.xmlless.exception.XmlLessException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.lang.reflect.Method
 
 
 /**
@@ -11,10 +10,7 @@ import java.lang.reflect.Method
  * @author 吴昊
  * @since 0.0.1
  */
-class ResolvedQueries(
-    private val mapperClass: Class<*>,
-    private val unmappedMethods: List<Method> = listOf()
-) {
+class ResolvedQueries(private val mapperClass: Class<*>) {
 
   private val queries = mutableListOf<ResolvedQuery>()
 

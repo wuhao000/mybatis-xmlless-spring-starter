@@ -1,10 +1,9 @@
 package com.aegis.mybatis.xmlless.resolver
 
-import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.model.*
-import com.aegis.mybatis.xmlless.util.ModelUtil
 import com.aegis.mybatis.xmlless.util.MethodUtil
+import com.aegis.mybatis.xmlless.util.ModelUtil
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.apache.ibatis.builder.ResultMapResolver

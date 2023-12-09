@@ -19,6 +19,10 @@ VALUES
 </script>
 """
 
+internal const val SCRIPT_TEMPLATE = """<script>
+%s
+</script>"""
+
 internal const val BATCH_INSERT_OR_UPDATE = """<script>
 INSERT INTO
   %s(%s)

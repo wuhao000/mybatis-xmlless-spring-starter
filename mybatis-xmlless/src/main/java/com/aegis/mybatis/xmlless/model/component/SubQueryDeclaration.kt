@@ -5,7 +5,7 @@ import com.aegis.mybatis.xmlless.model.TableName
 
 /**
  *
- * @author wuhao
+ * @author 吴昊
  * @date 2023/12/4 23:20
  * @since v0.0.0
  * @version 1.0

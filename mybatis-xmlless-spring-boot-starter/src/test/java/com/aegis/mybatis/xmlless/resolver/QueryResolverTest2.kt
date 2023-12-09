@@ -30,7 +30,6 @@ class QueryResolverTest2 {
   fun resolveReturnType() {
     val clazz = StudentDetailDAO::class.java
     val method = StudentDetailDAO::findEducation.javaMethod!!
-    val t = ResolvableType.forMethodReturnType(method, clazz)
     val javaType = QueryResolver.resolveJavaType(method, clazz)
     val rs = objectMapper.readValue<Any>(
         """[{
@@ -96,9 +95,6 @@ class QueryResolverTest2 {
   @Test
   fun resolveType() {
     val m = StudentDetailDAO::class.java.methods.first { it.name == "findEducation" }
-    val m2 = StudentDetailDAO::class.java.methods.first { it.name == "findDetailById" }
-    val type = ResolvableType.forMethodReturnType(m, StudentDetailDAO::class.java).resolve()
-    val a = QueryResolver.resolveJavaType(m, StudentDetailDAO::class.java, true)
     println(QueryResolver.toJavaType(ResolvableType.forMethodReturnType(m, StudentDetailDAO::class.java).resolve()))
     println(QueryResolver.toJavaType(m.returnType))
   }

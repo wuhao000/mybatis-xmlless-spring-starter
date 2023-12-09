@@ -2,10 +2,10 @@ package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.mybatis.xmlless.constant.SQLKeywords
 import com.aegis.mybatis.xmlless.model.FieldMappings
+import com.aegis.mybatis.xmlless.model.MethodInfo
 import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.model.SelectColumn
 import org.slf4j.LoggerFactory
-import java.lang.reflect.Method
 import java.util.*
 
 /**
@@ -18,12 +18,12 @@ object ColumnsResolver {
   /**
    * 构建查询的列
    */
-  fun resolve(mappings: FieldMappings, properties: Properties, method: Method? = null): List<SelectColumn> {
-    return resolveColumns(mappings, properties, method).sortedBy { it.toSql() }
+  fun resolve(mappings: FieldMappings, properties: Properties, methodInfo: MethodInfo? = null): List<SelectColumn> {
+    return resolveColumns(mappings, properties, methodInfo).sortedBy { it.toSql() }
   }
 
-  fun resolveIncludedTables(mappings: FieldMappings, properties: Properties, method: Method): List<String> {
-    return resolveColumns(mappings, properties, method).mapNotNull {
+  fun resolveIncludedTables(mappings: FieldMappings, properties: Properties, methodInfo: MethodInfo): List<String> {
+    return resolveColumns(mappings, properties, methodInfo).mapNotNull {
       it.table
     }.map { it.getAliasOrName() }
   }
@@ -35,12 +35,12 @@ object ColumnsResolver {
     }
   }
 
-  private fun resolveColumns(mappings: FieldMappings, properties: Properties, method: Method?): List<SelectColumn> {
+  private fun resolveColumns(mappings: FieldMappings, properties: Properties, methodInfo: MethodInfo?): List<SelectColumn> {
     if (LOG.isDebugEnabled) {
       LOG.debug("Available properties for class ${mappings.modelClass}: ${mappings.mappings.map { it.property }}")
       LOG.debug("Fetch properties for class ${mappings.modelClass}: $properties")
     }
-    return mappings.selectFields(properties, method)
+    return mappings.selectFields(properties, methodInfo)
   }
 
 }

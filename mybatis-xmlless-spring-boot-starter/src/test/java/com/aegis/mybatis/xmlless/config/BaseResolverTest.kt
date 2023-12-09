@@ -50,4 +50,12 @@ open class BaseResolverTest(
     return TableInfoHelper.getTableInfo(modelClass)
   }
 
+
+  protected fun createQueryForMethod(method: Method): ResolvedQuery {
+    return QueryResolver.resolve(method, tableInfo, modelClass, mapperClass, builderAssistant)
+  }
+
+  protected fun buildResultMapId(method: Method): String {
+    return "$currentNameSpace.${mapperClass.name.replace(".", "_")}_${method.name}"
+  }
 }

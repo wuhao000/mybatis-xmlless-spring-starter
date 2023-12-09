@@ -10,14 +10,16 @@ import jakarta.persistence.criteria.JoinType
 @Target(
     allowedTargets = [
       AnnotationTarget.FIELD,
-      AnnotationTarget.ANNOTATION_CLASS
     ]
 )
-@Deprecated("use @JoinEntityProperty or @JoinTableColumn instead")
-annotation class JoinProperty(
-    val toEntity: JoinEntity = JoinEntity(Any::class),
-    val toTable: JoinTable = JoinTable("", ""),
+annotation class JoinTableColumn(
+    /** 要连接的表名 */
+    val table: String,
+    /** 映射到注解所在实体类属性的数据库表字段名称 */
+    val columnMapTo: String = "",
+    /** 用于连接表的条件字段名称 */
+    val joinOnColumn: String = "id",
     val joinType: JoinType = JoinType.LEFT,
     /** 当前对象用于连接的属性名称（非表字段名称），如果为空则默认为主键 */
-    val joinOnThisProperty: String
+    val joinOnThisProperty: String = ""
 )

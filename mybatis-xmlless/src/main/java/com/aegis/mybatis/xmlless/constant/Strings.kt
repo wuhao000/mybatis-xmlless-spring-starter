@@ -9,8 +9,8 @@ object Strings {
   const val EMPTY = ""
   const val LINE_BREAK = "\n"
   const val LINE_BREAK_INDENT = "\n\t"
-  const val SCRIPT_END = "</script>"
   const val SCRIPT_START = "<script>"
-  const val TESTS_CONNECTOR = " &amp;&amp; "
+  const val TESTS_CONNECTOR = " and "
   const val COLUMN_SEPARATOR = ",\n\t"
+
 }

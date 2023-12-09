@@ -1,6 +1,7 @@
 package com.aegis.mybatis.xmlless.annotations
 
 import com.aegis.mybatis.xmlless.enums.TestType
+import org.intellij.lang.annotations.Language
 
 
 /**
@@ -15,4 +16,6 @@ import com.aegis.mybatis.xmlless.enums.TestType
   AnnotationTarget.PROPERTY,
   AnnotationTarget.FIELD
 ])
-annotation class TestExpression(val value: Array<TestType> = [], val expression: String = "")
+annotation class TestExpression(val value: Array<TestType> = [],
+                                @Language("ThymeleafExpressions")
+                                val expression: String = "")

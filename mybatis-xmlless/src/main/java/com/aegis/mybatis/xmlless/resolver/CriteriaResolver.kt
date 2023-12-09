@@ -1,18 +1,15 @@
 package com.aegis.mybatis.xmlless.resolver
 
 import cn.hutool.core.util.ReflectUtil
-import com.aegis.mybatis.xmlless.annotations.Logic
-import com.aegis.mybatis.xmlless.annotations.ResolvedName
+import com.aegis.kotlin.toCamelCase
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.kotlin.split
-import com.aegis.mybatis.xmlless.kotlin.toCamelCase
 import com.aegis.mybatis.xmlless.model.*
 import com.aegis.mybatis.xmlless.util.FieldUtil
 import com.baomidou.mybatisplus.annotation.TableLogic
-import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import org.apache.ibatis.annotations.Param
+import java.lang.reflect.AnnotatedElement
 import java.lang.reflect.Field
-import java.lang.reflect.Method
 import java.lang.reflect.Parameter
 
 /**
@@ -26,11 +23,10 @@ object CriteriaResolver {
 
   fun resolveConditions(
       allConditionWords: List<String>,
-      method: Method,
+      methodInfo: MethodInfo,
       mappings: FieldMappings,
       queryType: QueryType
   ): List<QueryCriteria> {
-    val methodInfo = MethodInfo(method)
     val nameConditions = if (allConditionWords.isNotEmpty()) {
       val parameterOffsetHolder = ValueHolder(0)
       splitAndConditionKeywords(allConditionWords).map { addPropertiesWords ->
@@ -47,23 +43,14 @@ object CriteriaResolver {
       listOf()
     }
     val parameterConditions = arrayListOf<QueryCriteria>()
-    val paramNames = ParameterResolver.resolveNames(method)
+    val paramNames = methodInfo.paramNames
     methodInfo.parameters.forEachIndexed { index, parameter ->
-      if (parameter.criteria != null) {
-        parameterConditions.add(resolveCriteria(parameter, paramNames[index], method, mappings))
-      } else if (ParameterResolver.isComplexParameter(parameter.type)) {
-        ReflectUtil.getFields(TypeResolver.resolveRealType(parameter.type)).forEach { field ->
-          val criteriaInfo = FieldUtil.getCriteriaInfo(field)
-          if (criteriaInfo != null) {
-            parameterConditions.add(
-                resolveCriteriaFromProperty(criteriaInfo, field, paramNames[index], method, mappings)
-            )
-          }
-        }
+      if (parameter.criteria.isNotEmpty()) {
+        parameterConditions.addAll(resolveCriteria(parameter, paramNames[index], methodInfo, mappings))
       }
     }
-    if (method.isAnnotationPresent(Logic::class.java) && queryType == QueryType.Select) {
-      val logic = method.getAnnotation(Logic::class.java)!!
+    val logic = methodInfo.logic
+    if (logic != null && queryType == QueryType.Select) {
       val mapper = mappings.mappings.find { it.field.isAnnotationPresent(TableLogic::class.java) }
         ?: throw IllegalStateException("缺少逻辑删除字段，请在字段上添加@TableLogic注解")
       parameterConditions.add(
@@ -81,25 +68,42 @@ object CriteriaResolver {
     return nameConditions + parameterConditions
   }
 
+
+  fun createComplexParameterCondition(methodInfo: MethodInfo, mappings: FieldMappings): ArrayList<QueryCriteria> {
+    val parameterConditions = arrayListOf<QueryCriteria>()
+    val paramNames = methodInfo.paramNames
+    methodInfo.parameters.forEachIndexed { index, parameter ->
+      if (ParameterResolver.isComplexParameter(parameter.type)) {
+        ReflectUtil.getFields(TypeResolver.resolveRealType(parameter.type)).forEach { field ->
+          val criteriaInfo = FieldUtil.getCriteriaInfo(field)
+          if (criteriaInfo.isNotEmpty()) {
+            parameterConditions.add(
+                resolveCriteriaFromProperty(field, paramNames[index], methodInfo, mappings)
+            )
+          }
+        }
+      }
+    }
+    return parameterConditions
+  }
+
   private fun resolveCriteria(
       parameter: ParameterInfo, paramName: String,
-      function: Method, mappings: FieldMappings
-  ): QueryCriteria {
-    val criteria = parameter.criteria!!
-    val property = when {
-      criteria.property.isNotBlank() -> criteria.property
-      else                           -> paramName
+      methodInfo: MethodInfo, mappings: FieldMappings
+  ): List<QueryCriteria> {
+    val criteriaList = parameter.criteria
+    return criteriaList.map { criteria ->
+      QueryCriteria(
+          paramName, criteria.operator, Append.AND,
+          listOf(Pair(paramName, parameter.parameter)),
+          methodInfo.resolvedName?.values?.firstOrNull {
+            it.param == paramName
+          }?.let {
+            SpecificValue(it.stringValue, it.nonStringValue)
+          },
+          mappings,
+      )
     }
-    return QueryCriteria(
-        property, criteria.operator, Append.AND,
-        listOf(Pair(paramName, parameter.parameter)),
-        function.getAnnotation(ResolvedName::class.java)?.values?.firstOrNull {
-          it.param == paramName
-        }?.let {
-          SpecificValue(it.stringValue, it.nonStringValue)
-        },
-        mappings,
-    )
   }
 
   private fun resolveCriteria(
@@ -144,19 +148,10 @@ object CriteriaResolver {
       listOf()
     }
     val parameters = paramNames.map { paramName ->
-      val parameterData: MatchedParameter? = ParameterResolver.resolve(paramName, methodInfo)
-      val parameter = when {
-        parameterData != null -> parameterData.property ?: parameterData.parameter.parameter
-        else                  -> null
-      }
-      // 如果条件参数是方法参数中的属性，则需要加上方法参数名称前缀
-      val finalParamName = when {
-        parameterData?.property != null && parameterData.parameter.specificParamName != null
-             -> parameterData.paramName + DOT + paramName
-
-        else -> paramName
-      }
-      Pair(finalParamName, parameter)
+      val parameterData = ParameterResolver.resolve(paramName, methodInfo)
+        ?: error("无法识别${methodInfo.method}的参数【$paramName】")
+      val parameter = parameterData.property ?: parameterData.parameter.parameter
+      Pair(paramName, parameter)
     }
 
     return QueryCriteria(
@@ -188,7 +183,7 @@ object CriteriaResolver {
     val paramCount = op?.parameterCount ?: 0
 
     val paramNames = when (paramCount) {
-      2    -> {
+      2 -> {
         listOf(
             if (props.size > 1) {
               chooseFromParameter(methodInfo, props[1].joinToString("").toCamelCase(), parameterOffsetHolder)
@@ -203,7 +198,7 @@ object CriteriaResolver {
         )
       }
 
-      1    -> {
+      1 -> {
         listOf(
             if (props.size > 1) {
               // 解决剩余的名称为aInB的情况
@@ -244,26 +239,34 @@ object CriteriaResolver {
     }
   }
 
-  private fun resolveParameterName(kParameter: Parameter): String {
-    return if (kParameter.isAnnotationPresent(Param::class.java)) {
-      kParameter.getAnnotation(Param::class.java)!!.value
-    } else {
-      kParameter.name!!
+  private fun resolveParameterName(kParameter: AnnotatedElement): String {
+    return when {
+      kParameter.isAnnotationPresent(Param::class.java) -> {
+        kParameter.getAnnotation(Param::class.java)!!.value
+      }
+
+      kParameter is Parameter                           -> {
+        kParameter.name!!
+      }
+
+      kParameter is Field                               -> {
+        kParameter.name
+      }
+
+      else                                              -> {
+        error("无法解析的参数类型")
+      }
     }
   }
 
   private fun resolveCriteriaFromProperty(
-      criteria: CriteriaInfo, property: Field,
-      paramName: String, function: Method, mappings: FieldMappings
+      property: Field, paramName: String,
+      methodInfo: MethodInfo, mappings: FieldMappings
   ): QueryCriteria {
-    val propertyName = when {
-      criteria.property.isNotBlank() -> criteria.property
-      else                           -> property.name
-    }
     return QueryCriteria(
-        propertyName, criteria.operator, Append.AND,
+        property.name, Operations.EqDefault, Append.AND,
         listOf(Pair(paramName + "." + property.name, property)),
-        function.getAnnotation(ResolvedName::class.java)?.values?.firstOrNull {
+        methodInfo.resolvedName?.values?.firstOrNull {
           it.param == paramName
         }?.let {
           SpecificValue(it.stringValue, it.nonStringValue)

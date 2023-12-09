@@ -1,25 +1,16 @@
 package com.aegis.mybatis.dao.tests
 
 import com.aegis.mybatis.BaseTest
-import com.aegis.mybatis.bean.Score
-import com.aegis.mybatis.bean.Student
-import com.aegis.mybatis.bean.StudentDetail
-import com.aegis.mybatis.bean.StudentState
-import com.aegis.mybatis.dao.QueryForm
-import com.aegis.mybatis.dao.ScoreDAO
-import com.aegis.mybatis.dao.StudentDAO
-import com.aegis.mybatis.dao.StudentDAO2
+import com.aegis.mybatis.bean.*
+import com.aegis.mybatis.dao.*
 import jakarta.annotation.Resource
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.BeanUtils
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.Month
-import java.time.YearMonth
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -39,7 +30,67 @@ class StudentDAOTest : BaseTest() {
   private lateinit var dao: StudentDAO
 
   @Resource
+  private lateinit var userDAO: UserDAO
+
+  @Resource
   private lateinit var scoreDAO: ScoreDAO
+
+
+  @Test
+  @DisplayName("测试多条件名称")
+  fun find() {
+    val s1 = Student().apply {
+      name = "张三"
+      age = 22
+      createTime = LocalDate.now().atStartOfDay()
+    }
+    val s2 = Student().apply {
+      name = "李四"
+      age = 36
+      createTime = LocalDate.of(2022, 1, 1).atStartOfDay()
+    }
+    val s3 = Student().apply {
+      name = "李四"
+      age = 36
+      createTime = LocalDate.of(2023, 1, 1).atStartOfDay()
+    }
+    val u1 = User().apply {
+      name = "王五"
+    }
+    val u2 = User().apply {
+      name = "顺溜"
+    }
+    userDAO.save(u1)
+    userDAO.save(u2)
+    s1.createUserId = u1.id
+    s1.updateUserId = u2.id
+    s2.userId = u1.id
+    s3.userId = u2.id
+    assert(u1.id > 0)
+    assert(u2.id > 0)
+    dao.save(s1)
+    dao.save(s2)
+    dao.save(s3)
+    val list1 = dao.find(StudentQueryForm())
+    assertEquals(3, list1.size)
+    assert(list1[0].createUserName == u1.name)
+    assert(list1[0].updateUserName == u2.name)
+    assert(list1[0].createTime!! > list1[1].createTime)
+    assert(list1[1].createTime!! > list1[2].createTime)
+    assertEquals(u2.name, list1[1].userName)
+    assertEquals(u1.name, list1[2].userName)
+    assertEquals(1, dao.find(StudentQueryForm(age = 22)).size)
+    assertEquals(0, dao.find(StudentQueryForm(age = 23)).size)
+    assertEquals(0, dao.find(StudentQueryForm(age = 22, name = "李四")).size)
+    assertEquals(1, dao.find(StudentQueryForm(age = 22, name = "张")).size)
+    assertEquals(1, dao.find(StudentQueryForm(keywords = "顺溜")).size)
+    assertEquals(0, dao.find(StudentQueryForm(keywords = "啧啧啧")).size)
+    val list2 = dao.find(StudentQueryForm(
+        keywords = "王"
+    ).apply {
+      type = 2
+    }, 6)
+  }
 
   /**
    * 测试统计全部

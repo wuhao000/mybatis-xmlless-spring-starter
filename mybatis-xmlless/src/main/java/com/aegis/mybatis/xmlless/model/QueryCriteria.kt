@@ -1,9 +1,12 @@
 package com.aegis.mybatis.xmlless.model
 
+import com.aegis.kotlin.toWords
 import com.aegis.mybatis.xmlless.constant.Strings
 import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.enums.TestType
 import com.aegis.mybatis.xmlless.model.component.TestConditionDeclaration
+import com.aegis.mybatis.xmlless.resolver.CriteriaResolver
+import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.aegis.mybatis.xmlless.resolver.TypeResolver
 import com.aegis.mybatis.xmlless.util.FieldUtil
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
@@ -22,7 +25,7 @@ data class QueryCriteria(
     val property: String,
     val operator: Operations,
     var append: Append = Append.AND,
-    var parameters: List<Pair<String, AnnotatedElement?>>,
+    var parameters: List<Pair<String, AnnotatedElement>>,
     val specificValue: SpecificValue?,
     private val mappings: FieldMappings
 ) {
@@ -31,7 +34,7 @@ data class QueryCriteria(
   var columns: List<SelectColumn> = listOf()
 
   /** 额外他的test判断条件 */
-  var extraTestConditions: List<TestConditionDeclaration> = listOf()
+  private var extraTestConditions: List<TestConditionDeclaration> = listOf()
 
   companion object {
     /**  foreach模板 */
@@ -44,20 +47,22 @@ data class QueryCriteria(
     columns = mappings.resolveColumnByPropertyName(property, false)
   }
 
-  fun hasExpression(): Boolean {
+  fun toSql(mappings: FieldMappings): String {
     val parameter = getOnlyParameter()
     if (parameter != null) {
-      val criteria = FieldUtil.getCriteriaInfo(parameter)
-      if (criteria != null && criteria.expression.isNotBlank()) {
-        return criteria.expression.isNotBlank()
+      val criteriaList = FieldUtil.getCriteriaInfo(parameter)
+      if (criteriaList.isNotEmpty()) {
+        return criteriaList.joinToString("\n") {
+          createSql(mappings, it)
+        }
       }
     }
-    return false
+    return createSql(mappings, null)
   }
 
-  fun toSql(mappings: FieldMappings): String {
-    val sqlBuilder = toSqlWithoutTest(mappings)
-    val exp = wrapWithTests(sqlBuilder)
+  private fun createSql(mappings: FieldMappings, criteriaInfo: CriteriaInfo? = null): String {
+    val sqlBuilder = toSqlWithoutTest(mappings, criteriaInfo)
+    val exp = wrapWithTests(sqlBuilder, criteriaInfo)
     if (operator == Operations.Between) {
       val realParams = realParams()
       val s1 = QueryCriteria(
@@ -83,13 +88,15 @@ data class QueryCriteria(
     return exp
   }
 
-  fun toSqlWithoutTest(mappings: FieldMappings): String {
-    val parameter = getOnlyParameter()
-    if (parameter != null) {
-      val criteria = FieldUtil.getCriteriaInfo(parameter)
-      if (criteria != null && criteria.expression.isNotBlank()) {
-        return criteria.expression + " " + append
-      }
+  fun toSqlWithoutTest(mappings: FieldMappings, criteriaInfo: CriteriaInfo?): String {
+    if (criteriaInfo != null && criteriaInfo.expression.isNotBlank()) {
+      // todo
+//      val expressionWords = QueryResolver.toPascalCaseName(criteriaInfo.expression).toWords()
+//      criteriaInfo.expression
+//      CriteriaResolver.resolveConditions(
+//          expressionWords, methodInfo, mappings, resolveTypeResult.type
+//      )
+      return criteriaInfo.expression + " " + append
     }
     val mapping = mappings.mappings.firstOrNull { it.property == property }
 
@@ -103,9 +110,7 @@ data class QueryCriteria(
       ) + " " + append
 
       mapping != null && mapping.isJsonArray                             -> buildJsonQuery(
-          columnResult,
-          operator,
-          mapping
+          columnResult, operator, mapping
       )
 
       operator == Operations.In && mapping?.joinInfo is PropertyJoinInfo -> String.format(
@@ -129,8 +134,8 @@ data class QueryCriteria(
     )
   }
 
-  fun wrapWithTests(sql: String): String {
-    val tests = getTests()
+  fun wrapWithTests(sql: String, criteriaInfo: CriteriaInfo?): String {
+    val tests = getTests(criteriaInfo?.testInfo)
     if (tests.isNotBlank()) {
       return SqlScriptUtils.convertIf("\t" + sql, tests, true)
     }
@@ -171,20 +176,28 @@ data class QueryCriteria(
     return parameters.firstOrNull()?.second
   }
 
+  fun getCriteriaList(mappings: FieldMappings): List<CriteriaInfo> {
+    val parameter = getOnlyParameter()
+    if (parameter != null) {
+      return FieldUtil.getCriteriaInfo(parameter)
+    }
+    return listOf()
+  }
+
   private fun getOnlyParameterName(): String? {
     return parameters.firstOrNull()?.first
   }
 
-  private fun getTests(): String {
-    val parameter = getOnlyParameter() ?: return getOnlyParameterName() ?: ""
-    val parameterTest = FieldUtil.getCriteriaInfo(parameter)?.testInfo
+  fun getTests(parameterTest: TestInfo?): String {
     if (parameterTest != null) {
       return resolveTests(parameterTest)
     }
     var tests = listOf<TestConditionDeclaration>()
+    val parameter = getOnlyParameter()
+    val paramName = if (parameter != null) getOnlyParameterName() else ""
     when (parameter) {
-      is Parameter -> tests = resolveTestsFromType(parameter.type)
-      is Field     -> tests = resolveTestsFromType(parameter.type)
+      is Parameter -> tests = resolveTestsFromType(parameter.type, paramName)
+      is Field     -> tests = resolveTestsFromType(parameter.type, paramName)
     }
     return (tests + extraTestConditions).joinToString(Strings.TESTS_CONNECTOR) { it.toSql() }
   }
@@ -204,21 +217,20 @@ data class QueryCriteria(
         it.expression
       } else {
         when {
-          Collection::class.java.isAssignableFrom(clazz)                  -> ".size " + TestType.GtZero.expression
-          clazz == String::class || clazz == java.lang.String::class.java -> ".length() " + TestType.GtZero.expression
-
-          clazz.isArray                                                   -> ".length " + TestType.GtZero.expression
-          else                                                            -> ".size " + TestType.GtZero.expression
+          Collection::class.java.isAssignableFrom(clazz) -> ".size " + TestType.GtZero.expression
+          clazz == String::class.java                    -> ".length() " + TestType.GtZero.expression
+          clazz.isArray                                  -> ".length " + TestType.GtZero.expression
+          else                                           -> ".size " + TestType.GtZero.expression
         }
       }
     }
     return when {
       tests.isNotEmpty() -> when {
-        parameterTest.expression.isNotBlank() -> parameterTest.expression + Strings.TESTS_CONNECTOR + tests
-        else                                  -> tests
+        parameterTest.hasExpression() -> parameterTest.getExpression(parameters) + Strings.TESTS_CONNECTOR + tests
+        else                          -> tests
       }
 
-      else               -> parameterTest.expression
+      else               -> parameterTest.getExpression(parameters)
     }
   }
 
@@ -231,7 +243,7 @@ data class QueryCriteria(
     }
   }
 
-  private fun resolveTestsFromType(type: Class<*>): List<TestConditionDeclaration> {
+  private fun resolveTestsFromType(type: Class<*>, paramName: String?): List<TestConditionDeclaration> {
     val realParams = realParams()
     val tests = ArrayList<TestConditionDeclaration>()
     if (!type.isPrimitive) {
@@ -303,7 +315,6 @@ class SpecificValue(
  */
 enum class Append {
 
-  AND,
-  OR;
+  AND, OR;
 
 }

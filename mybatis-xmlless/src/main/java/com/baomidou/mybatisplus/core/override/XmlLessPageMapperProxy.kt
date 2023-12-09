@@ -42,10 +42,6 @@ internal class XmlLessPageMapperProxy<T>(
   private val methodCache2: MutableMap<Method, XmlLessPageMapperMethod> = mutableMapOf()
   private val mapperProxy = MybatisMapperProxy(sqlSession, mapperInterface, methodCache)
 
-  companion object {
-    private const val serialVersionUID = -6424540398559729838L
-  }
-
   @Throws(Throwable::class)
   override fun invoke(proxy: Any, method: Method, args: Array<Any>?): Any? {
     try {

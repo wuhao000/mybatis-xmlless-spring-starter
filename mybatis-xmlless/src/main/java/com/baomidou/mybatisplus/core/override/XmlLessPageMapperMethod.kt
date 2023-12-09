@@ -3,7 +3,7 @@ package com.baomidou.mybatisplus.core.override
 import com.aegis.jackson.createObjectMapper
 import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
 import com.aegis.mybatis.xmlless.annotations.JsonResult
-import com.aegis.mybatis.xmlless.config.paginition.XmlLessException
+import com.aegis.mybatis.xmlless.exception.XmlLessException
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods
 import com.aegis.mybatis.xmlless.model.JsonWrapper
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
@@ -58,7 +58,7 @@ internal class XmlLessPageMapperMethod(
         }
       } else if (IPage::class.java.isAssignableFrom(method.returnType)) {
         val list = executeForMany<Any>(sqlSession, args) as List<Any>
-        val pageArg = findIPageArg(args) as IPage<*>?
+        val pageArg = findIPageArg(args) as IPage<Any>?
         result = if (pageArg != null) {
           pageArg.records = list
           pageArg
@@ -76,7 +76,7 @@ internal class XmlLessPageMapperMethod(
       }
     }
     if (result == null) {
-      return result
+      return null
     }
     val returnClass = QueryResolver.resolveReturnType(requestMethod, mapperInterface)
     val forceSingleValue = forceSingleValue(requestMethod)

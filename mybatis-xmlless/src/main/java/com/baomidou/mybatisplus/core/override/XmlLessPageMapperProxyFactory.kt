@@ -30,7 +30,9 @@ import java.util.concurrent.ConcurrentHashMap
  * @author miemie
  * @since 2018-06-09
  */
-internal class XmlLessPageMapperProxyFactory<T>(val mapperInterface: Class<T>) {
+internal class XmlLessPageMapperProxyFactory<T>(
+    private val mapperInterface: Class<T>
+) {
 
   private val methodCache: MutableMap<Method, MybatisMapperProxy.MapperMethodInvoker> = ConcurrentHashMap()
 
@@ -39,7 +41,7 @@ internal class XmlLessPageMapperProxyFactory<T>(val mapperInterface: Class<T>) {
     return newInstance(mapperProxy)
   }
 
-  protected fun newInstance(mapperProxy: XmlLessPageMapperProxy<T>?): T {
+  private fun newInstance(mapperProxy: XmlLessPageMapperProxy<T>?): T {
     return Proxy.newProxyInstance(mapperInterface.classLoader, arrayOf<Class<*>>(mapperInterface), mapperProxy) as T
   }
 

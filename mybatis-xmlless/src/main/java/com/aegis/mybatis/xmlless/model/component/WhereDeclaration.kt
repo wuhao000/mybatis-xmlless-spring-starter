@@ -15,8 +15,8 @@ import com.aegis.mybatis.xmlless.model.trim
  * @version 1.0
  */
 class WhereDeclaration(
-    val criterion: List<QueryCriteria>,
-    val groupBuilders: List<String>,
+    val criterion: List<List<QueryCriteria>>,
+    private val groupBuilders: List<String>,
     val whereAppend: String?
 ) : ISqlPart {
 

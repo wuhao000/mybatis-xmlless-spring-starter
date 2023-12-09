@@ -3,8 +3,10 @@ package com.aegis.mybatis.bean
 import com.aegis.mybatis.xmlless.annotations.*
 import com.baomidou.mybatisplus.annotation.TableField
 import jakarta.persistence.Column
+import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
+import jakarta.persistence.Table
 import org.apache.ibatis.type.BaseTypeHandler
 import org.apache.ibatis.type.JdbcType
 import org.springframework.data.annotation.CreatedDate
@@ -54,6 +56,8 @@ class StringTypeHandler : BaseTypeHandler<String>() {
  * @author 吴昊
  * @since 0.0.4
  */
+@Entity
+@Table(name = "t_student")
 class Student() {
 
   var age: Int = 0
@@ -66,6 +70,7 @@ class Student() {
   )
   @Transient
   var count: Int = 0
+
   @CreatedDate
   var createTime: LocalDateTime? = null
 
@@ -102,6 +107,34 @@ class Student() {
   @JoinColumn(insertable = false, updatable = false)
   var scores: MutableList<Score>? = null
   var state: StudentState = StudentState.normal
+
+
+  var createUserId: Int? = null
+
+  var updateUserId: Int? = null
+
+  @JoinEntityProperty(
+      entity = User::class,
+      propertyMapTo = "name",
+      joinOnThisProperty = "createUserId"
+  )
+  var createUserName: String? = null
+
+  @JoinEntityProperty(
+      entity = User::class,
+      propertyMapTo = "name",
+      joinOnThisProperty = "updateUserId"
+  )
+  var updateUserName: String? = null
+
+  var userId: Int? = null
+
+  @JoinEntityProperty(
+      entity = User::class,
+      propertyMapTo = "name",
+      joinOnThisProperty = "userId"
+  )
+  var userName: String? = null
 
   constructor(
       id: String, name: String, phoneNumber: String,

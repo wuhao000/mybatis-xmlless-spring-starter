@@ -16,7 +16,6 @@ import org.springframework.stereotype.Component
  * @author 吴昊
  * @since 0.0.1-SNAPSHOT
  */
-@Suppress("unused")
 @Component
 class MySqlInjector : AbstractSqlInjector() {
 

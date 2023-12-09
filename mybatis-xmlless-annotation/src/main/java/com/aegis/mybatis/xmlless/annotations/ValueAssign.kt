@@ -7,5 +7,8 @@ package com.aegis.mybatis.xmlless.annotations
  * 例如：findById方法添加的@ResolvedName注解中添加values=[@ValueAssign(param="id",nonStringValue="12")]
  *  表示查询条件中 id = 12
  */
-annotation class ValueAssign(val param: String, val stringValue: String = "",
-                             val nonStringValue: String = "")
+annotation class ValueAssign(
+    val param: String,
+    val stringValue: String = "",
+    val nonStringValue: String = ""
+)

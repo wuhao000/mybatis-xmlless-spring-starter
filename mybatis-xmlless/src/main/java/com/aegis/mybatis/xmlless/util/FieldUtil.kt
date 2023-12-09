@@ -23,6 +23,8 @@ object FieldUtil {
         && AnnotationUtils.findAnnotation(field, JoinColumn::class.java) == null
         && AnnotationUtils.findAnnotation(field, JoinObject::class.java) == null
         && AnnotationUtils.findAnnotation(field, JoinProperty::class.java) == null
+        && AnnotationUtils.findAnnotation(field, JoinTableColumn::class.java) == null
+        && AnnotationUtils.findAnnotation(field, JoinEntityProperty::class.java) == null
   }
 
   fun isInsertIgnore(field: Field): Boolean {
@@ -32,6 +34,8 @@ object FieldUtil {
         || AnnotationUtils.findAnnotation(field, Count::class.java) != null
         || AnnotationUtils.findAnnotation(field, JoinObject::class.java) != null
         || AnnotationUtils.findAnnotation(field, JoinProperty::class.java) != null
+        || AnnotationUtils.findAnnotation(field, JoinEntityProperty::class.java) != null
+        || AnnotationUtils.findAnnotation(field, JoinTableColumn::class.java) != null
         || AnnotationUtils.findAnnotation(field, MyBatisIgnore::class.java)?.insert == true
   }
 
@@ -43,6 +47,8 @@ object FieldUtil {
         || AnnotationUtils.findAnnotation(field, MyBatisIgnore::class.java)?.update == true
         || AnnotationUtils.findAnnotation(field, JoinObject::class.java) != null
         || AnnotationUtils.findAnnotation(field, JoinProperty::class.java) != null
+        || AnnotationUtils.findAnnotation(field, JoinTableColumn::class.java) != null
+        || AnnotationUtils.findAnnotation(field, JoinEntityProperty::class.java) != null
         || AnnotationUtils.findAnnotation(field, CreatedDate::class.java) != null
   }
 
@@ -52,22 +58,30 @@ object FieldUtil {
         || AnnotationUtils.findAnnotation(field, MyBatisIgnore::class.java)?.select == true
   }
 
-  fun getCriteriaInfo(field: AnnotatedElement): CriteriaInfo? {
-    val criteria = AnnotationUtils.findAnnotation(field, Criteria::class.java) ?: return null
-    return CriteriaInfo(
-        criteria.property,
-        criteria.expression,
-        criteria.operator,
-        createTestInfo(criteria.test),
-    )
+  fun getCriteriaInfo(field: AnnotatedElement): List<CriteriaInfo> {
+    val list = field.getAnnotationsByType(Criteria::class.java)
+    return list.map { criteria ->
+      // todo
+//      val expressionWords = QueryResolver.toPascalCaseName(criteria.expression).toWords()
+//      CriteriaResolver.resolveConditions(
+//          expressionWords, methodInfo, mappings, resolveTypeResult.type
+//      )
+      CriteriaInfo(
+          criteria.property,
+          criteria.expression,
+          criteria.operator,
+          createTestInfo(criteria.test, field),
+      )
+    }
   }
 
   private fun isTransient(field: Field): Boolean {
     return AnnotationUtils.findAnnotation(field, Transient::class.java) != null
   }
 
-  private fun createTestInfo(test: TestExpression): TestInfo {
-    return TestInfo(test.value, test.expression)
+  private fun createTestInfo(test: TestExpression, field: AnnotatedElement): TestInfo {
+    return TestInfo(test.value, test.expression, field)
   }
+
 
 }

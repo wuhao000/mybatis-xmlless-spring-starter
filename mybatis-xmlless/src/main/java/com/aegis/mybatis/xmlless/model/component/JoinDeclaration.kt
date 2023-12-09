@@ -6,7 +6,7 @@ import jakarta.persistence.criteria.JoinType
 
 /**
  *
- * @author wuhao
+ * @author 吴昊
  * @date 2023/12/4 22:43
  * @since v0.0.0
  * @version 1.0
@@ -15,7 +15,7 @@ class JoinDeclaration(
     private val type: JoinType,
     val joinTable: TableName,
     val joinCondition: JoinConditionDeclaration,
-    val joinSelect: List<JoinDeclaration> = listOf()
+    private val joinSelect: List<JoinDeclaration> = listOf()
 ) : ISqlPart {
 
   override fun toSql(): String {

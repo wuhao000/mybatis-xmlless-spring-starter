@@ -8,12 +8,12 @@ enum class TestType(val expression: String) {
 
   EqFalse("== FALSE"),
   EqTrue(""),
-  GtZero(" &gt; 0"),
-  GteZero(" &gt;= 0"),
-  IsNull(" == null"),
-  LtZero(" &lt; 0"),
-  LteZero(" &lt;= 0"),
-  NotNull(" != null"),
+  GtZero("&gt; 0"),
+  GteZero("&gt;= 0"),
+  IsNull("== null"),
+  LtZero("&lt; 0"),
+  LteZero("&lt;= 0"),
+  NotNull("!= null"),
   NotEmpty("");
 
 }

@@ -21,16 +21,9 @@ class AppClusterDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveFindAllPage(){
-    val query = createQueryForMethod("findAll")
+    val query = createQueryForMethod(AppClusterDAO::findAll.javaMethod!!)
     println(query)
   }
 
-  private fun createQueryForMethod(name: String): Any {
-    return mapperClass.kotlin.declaredFunctions
-        .filter { it.name == name }
-        .map {
-          QueryResolver.resolve(it.javaMethod!!, tableInfo, modelClass, mapperClass, builderAssistant)
-        }.first()
-  }
 
 }

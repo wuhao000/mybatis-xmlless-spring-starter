@@ -9,5 +9,4 @@ import com.baomidou.mybatisplus.core.mapper.Mapper
  * @author 吴昊
  * @since 0.0.4
  */
-@Suppress("unused")
 interface XmlLessMapper<T> : Mapper<T>

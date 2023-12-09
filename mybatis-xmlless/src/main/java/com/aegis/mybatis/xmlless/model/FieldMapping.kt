@@ -1,19 +1,17 @@
 package com.aegis.mybatis.xmlless.model
 
 import com.aegis.kotlin.isNotNullAndNotBlank
+import com.aegis.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.annotations.Handler
 import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
-import com.aegis.mybatis.xmlless.annotations.MyBatisIgnore
 import com.aegis.mybatis.xmlless.config.TmpHandler
 import com.aegis.mybatis.xmlless.constant.PROPERTY_PREFIX
 import com.aegis.mybatis.xmlless.constant.PROPERTY_SUFFIX
-import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.HANDLER_PREFIX
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.aegis.mybatis.xmlless.util.FieldUtil
 import com.baomidou.mybatisplus.annotation.TableLogic
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
-import jakarta.persistence.Transient
 import org.apache.ibatis.type.TypeHandler
 import org.springframework.core.annotation.AnnotationUtils
 import org.springframework.data.annotation.CreatedDate
@@ -27,19 +25,17 @@ import java.util.*
  * @since 0.0.1
  */
 data class FieldMapping(
-    val field: Field,
-    val tableFieldInfo: TableFieldInfo,
-    val joinInfo: JoinInfo?
+    val field: Field, val tableFieldInfo: TableFieldInfo, val joinInfo: JoinInfo?
 ) {
 
   /**  对应数据库表的列名称 */
   val column: String = tableFieldInfo.column ?: field.name.toUnderlineCase().lowercase(Locale.getDefault())
 
   /** 是否插入时忽略 */
-  val insertIgnore: Boolean
+  val insertIgnore: Boolean = FieldUtil.isInsertIgnore(field)
 
   /** 是否json对象 */
-  val isJsonObject: Boolean = field.isAnnotationPresent(JsonMappingProperty::class.java)
+  private val isJsonObject: Boolean = field.isAnnotationPresent(JsonMappingProperty::class.java)
 
   /** 是否json数组 */
   val isJsonArray: Boolean = isJsonObject && Collection::class.java.isAssignableFrom(field.type)
@@ -57,7 +53,7 @@ data class FieldMapping(
   val typeHandler: TypeHandler<*>?
 
   /** 是否更新时忽略 */
-  val updateIgnore: Boolean
+  val updateIgnore: Boolean = FieldUtil.isUpdateIgnore(field)
 
   /** 是否逻辑删除的标记字段 */
   val isLogicDelFlag = field.isAnnotationPresent(TableLogic::class.java)
@@ -69,30 +65,32 @@ data class FieldMapping(
   val logicNotDelValue: Any?
 
   init {
-    insertIgnore = FieldUtil.isInsertIgnore(field)
-    updateIgnore = FieldUtil.isUpdateIgnore(field)
     selectIgnore = FieldUtil.isSelectIgnore(field)
     typeHandler = resolveTypeHandler(field)
-    logicDelValue = parseLogicFlagValue(if (isLogicDelFlag) {
-      val delValue = field.getAnnotation(TableLogic::class.java)?.delval
-      if (delValue.isNotNullAndNotBlank()) {
-        delValue
-      } else {
-        "1"
-      }
-    } else {
-      null
-    })
-    logicNotDelValue = parseLogicFlagValue(if (isLogicDelFlag) {
-      val notDelValue = field.getAnnotation(TableLogic::class.java)?.value
-      if (notDelValue.isNotNullAndNotBlank()) {
-        notDelValue
-      } else {
-        "0"
-      }
-    } else {
-      null
-    })
+    logicDelValue = parseLogicFlagValue(
+        if (isLogicDelFlag) {
+          val delValue = field.getAnnotation(TableLogic::class.java)?.delval
+          if (delValue.isNotNullAndNotBlank()) {
+            delValue
+          } else {
+            "1"
+          }
+        } else {
+          null
+        }
+    )
+    logicNotDelValue = parseLogicFlagValue(
+        if (isLogicDelFlag) {
+          val notDelValue = field.getAnnotation(TableLogic::class.java)?.value
+          if (notDelValue.isNotNullAndNotBlank()) {
+            notDelValue
+          } else {
+            "0"
+          }
+        } else {
+          null
+        }
+    )
   }
 
   private fun parseLogicFlagValue(value: String?): Any? {
@@ -138,7 +136,7 @@ data class FieldMapping(
   private fun resolveTypeHandler(field: Field): TypeHandler<*>? {
     val handlerAnno = field.getDeclaredAnnotation(Handler::class.java)
     if (handlerAnno != null) {
-      return handlerAnno.value.java.newInstance()
+      return handlerAnno.value.java.constructors.first { it.parameterCount == 0 }.newInstance() as TypeHandler<*>
     }
     if (field.isAnnotationPresent(JsonMappingProperty::class.java)) {
       return TmpHandler(QueryResolver.toJavaType(field.genericType))

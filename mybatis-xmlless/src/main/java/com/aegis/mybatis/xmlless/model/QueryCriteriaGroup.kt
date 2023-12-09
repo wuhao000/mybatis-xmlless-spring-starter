@@ -1,16 +1,15 @@
 package com.aegis.mybatis.xmlless.model
 
 import com.aegis.mybatis.xmlless.constant.Strings.LINE_BREAK_INDENT
-import com.aegis.mybatis.xmlless.enums.Operations
 
 
 /**
  * Created by 吴昊 on 2018/12/20.
  */
-data class QueryCriteriaGroup(val criterion: MutableList<QueryCriteria> = mutableListOf()) {
+data class QueryCriteriaGroup(private val criterion: List<QueryCriteria> = mutableListOf()) {
 
-  fun add(condition: QueryCriteria) {
-    this.criterion.add(condition)
+  companion object {
+    const val CONDITION_GROUP_TEMPLATE = "(\n\t%s\n\t) AND"
   }
 
   fun isEmpty(): Boolean {
@@ -21,18 +20,38 @@ data class QueryCriteriaGroup(val criterion: MutableList<QueryCriteria> = mutabl
     return criterion.isNotEmpty()
   }
 
-  fun onlyDefaultEq(): Boolean {
-    return criterion.map { it.operator }.toSet().singleOrNull() == Operations.EqDefault
-  }
 
   fun toSql(mappings: FieldMappings): String {
-    val list = criterion.map { it.toSql(mappings) }
     return when {
-      criterion.size > 1 -> criterion.first().wrapWithTests(
-          "(\n\t" + trimCondition(criterion.joinToString(LINE_BREAK_INDENT) { it.toSqlWithoutTest(mappings) }) + "\n)"
-      ) + " AND"
-      else               -> list.first()
+      criterion.size > 1 -> {
+        val c = criterion.first()
+        val criteriaInfoList = c.getCriteriaList(mappings)
+        if (criteriaInfoList.isNotEmpty()) {
+          criteriaInfoList.joinToString("\n") { criteriaInfo ->
+            createConditionGroupSql(c, mappings, criteriaInfo)
+          }
+        } else {
+          createConditionGroupSql(c, mappings, null)
+        }
+      }
+
+      else               -> criterion.first().toSql(mappings)
     }
+  }
+
+  private fun createConditionGroupSql(
+      criteria: QueryCriteria,
+      mappings: FieldMappings,
+      criteriaInfo: CriteriaInfo?
+  ): String {
+    return criteria.wrapWithTests(
+        CONDITION_GROUP_TEMPLATE.format(
+            trimCondition(criterion.joinToString(LINE_BREAK_INDENT) {
+              it.toSqlWithoutTest(mappings, criteriaInfo)
+            })
+        ),
+        criteriaInfo
+    )
   }
 
   private fun trimCondition(sql: String): String {

@@ -2,12 +2,13 @@ package com.aegis.mybatis.xmlless.model
 
 import cn.hutool.core.util.ReflectUtil
 import com.aegis.kotlin.isNotNullAndNotBlank
+import com.aegis.mybatis.xmlless.annotations.Logic
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.resolver.ParameterResolver
 import com.aegis.mybatis.xmlless.util.FieldUtil
 import org.apache.ibatis.annotations.Param
+import java.lang.reflect.AnnotatedElement
 import java.lang.reflect.Method
-import java.lang.reflect.Parameter
 
 /**
  * 方法信息
@@ -17,18 +18,28 @@ import java.lang.reflect.Parameter
  * @since v4.0.0
  * @version 1.0
  */
-data class MethodInfo(
+class MethodInfo(
     val method: Method,
+    val modelClass: Class<*>,
+    private val mappings: FieldMappings,
 ) {
 
+  val name: String = method.name
+
   /** 方法参数列表 */
-  val parameters: List<ParameterInfo> = method.parameters.map { ParameterInfo(it) }
+  val parameters: List<ParameterInfo> = method.parameters.map {
+    ParameterInfo(it, it.name, it.type, methodInfo = this)
+  }
 
   /** 可选参数列表 */
   private val optionalParameters: List<OptionalParam> = createOptionalParameters()
 
   /** ResolvedName注解 */
-  val resolvedName = method.getAnnotation(ResolvedName::class.java)
+  val resolvedName: ResolvedName? = method.getAnnotation(ResolvedName::class.java)
+
+  val logic: Logic? = method.getAnnotation(Logic::class.java)
+
+  val paramNames: Array<String> = ParameterResolver.resolveNames(method)
 
   fun findOptionalParam(property: String): OptionalParam? {
     return optionalParameters.firstOrNull { it.name == property }
@@ -63,17 +74,21 @@ data class MethodInfo(
  * @since v4.0.0
  */
 data class ParameterInfo(
-    val parameter: Parameter,
-    val name: String = parameter.name,
-    val type: Class<*> = parameter.type,
-    val isComplex: Boolean = ParameterResolver.isComplexParameter(type)
+    val parameter: AnnotatedElement,
+    private val elementName: String,
+    val type: Class<*>,
+    val isComplex: Boolean = ParameterResolver.isComplexParameter(type),
+    private val methodInfo: MethodInfo
 ) {
 
   /** 条件注解 */
-  val criteria: CriteriaInfo? = FieldUtil.getCriteriaInfo(parameter)
+  val criteria: List<CriteriaInfo> = FieldUtil.getCriteriaInfo(parameter)
+
 
   /** Param注解 */
   val specificParamName: String? = parameter.getAnnotation(Param::class.java)?.value
+
+  val name = specificParamName ?: elementName
 
 
   fun createOptionalParameters(forcePrefix: Boolean): List<OptionalParam> {

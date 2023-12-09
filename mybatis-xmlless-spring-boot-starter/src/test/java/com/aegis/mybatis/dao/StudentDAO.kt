@@ -3,11 +3,8 @@ package com.aegis.mybatis.dao
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.bean.StudentDetail
 import com.aegis.mybatis.bean.StudentState
-import com.aegis.mybatis.xmlless.annotations.ExcludeProperties
-import com.aegis.mybatis.xmlless.annotations.ResolvedName
-import com.aegis.mybatis.xmlless.annotations.SelectedProperties
-import com.aegis.mybatis.xmlless.annotations.TestExpression
 import com.aegis.mybatis.xmlless.XmlLessMapper
+import com.aegis.mybatis.xmlless.annotations.*
 import com.aegis.mybatis.xmlless.enums.TestType
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param
@@ -15,9 +12,42 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.Month
-import java.time.YearMonth
 import java.util.*
+
+class StudentQueryForm(
+    var age: Int? = null,
+    var name: String? = null,
+    var start: Date? = null,
+    var end: Date? = null,
+    var keywords: String? = null
+) {
+  @Criteria(
+      expression = "name eq currentUserId",
+      test = TestExpression(
+          expression = "type = 1 and currentUserId != null",
+      )
+  )
+  @Criteria(
+      expression = "updateUserId eq currentUserId",
+      test = TestExpression(
+          expression = "type = 2 and currentUserId != null",
+      )
+  )
+  @Criteria(
+      expression = "updateUserId eq currentUserId",
+      test = TestExpression(
+          expression = ">= 5 and currentUserId != null",
+      )
+  )
+  @Criteria(
+      expression = "updateUserId eq currentUserId",
+      test = TestExpression(
+          expression = "<= 12 and currentUserId != null",
+      )
+  )
+  var type: Int? = null
+
+}
 
 /**
  *
@@ -28,6 +58,29 @@ import java.util.*
  */
 @Mapper
 interface StudentDAO : XmlLessMapper<Student> {
+
+  @ResolvedName(
+      name = "findBy",
+      partNames = [
+        "name like", "age", "createTime between start and end",
+        "userName like keywords",
+        "order by createTime desc",
+      ]
+  )
+  fun find(
+      @Param("form") form: StudentQueryForm,
+      @Param("currentUserId") currentUserId: Int? = null
+  ): List<Student>
+
+  @ResolvedName(
+      name = "findBy",
+      partNames = [
+        "name", "age", "userName like keywords or createUserName like keywords"
+      ]
+  )
+  fun findByNameAndAgeAndUserNameLikeKeywordsOrCreateUserNameLikeKeywords(
+      form: StudentQueryForm
+  ): List<Student>
 
   /**
    *
@@ -103,19 +156,22 @@ interface StudentDAO : XmlLessMapper<Student> {
    * @param max
    * @return
    */
-  fun findByAgeBetweenMinAndMaxOrderByBirthday(@Param("min")
-                                @TestExpression([TestType.NotNull])
-                                min: Int,
-                                               @Param("max")
-                                @TestExpression([TestType.NotNull])
-                                max: Int): List<Student>
+  fun findByAgeBetweenMinAndMaxOrderByBirthday(
+      @Param("min")
+      @TestExpression([TestType.NotNull])
+      min: Int,
+      @Param("max")
+      @TestExpression([TestType.NotNull])
+      max: Int
+  ): List<Student>
 
   fun findByCreateTimeBetweenStartTimeAndEndTime(
       @Param("startTime") startTime: LocalDateTime?, @Param("endTime") endTime: LocalDateTime?
   ): List<Student>
 
   @ResolvedName("findByAge", partNames = ["name"])
-  fun findByAge(@Param("age") age: Int, @Param("name") name: String ): List<Student>
+  fun findByAge(@Param("age") age: Int, @Param("name") name: String): List<Student>
+
   /**
    *
    * @param age
@@ -245,16 +301,19 @@ interface StudentDAO : XmlLessMapper<Student> {
 
   @ResolvedName("findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd")
   fun findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable3(
-      form: QueryForm, pageable: Pageable): Page<Student>
+      form: QueryForm, pageable: Pageable
+  ): Page<Student>
 
   @ResolvedName("findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd")
   fun findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable(
-      @Param("form") form: QueryForm, pageable: Pageable): Page<Student>
+      @Param("form") form: QueryForm, pageable: Pageable
+  ): Page<Student>
 
 
   @ResolvedName("findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd")
   fun findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable2(
-      @Param("form") form: QueryForm, @Param("p") pageable: Pageable): Page<Student>
+      @Param("form") form: QueryForm, @Param("p") pageable: Pageable
+  ): Page<Student>
 
   fun findByAgeBetween(min: Int?, max: Int?): List<Student>
 

@@ -1,8 +1,8 @@
 package com.aegis.mybatis.xmlless.model
 
+import com.aegis.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
-import com.aegis.mybatis.xmlless.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.model.component.JoinDeclaration
 import com.aegis.mybatis.xmlless.util.FieldUtil
 import com.aegis.mybatis.xmlless.util.getTableInfo

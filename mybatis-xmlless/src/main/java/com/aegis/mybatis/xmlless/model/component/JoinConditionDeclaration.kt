@@ -4,7 +4,7 @@ import com.aegis.mybatis.xmlless.model.TableName
 
 /**
  *
- * @author wuhao
+ * @author 吴昊
  * @date 2023/12/5 9:59
  * @since v0.0.0
  * @version 1.0
@@ -12,7 +12,7 @@ import com.aegis.mybatis.xmlless.model.TableName
 class JoinConditionDeclaration(
     var originTable: TableName,
     private val originColumn: String,
-    val targetTable: TableName,
+    private val targetTable: TableName,
     private val targetColumn: String,
     private val isJson: Boolean = false
 ) : ISqlPart {

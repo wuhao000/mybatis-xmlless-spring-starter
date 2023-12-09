@@ -367,7 +367,6 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
       if (returnType.isArray) {
         returnType = returnType.componentType
       }
-      // gcode issue #508
       if (Void.TYPE == returnType) {
         val rt = method.getAnnotation(
             ResultType::class.java
@@ -387,7 +386,6 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
             }
 
             is ParameterizedType -> {
-              // (gcode issue #443) actual type can be a also a parameterized type
               returnType = returnTypeParameter.rawType as Class<*>
             }
 
@@ -406,7 +404,6 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
           if (returnTypeParameter is Class<*>) {
             returnType = returnTypeParameter
           } else if (returnTypeParameter is ParameterizedType) {
-            // (gcode issue 443) actual type can be a also a parameterized type
             returnType = returnTypeParameter.rawType as Class<*>
           }
         }

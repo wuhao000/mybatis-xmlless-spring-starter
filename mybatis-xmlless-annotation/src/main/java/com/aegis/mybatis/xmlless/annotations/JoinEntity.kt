@@ -16,5 +16,5 @@ annotation class JoinEntity(
     /** 要连接的表对应的实体类字段名称，用于映射到当前注解所在字段 */
     val propertyMapTo: String = "",
     /** 要连接的表对应的实体类用于连接条件的属性名称 */
-    val joinOnProperty: String = "id"
+    val joinOnProperty: String = ""
 )
