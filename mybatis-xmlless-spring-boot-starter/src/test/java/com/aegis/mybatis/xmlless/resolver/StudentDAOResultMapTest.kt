@@ -17,7 +17,8 @@ import kotlin.reflect.jvm.javaMethod
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class StudentDAOResultMapTest : BaseResolverTest(
-    Student::class.java, StudentDetailDAO::class.java,
+    StudentDetailDAO::class.java,
+    Student::class.java,
 //    "findFavorites",
     "findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd",
     "findAll"
@@ -30,7 +31,6 @@ class StudentDAOResultMapTest : BaseResolverTest(
           it, tableInfo, modelClass, mapperClass, builderAssistant
       )
       val rmId = query.resultMap
-      val rm = builderAssistant.configuration.getResultMap(rmId)
       println(query)
       println(rmId)
     }

@@ -10,7 +10,6 @@ import com.aegis.mybatis.xmlless.model.component.WhereDeclaration
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.baomidou.mybatisplus.annotation.FieldFill
 import com.baomidou.mybatisplus.annotation.FieldStrategy
-import com.baomidou.mybatisplus.annotation.TableLogic
 import com.baomidou.mybatisplus.core.toolkit.StringPool
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils.convertTrim
@@ -44,11 +43,12 @@ data class Query(
     val sorts: List<Sort.Order> = listOf(),
     /** 待解析的方法 */
     val methodInfo: MethodInfo,
-    /**  数据对象的与数据库的映射管理 */
-    val mappings: FieldMappings,
     /**  limit信息 */
     var limitation: Limitation? = null
 ) {
+
+  /**  数据对象的与数据库的映射管理 */
+  val mappings: FieldMappings = methodInfo.mappings
 
   /**  来自Page参数的排序条件 */
   var extraSortScript: String? = null
@@ -68,8 +68,8 @@ data class Query(
 
   fun containedTables(): List<String> {
     return (this.criterion.flatten().map {
-      it.toSqlWithoutTest(mappings, null).split(".")[0]
-    } + ColumnsResolver.resolveIncludedTables(mappings, properties, methodInfo)).distinct()
+      it.toSqlWithoutTest(null).split(".")[0]
+    } + ColumnsResolver.resolveIncludedTables(properties, methodInfo)).distinct()
   }
 
   private fun convertIf(sqlScript: String, property: String, mapping: FieldMapping): String {
@@ -124,8 +124,8 @@ data class Query(
   }
 
   fun includeJoins(): Boolean {
-    return properties.includes.isEmpty() || properties.includes.any { !it.startsWith(mappings.tableInfo.tableName) } || containedTables().distinct()
-        .any { it != mappings.tableInfo.tableName }
+    return properties.includes.isEmpty() || properties.includes.any { !it.startsWith(mappings.tableName) } || containedTables().distinct()
+        .any { it != mappings.tableName }
   }
 
   private fun limitInSubQuery(): Boolean {
@@ -152,7 +152,9 @@ data class Query(
     return when {
       this.sorts.isNotEmpty() -> {
         val string = this.sorts.joinToString(", ") {
-          "${mappings.resolveColumnByPropertyName(it.property, false).first().toSql()} ${it.direction}"
+          "${
+            ColumnsResolver.resolveColumnByPropertyName(it.property, false, methodInfo).first().toSql()
+          } " + "${it.direction}"
         }
         when {
           extraSortScript.isNullOrBlank() -> String.format(ORDER_BY, string)
@@ -179,12 +181,12 @@ data class Query(
 
   fun toSql(): String {
     return when (type) {
-      QueryType.Delete      -> buildDeleteSql()
-      QueryType.Insert      -> buildInsertSql()
-      QueryType.Select      -> buildSelectSql()
-      QueryType.Update      -> buildUpdateSql()
-      QueryType.Count       -> buildCountSql()
-      QueryType.Exists      -> buildExistsSql()
+      QueryType.Delete -> buildDeleteSql()
+      QueryType.Insert -> buildInsertSql()
+      QueryType.Select -> buildSelectSql()
+      QueryType.Update -> buildUpdateSql()
+      QueryType.Count -> buildCountSql()
+      QueryType.Exists -> buildExistsSql()
       QueryType.LogicDelete -> buildLogicDeleteSql()
     }
   }
@@ -241,7 +243,7 @@ data class Query(
     }
     return String.format(
         template,
-        mappings.tableInfo.tableName,
+        mappings.tableName,
         columns.joinToString(Strings.COLUMN_SEPARATOR),
         values.joinToString(Strings.COLUMN_SEPARATOR),
         resolveUpdateProperties(true)
@@ -249,10 +251,10 @@ data class Query(
   }
 
   private fun buildLogicDeleteSql(): String {
-    val mapper = this.mappings.mappings.find { it.field.isAnnotationPresent(TableLogic::class.java) }
+    val mapper = this.mappings.mappings.find { it.tableFieldInfo.isLogicDelete }
       ?: throw IllegalStateException("缺少逻辑删除字段，请在字段上添加@TableLogic注解")
-    val logic = methodInfo.logic!!
-    val value = this.mappings.getLogicDelFlagValue(logic)
+    val logicType = methodInfo.getLogicType()!!
+    val value = this.mappings.getLogicDelFlagValue(logicType)
     return "<script>UPDATE ${tableName().name} SET ${mapper.column} = $value " + resolveWhere().toSql() + "</script>"
   }
 
@@ -275,7 +277,7 @@ data class Query(
     val limit = resolveLimit()
     val limitInSubQuery = limitInSubQuery() && where.whereAppend.isNullOrBlank() && where.criterion.isEmpty()
     val from = resolveFrom(limitInSubQuery, where, limit)
-    val buildColsResult = ColumnsResolver.resolve(mappings, properties, methodInfo)
+    val buildColsResult = ColumnsResolver.resolve(properties, methodInfo)
     return when {
       limitInSubQuery -> buildScript(
           buildColsResult.joinToString(",\n\t") { it.toSql() },
@@ -321,7 +323,7 @@ data class Query(
   ): ISqlPart {
     val onlyIncludesTables = if (isCount) {
       criterion.flatten().map {
-        it.columns.mapNotNull { column -> column.table }
+        it.getColumns().mapNotNull { column -> column.table }
       }.flatten().distinct()
     } else {
       null
@@ -371,14 +373,14 @@ data class Query(
   private fun resolveWhere(): WhereDeclaration {
     val groups = resolveGroups()
     val groupBuilders = groups.map {
-      it.toSql(mappings)
+      it.toSql(true)
     }
     val whereAppend = methodInfo.resolvedName?.whereAppend
     return WhereDeclaration(criterion, groupBuilders, whereAppend)
   }
 
   private fun tableName(): TableName {
-    return TableName(mappings.tableInfo.tableName, mappings.tableInfo.tableName.replace('.', '_'))
+    return TableName(mappings.tableName, mappings.tableName.replace('.', '_'))
   }
 
   private fun wrapSetScript(sql: String, noSetPrefix: Boolean): String {

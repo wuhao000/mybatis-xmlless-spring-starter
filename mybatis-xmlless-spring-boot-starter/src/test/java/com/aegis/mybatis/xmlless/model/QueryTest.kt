@@ -5,6 +5,7 @@ import com.aegis.mybatis.xmlless.XmlLessMapper
 import org.junit.jupiter.api.Test
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
+import kotlin.reflect.jvm.javaMethod
 import kotlin.test.assertEquals
 
 interface TestEntityDAO : XmlLessMapper<TestEntity> {
@@ -29,8 +30,9 @@ interface TestEntityDAO : XmlLessMapper<TestEntity> {
 /**
  * Created by 吴昊 on 2018/12/26.
  */
-class QueryTest : BaseResolverTest(TestEntity::class.java,
+class QueryTest : BaseResolverTest(
     TestEntityDAO::class.java,
+    TestEntity::class.java,
     "findByNameAndDescLikeKeyword",
     "findByNameOrDescLikeKeyword") {
 
@@ -164,10 +166,14 @@ class QueryTest : BaseResolverTest(TestEntity::class.java,
 
   @Test
   fun resolveGroupBy() {
-    val query1 = this.queries.first { it.method.name == "findByNameAndDescLikeKeyword" }.query!!
+    val query1 = createQueryForMethod(
+        TestEntityDAO::findByNameAndDescLikeKeyword.javaMethod!!
+    ).query!!
     println(query1.toSql())
     assertEquals(2, query1.resolveGroups().size)
-    val query2 = this.queries.first { it.method.name == "findByNameOrDescLikeKeyword" }.query!!
+    val query2 = createQueryForMethod(
+        TestEntityDAO::findByNameOrDescLikeKeyword.javaMethod!!
+    ).query!!
     println(query2.toSql())
     println(query2.resolveGroups())
     assertEquals(2, query2.resolveGroups().size)

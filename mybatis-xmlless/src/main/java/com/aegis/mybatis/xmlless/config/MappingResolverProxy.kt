@@ -98,6 +98,28 @@ class MappingResolverProxy {
     return mappingCache[modelClass.name]
   }
 
+  fun resolveNonEntityClass(clazz: Class<*>,
+                            modelClass: Class<*>,
+                            tableInfo: TableInfo,
+                            builderAssistant: MapperBuilderAssistant): FieldMappings {
+    if (MappingResolver.getMappingCache(clazz) != null) {
+      return MappingResolver.getMappingCache(clazz)!!
+    }
+    val currentTableInfo = getTableInfo(clazz, builderAssistant)!!
+    val modelFieldInfoMap = tableInfo.getFieldInfoMap(modelClass)
+    val currentFieldInfoMap = currentTableInfo.getFieldInfoMap(clazz)
+    val fields = MappingResolver.resolveFields(clazz).filter {
+      it.name in modelFieldInfoMap || it.name in currentFieldInfoMap
+    }
+    val mapping = FieldMappings(fields.map { field ->
+      val fieldInfo = modelFieldInfoMap[field.name] ?: currentFieldInfoMap[field.name] as TableFieldInfo
+      val joinInfo = resolveJoinInfo(fieldInfo, builderAssistant, modelClass)
+      FieldMapping(field, fieldInfo, joinInfo)
+    }, tableInfo, clazz)
+    mappingCache[clazz.name] = mapping
+    return mapping
+  }
+
   fun resolve(modelClass: Class<*>, tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant): FieldMappings {
     if (MappingResolver.getMappingCache(modelClass) != null) {
       return MappingResolver.getMappingCache(modelClass)!!
@@ -108,20 +130,29 @@ class MappingResolverProxy {
       it.name in fieldInfoMap
     }
     val mapping = FieldMappings(fields.map { field ->
-      val fieldInfo = fieldInfoMap[field.name]!!
-      val joinInfo = resolveJoin(field, builderAssistant)
-      if (joinInfo is ObjectJoinInfo) {
-        val joinClass = joinInfo.realType()
-        val joinTableInfo = getTableInfo(joinInfo.realType(), builderAssistant)
-        // 防止无限循环
-        if (joinTableInfo != null && joinClass != modelClass) {
-          MappingResolver.resolve(joinClass, joinTableInfo, builderAssistant)
-        }
-      }
+      val fieldInfo = fieldInfoMap[field.name] as TableFieldInfo
+      val joinInfo = resolveJoinInfo(fieldInfo, builderAssistant, modelClass)
       FieldMapping(field, fieldInfo, joinInfo)
-    }, tableInfo, modelClass, builderAssistant.configuration.isMapUnderscoreToCamelCase)
+    }, tableInfo, modelClass)
     mappingCache[modelClass.name] = mapping
     return mapping
+  }
+
+  private fun resolveJoinInfo(
+      fieldInfo: TableFieldInfo,
+      builderAssistant: MapperBuilderAssistant,
+      modelClass: Class<*>
+  ): JoinInfo? {
+    val joinInfo = resolveJoin(fieldInfo.field, builderAssistant)
+    if (joinInfo is ObjectJoinInfo) {
+      val joinClass = joinInfo.realType()
+      val joinTableInfo = getTableInfo(joinInfo.realType(), builderAssistant)
+      // 防止无限循环
+      if (joinTableInfo != null && joinClass != modelClass) {
+        MappingResolver.resolve(joinClass, joinTableInfo, builderAssistant)
+      }
+    }
+    return joinInfo
   }
 
   fun resolveFields(modelClass: Class<*>): List<Field> {
@@ -163,7 +194,7 @@ class MappingResolverProxy {
                 resolveFromEntity(it.entity, it.propertyMapTo, builderAssistant),
                 field.name
             ),
-            tableName(it.entity.java, it.joinOnThisProperty.toUnderlineCase() + "_", builderAssistant),
+            tableName(it.entity.java, it.joinOnThisProperty.toUnderlineCase().lowercase() + "_", builderAssistant),
             it.joinType,
             it.joinOnThisProperty,
             resolveJoinOnColumn(it.entity.java, joinEntityProperty.joinOnProperty, builderAssistant),

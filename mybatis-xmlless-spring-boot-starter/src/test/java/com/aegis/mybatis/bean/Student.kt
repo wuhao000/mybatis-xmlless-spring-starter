@@ -2,11 +2,8 @@ package com.aegis.mybatis.bean
 
 import com.aegis.mybatis.xmlless.annotations.*
 import com.baomidou.mybatisplus.annotation.TableField
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.Table
+import com.baomidou.mybatisplus.annotation.TableLogic
+import jakarta.persistence.*
 import org.apache.ibatis.type.BaseTypeHandler
 import org.apache.ibatis.type.JdbcType
 import org.springframework.data.annotation.CreatedDate
@@ -15,6 +12,7 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.time.LocalDate
 import java.time.LocalDateTime
+import kotlin.jvm.Transient
 
 @JsonMappingProperty
 data class EducationInfo(
@@ -91,6 +89,7 @@ class Student() {
 
   @Id
   var id: String = ""
+
   var name: String = ""
 
   @JsonMappingProperty
@@ -98,6 +97,13 @@ class Student() {
 
   @Handler(StringTypeHandler::class)
   var phoneNumber: String = ""
+
+  @TableLogic(
+      value = "0",
+      delval = "1"
+  )
+  @Column(name = "del_flag")
+  var deleted: Boolean = false
 
   @JoinObject(
       toEntity = JoinEntity(Score::class, joinOnProperty = "studentId"),

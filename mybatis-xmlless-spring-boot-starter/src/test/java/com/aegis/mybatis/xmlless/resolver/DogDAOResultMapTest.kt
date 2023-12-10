@@ -19,7 +19,7 @@ import kotlin.reflect.jvm.javaMethod
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DogDAOResultMapTest : BaseResolverTest(
-    Dog::class.java, DogDAO::class.java,
+    DogDAO::class.java, Dog::class.java,
     "findAll"
 ) {
 

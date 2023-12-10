@@ -25,30 +25,30 @@ object ResultMapResolver {
   fun resolveResultMap(
       id: String,
       builderAssistant: MapperBuilderAssistant,
-      modelClass: Class<*>,
+      returnType: Class<*>,
       query: Query? = null,
       optionalProperties: Properties = Properties(),
       function: Method? = null
   ): String? {
-    if (modelClass.name.startsWith("java.lang") || modelClass.isEnum) {
+    if (returnType.name.startsWith("java.lang") || returnType.isEnum) {
       return null
     }
     val copyId = id.replace(".", "_")
     if (builderAssistant.configuration.hasResultMap(copyId)) {
       return copyId
     }
-    val mappings = MappingResolver.getMappingCache(modelClass)
-    val isJsonType = isJsonType(modelClass, query, function)
+    val mappings = MappingResolver.getMappingCache(returnType)
+    val isJsonType = isJsonType(returnType, query, function)
     val resultMap = ResultMapResolver(
         builderAssistant, copyId,
         if (isJsonType) {
           JsonWrapper::class.java
         } else {
-          modelClass
+          returnType
         }, null, null,
         resolveResultMappings(
             mappings, query,
-            optionalProperties, builderAssistant, modelClass,
+            optionalProperties, builderAssistant, returnType,
             copyId, function
         ), true
     ).resolve()

@@ -5,14 +5,15 @@ package com.aegis.mybatis.xmlless.resolver
 import com.aegis.kotlin.toCamelCase
 import com.aegis.kotlin.toPascalCase
 import com.aegis.kotlin.toWords
-import com.aegis.mybatis.xmlless.annotations.ExcludeProperties
-import com.aegis.mybatis.xmlless.annotations.Logic
-import com.aegis.mybatis.xmlless.annotations.SelectedProperties
+import com.aegis.mybatis.xmlless.annotations.*
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.constant.PAGEABLE_SORT
+import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.kotlin.split
 import com.aegis.mybatis.xmlless.model.*
+import com.aegis.mybatis.xmlless.util.AnnotationUtil
+import com.aegis.mybatis.xmlless.util.MethodUtil
 import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import com.baomidou.mybatisplus.core.override.XmlLessPageMapperMethod
@@ -62,32 +63,44 @@ object QueryResolver {
       return getQueryCache(method, mapperClass)!!
     }
     try {
-      val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
-      val methodInfo = MethodInfo(method, modelClass, mappings)
+      val clazz = resolveReturnType(method, mapperClass)
+      val returnMappings = if (clazz != modelClass
+          && !MethodUtil.isJsonResult(method)
+          && !clazz.name.startsWith("java.lang")
+          && !clazz.isPrimitive
+          && !clazz.isAnnotationPresent(JsonMappingProperty::class.java)
+          && !clazz.isEnum
+      ) {
+        MappingResolver.resolveNonEntityClass(
+            clazz, modelClass, tableInfo, builderAssistant
+        )
+      } else {
+        null
+      }
+      val modelMappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
+      val methodInfo = MethodInfo(method, modelClass, returnMappings ?: modelMappings, modelMappings)
       val resolvedNames = getResolvedName(methodInfo)
       val resolveSortsResult = resolveSorts(resolvedNames)
       val resolveTypeResult = resolveType(resolveSortsResult.remainNames.first(), method)
       val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords, method)
       val conditionWordsList = resolveSortsResult.remainNames.drop(1).map { it.toWords() }
-      val conditions = CriteriaResolver.resolveConditions(
-          resolvePropertiesResult.conditionWords, methodInfo, mappings, resolveTypeResult.type
-      ).map {
-        listOf(it)
-      } + conditionWordsList.map {
-        CriteriaResolver.resolveConditions(
-            it, methodInfo, mappings, resolveTypeResult.type
-        )
-      } + listOf(CriteriaResolver.createComplexParameterCondition(methodInfo, mappings))
+      val conditions = getFinalGroupedConditionList(
+          resolvePropertiesResult,
+          methodInfo,
+          resolveTypeResult,
+          conditionWordsList,
+          returnMappings ?: modelMappings
+      )
       val query = Query(
           resolveTypeResult.type,
           Properties(
-              resolvePropertiesResult.properties, resolvePropertiesResult.excludeProperties,
+              resolvePropertiesResult.properties,
+              resolvePropertiesResult.excludeProperties,
               resolvePropertiesResult.updateExcludeProperties
           ),
           conditions.filter { it.isNotEmpty() },
           resolveSortsResult.sorts,
-          methodInfo,
-          mappings
+          methodInfo
       )
       method.parameters.forEachIndexed { index, param ->
         if (Pageable::class.java.isAssignableFrom(param.type)) {
@@ -110,6 +123,43 @@ object QueryResolver {
       log.error("解析方法 ${method.name} 失败", e)
       return ResolvedQuery(null, null, null, method, e.message)
     }
+  }
+
+  private fun getFinalGroupedConditionList(
+      resolvePropertiesResult: ResolvePropertiesResult,
+      methodInfo: MethodInfo,
+      resolveTypeResult: ResolveTypeResult,
+      conditionWordsList: List<List<String>>,
+      mappings: FieldMappings
+  ): List<List<QueryCriteria>> {
+    val result = mutableListOf<List<QueryCriteria>>()
+    result += CriteriaResolver.resolveConditions(
+        resolvePropertiesResult.conditionWords, methodInfo, resolveTypeResult.type
+    ).map { listOf(it) }
+    result += conditionWordsList.map {
+      CriteriaResolver.resolveConditions(
+          it, methodInfo, resolveTypeResult.type
+      )
+    }
+    result += CriteriaResolver.createComplexParameterCondition(methodInfo, mappings)
+    val logicType = methodInfo.getLogicType()
+    if (logicType != null && resolveTypeResult.type == QueryType.Select) {
+      val logicDeleteFieldInfo = methodInfo.mappings.tableInfo.logicDeleteFieldInfo
+        ?: throw IllegalStateException("缺少逻辑删除字段，请在字段上添加@TableLogic注解")
+      result += listOf(
+          QueryCriteria(
+              logicDeleteFieldInfo.property,
+              Operations.Eq,
+              parameters = listOf(),
+              specificValue = SpecificValue(
+                  stringValue = "",
+                  nonStringValue = methodInfo.mappings.getLogicDelFlagValue(logicType).toString()
+              ),
+              methodInfo = methodInfo
+          )
+      )
+    }
+    return result
   }
 
 
@@ -236,7 +286,7 @@ object QueryResolver {
     return ResolveSortsResult(sorts, remainNames)
   }
 
-  fun resolveType(name: String, function: Method): ResolveTypeResult {
+  fun resolveType(name: String, method: Method): ResolveTypeResult {
     val wordsWithoutSort = name.toWords()
     val typeWord = wordsWithoutSort[0]
     val type: QueryType = when (typeWord) {
@@ -245,7 +295,13 @@ object QueryResolver {
       "Count"                                        -> QueryType.Count
       "Update"                                       -> QueryType.Update
       in listOf("Delete", "Remove")                  -> {
-        if (function.getAnnotation(Logic::class.java) != null) {
+        val logicDelete = AnnotationUtil.hasAnyAnnotation(
+            method,
+            Logic::class.java,
+            Deleted::class.java,
+            NotDeleted::class.java
+        )
+        if (logicDelete) {
           QueryType.LogicDelete
         } else {
           QueryType.Delete

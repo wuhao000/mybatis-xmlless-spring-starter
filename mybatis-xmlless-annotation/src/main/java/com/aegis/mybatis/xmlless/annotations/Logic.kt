@@ -8,6 +8,9 @@ package com.aegis.mybatis.xmlless.annotations
  * @since 3.5.1
  */
 @Target(AnnotationTarget.FUNCTION)
+@Deprecated(
+    message = "使用@Deleted 或 @NotDeleted 替代"
+)
 annotation class Logic(
     /**
      * 1. 当作用于删除方法时，flag表示要更新的状态：Deleted-将数据标记为已删除，NotDeleted-将数据标记为未删除

@@ -4,8 +4,8 @@ package com.aegis.mybatis.dao
 
 import com.aegis.mybatis.bean.Role
 import com.aegis.mybatis.xmlless.XmlLessMapper
-import com.aegis.mybatis.xmlless.annotations.DeleteValue
-import com.aegis.mybatis.xmlless.annotations.Logic
+import com.aegis.mybatis.xmlless.annotations.Deleted
+import com.aegis.mybatis.xmlless.annotations.NotDeleted
 import org.apache.ibatis.annotations.Mapper
 
 /**
@@ -22,13 +22,13 @@ interface RoleDAO : XmlLessMapper<Role> {
    */
   fun save(user: Role)
 
-  @Logic(DeleteValue.NotDeleted)
+  @NotDeleted
   fun findById(id: Int): Role?
 
-  @Logic(DeleteValue.Deleted)
+  @Deleted
   fun deleteById(id: Int)
 
-  @Logic(DeleteValue.Deleted)
+  @Deleted
   fun findAll(): List<Role>
 
 }

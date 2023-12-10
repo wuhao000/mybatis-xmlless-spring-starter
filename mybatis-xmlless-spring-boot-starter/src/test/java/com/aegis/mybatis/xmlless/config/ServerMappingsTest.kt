@@ -15,25 +15,15 @@ import org.junit.jupiter.api.Test
 //@RunWith(SpringRunner::class)
 //@SpringBootTest
 class ServerMappingsTest : BaseResolverTest(
-    Server::class.java,
     ServerDAO::class.java,
+    Server::class.java,
     "findById"
 ) {
 
 
   @Test
-  fun resolve() {
-    queries.forEach {
-      println(it)
-      println(it.query?.includeJoins())
-      println(it.query?.containedTables())
-    }
-  }
-
-  @Test
   fun resolveColumns() {
-    val mappings = MappingResolver.getMappingCache(modelClass)
-    mappings!!.mappings.mapNotNull { it.joinInfo }.forEach {
+    mappings.mappings.mapNotNull { it.joinInfo }.forEach {
       println(it.selectFields(1))
     }
   }

@@ -3,12 +3,13 @@ package com.aegis.mybatis.xmlless.config
 import com.aegis.mybatis.bean.Dog
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.DogDAO
+import com.aegis.mybatis.xmlless.model.MethodInfo
 import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
-import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.aegis.mybatis.xmlless.util.FieldUtil
 import org.junit.jupiter.api.Test
 import kotlin.reflect.jvm.javaField
+import kotlin.reflect.jvm.javaMethod
 
 
 /**
@@ -19,7 +20,7 @@ import kotlin.reflect.jvm.javaField
  * @since 0.0.1
  */
 class DogDAOResolverTest : BaseResolverTest(
-    Dog::class.java, DogDAO::class.java,
+    DogDAO::class.java, Dog::class.java,
     "findById"
 ) {
 
@@ -41,7 +42,8 @@ class DogDAOResolverTest : BaseResolverTest(
   @Test
   fun resolveColumns() {
     val mappings = MappingResolver.getMappingCache(Dog::class.java)
-    val cols = ColumnsResolver.resolve(mappings!!, Properties())
+    val methodInfo = MethodInfo(DogDAO::findById.javaMethod!!, Dog::class.java, mappings!!, mappings!!)
+    val cols = ColumnsResolver.resolve(Properties(), methodInfo)
     cols.map {
       it.toSql()
     }.forEach {
@@ -55,7 +57,7 @@ class DogDAOResolverTest : BaseResolverTest(
 
   @Test
   fun findById() {
-    val q = queries.find { it.method.name == "findById" }
+    val q = createQueryForMethod(DogDAO::findById.javaMethod!!)
     println(q)
   }
 
@@ -79,9 +81,6 @@ class DogDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resultMaps() {
-    queries.forEach {
-      println(it)
-    }
     val resultMaps = builderAssistant.configuration.resultMaps
     val resultMap = resultMaps.first {
       it.id == "$currentNameSpace.com_aegis_mybatis_dao_DogDAO_findById"

@@ -1,13 +1,20 @@
 package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.bean.Score
+import com.aegis.mybatis.bean.Server
 import com.aegis.mybatis.bean.Student
+import com.aegis.mybatis.bean.StudentVO
 import com.aegis.mybatis.dao.StudentDAO
+import com.aegis.mybatis.xmlless.model.MethodInfo
 import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import kotlin.reflect.jvm.javaMethod
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 
 /**
@@ -18,7 +25,8 @@ import kotlin.reflect.jvm.javaMethod
  * @since 0.0.1
  */
 class StudentDAOResolverTest : BaseResolverTest(
-    Student::class.java, StudentDAO::class.java,
+    StudentDAO::class.java,
+    Student::class.java,
     "find",
     "findByCreateTimeEqDate",
     "findByNameOrAge",
@@ -44,14 +52,21 @@ class StudentDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveColumns() {
-    val mappings = MappingResolver.getMappingCache(Student::class.java)
-    val cols = ColumnsResolver.resolve(mappings!!, Properties())
-    cols.map {
-      it.toSql()
-    }.forEach {
-      println(it)
-    }
+    val c = QueryResolver.resolveReturnType(StudentDAO::findVO.javaMethod!!, modelClass)
+    val c2 = QueryResolver.resolveReturnType(StudentDAO::findVOPage.javaMethod!!, modelClass)
+    assertEquals(StudentVO::class.java, c)
+    assertEquals(StudentVO::class.java, c2)
+    val mappings = MappingResolver.resolveNonEntityClass(
+        StudentVO::class.java,
+        Student::class.java,
+        tableInfo,
+        builderAssistant
+    )
+    val methodInfo = MethodInfo(StudentDAO::findVO.javaMethod!!, Student::class.java, mappings, mappings)
+    val cols = ColumnsResolver.resolve(Properties(), methodInfo)
+    assert(cols.size == 4)
   }
+
 
   @Test
   fun resolveFindAll() {
@@ -59,20 +74,20 @@ class StudentDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveFindBySubjectId() {
-    val q = queries.find { it.method == StudentDAO::findByCreateTimeEqDate.javaMethod }
+    val q = createQueryForMethod(StudentDAO::findByCreateTimeEqDate.javaMethod!!)
     println(q)
   }
 
 
   @Test
   fun resolveFindByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd() {
-    val q = queries.find { it.method == StudentDAO::findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd.javaMethod }
+    val q = createQueryForMethod(StudentDAO::findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd.javaMethod!!)
     println(q)
   }
 
   @Test
   fun resolveFindByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable() {
-    val q = queries.find { it.method == StudentDAO::findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable.javaMethod }
+    val q = createQueryForMethod(StudentDAO::findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable.javaMethod!!)
     println(q)
   }
 
@@ -83,9 +98,42 @@ class StudentDAOResolverTest : BaseResolverTest(
   }
 
   @Test
+  fun findByUserNameLike() {
+    val query = createQueryForMethod(StudentDAO::findByUserNameLike.javaMethod!!)
+    assertNotNull(query.query)
+    val sql = query.sql
+    println(sql)
+    assertNotNull(sql)
+    assert(sql.contains("user.name"))
+    assertContains( sql, "del_flag = 0")
+    assertEquals(sql.indexOf("del_flag = 0"), sql.lastIndexOf("del_flag = 0"))
+    println(query)
+  }
+
+  @Test
   fun find() {
     val query = createQueryForMethod(StudentDAO::find.javaMethod!!)
+    assertNotNull(query.query)
+    val sql = query.sql
+    println(sql)
+    assertNotNull(sql)
+    assert(sql.contains("user.name"))
+    assertContains( sql, "del_flag = 0")
+    assertEquals(sql.indexOf("del_flag = 0"), sql.lastIndexOf("del_flag = 0"))
     println(query)
+  }
+
+  @Test
+  @DisplayName("返回vo类，vo类中包含关联字段")
+  fun findVO() {
+    val query = createQueryForMethod(StudentDAO::findVO.javaMethod!!)
+    assertNotNull(query.query)
+    val sql = query.sql
+    println(sql)
+    assertNotNull(sql)
+    assert(!sql.contains("create_time"))
+    assertContains(sql, "del_flag = 0")
+    assertEquals(sql.indexOf("del_flag = 0"), sql.lastIndexOf("del_flag = 0"))
   }
 
   @Test
@@ -126,6 +174,12 @@ class StudentDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveResultMap() {
+    val methods = listOf(
+        StudentDAO::findById.javaMethod!!
+    )
+    methods.forEach {
+      createQueryForMethod(it)
+    }
     val resultMaps = builderAssistant.configuration.resultMaps
     val ids = resultMaps.map { it.id }
     println(ids.size)
@@ -162,12 +216,11 @@ class StudentDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resultMaps() {
-    queries.forEach {
-      println(it)
-    }
+    val method = StudentDAO::findById.javaMethod!!
+    createQueryForMethod(method)
     val resultMaps = builderAssistant.configuration.resultMaps
     val resultMap = resultMaps.first {
-      it.id == "$currentNameSpace.com_aegis_mybatis_dao_StudentDAO_findById"
+      it.id == buildResultMapId(method)
     }
     resultMap.propertyResultMappings.forEach {
       println("${it.property}/${it.column}/${it.javaType}")

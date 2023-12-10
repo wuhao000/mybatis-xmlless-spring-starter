@@ -1,8 +1,6 @@
 package com.aegis.mybatis.dao
 
-import com.aegis.mybatis.xmlless.annotations.DeleteValue
-import com.aegis.mybatis.xmlless.annotations.Logic
-import com.aegis.mybatis.xmlless.annotations.ResolvedName
+import com.aegis.mybatis.xmlless.annotations.*
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param
 
@@ -30,11 +28,11 @@ interface BaseDAO<T, ID> {
   /**
    * @return
    */
-  @Logic(DeleteValue.NotDeleted)
+  @NotDeleted
   @ResolvedName("findAll")
   fun findNonDeleted(): List<T>
 
-  @Logic(DeleteValue.Deleted)
+  @Deleted
   @ResolvedName("findAll")
   fun findDeleted(): List<T>
 

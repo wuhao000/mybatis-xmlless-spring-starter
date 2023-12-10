@@ -21,37 +21,44 @@ data class QueryCriteriaGroup(private val criterion: List<QueryCriteria> = mutab
   }
 
 
-  fun toSql(mappings: FieldMappings): String {
+  fun toSql(wrapWithTest: Boolean): String {
     return when {
       criterion.size > 1 -> {
         val c = criterion.first()
-        val criteriaInfoList = c.getCriteriaList(mappings)
+        val criteriaInfoList = c.getCriteriaList()
         if (criteriaInfoList.isNotEmpty()) {
           criteriaInfoList.joinToString("\n") { criteriaInfo ->
-            createConditionGroupSql(c, mappings, criteriaInfo)
+            createConditionGroupSql(c, criteriaInfo, wrapWithTest)
           }
         } else {
-          createConditionGroupSql(c, mappings, null)
+          createConditionGroupSql(c, null, wrapWithTest)
         }
       }
 
-      else               -> criterion.first().toSql(mappings)
+      else               -> {
+        if (wrapWithTest) {
+          criterion.first().toSql()
+        } else {
+          criterion.first().toSqlWithoutTest(null)
+        }
+      }
     }
   }
 
   private fun createConditionGroupSql(
       criteria: QueryCriteria,
-      mappings: FieldMappings,
-      criteriaInfo: CriteriaInfo?
+      criteriaInfo: CriteriaInfo?,
+      wrapWithTest: Boolean
   ): String {
-    return criteria.wrapWithTests(
-        CONDITION_GROUP_TEMPLATE.format(
-            trimCondition(criterion.joinToString(LINE_BREAK_INDENT) {
-              it.toSqlWithoutTest(mappings, criteriaInfo)
-            })
-        ),
-        criteriaInfo
+    val sql = CONDITION_GROUP_TEMPLATE.format(
+        trimCondition(criterion.joinToString(LINE_BREAK_INDENT) {
+          it.toSqlWithoutTest(criteriaInfo)
+        })
     )
+    if (wrapWithTest) {
+      return criteria.wrapWithTests(sql, criteriaInfo)
+    }
+    return sql
   }
 
   private fun trimCondition(sql: String): String {

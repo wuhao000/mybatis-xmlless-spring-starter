@@ -1,8 +1,6 @@
 package com.aegis.mybatis.xmlless.model
 
 import com.aegis.kotlin.isNotNullAndNotBlank
-import com.aegis.mybatis.xmlless.enums.Operations
-import com.aegis.mybatis.xmlless.enums.TestType
 import java.lang.reflect.AnnotatedElement
 import java.lang.reflect.Field
 import java.lang.reflect.Parameter
@@ -15,9 +13,7 @@ import java.lang.reflect.Parameter
  * @version 1.0
  */
 data class CriteriaInfo(
-    val property: String,
-    val expression: String,
-    val operator: Operations,
+    val group: QueryCriteriaGroup,
     val testInfo: TestInfo
 )
 
@@ -29,18 +25,13 @@ data class CriteriaInfo(
  * @version 1.0
  */
 class TestInfo(
-    val value: Array<TestType>,
-    private val exp: String,
+    private val expression: String,
     private val field: AnnotatedElement
 ) {
 
-  fun hasExpression(): Boolean {
-    return exp.isNotBlank()
-  }
-
   fun getExpression(parameters: List<Pair<String, AnnotatedElement>>): String {
     val name = parameters.find { it.second == field }?.first
-    return preHandleTestExpression(exp, field, name)
+    return preHandleTestExpression(expression, field, name)
   }
 
   companion object {

@@ -105,7 +105,7 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
         type.methods.mapNotNull {
           QueryResolver.resolveJavaType(it, modelClass, false)?.rawClass
         }.filter {
-          ParameterResolver.isComplexParameter(it)
+          ParameterResolver.isComplexType(it)
         }.distinct().filter { it != modelClass }.forEach {
           TableInfoHelper.initTableInfo(assistant, it)
         }

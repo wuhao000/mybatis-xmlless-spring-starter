@@ -22,7 +22,7 @@ object ParameterResolver {
 
   private val PARAMETER_NAMES_CACHE = HashMap<Method, Array<String>>()
 
-  fun isComplexParameter(type: Class<*>): Boolean {
+  fun isComplexType(type: Class<*>): Boolean {
     val realType = TypeResolver.resolveRealType(type)
     return (!realType.name.startsWith("java.")
         && realType != Void.TYPE
@@ -48,7 +48,7 @@ object ParameterResolver {
       // 复杂对象是排除了 基本类型、java包下的类型、数组类型、枚举类型、及Pageable、Sort和Order等spring data类型的剩余参数
       val complexParameterMap = HashMap<Int, ParameterInfo>()
       methodInfo.parameters.forEachIndexed { index, parameter ->
-        if (isComplexParameter(parameter.type)) {
+        if (isComplexType(parameter.type)) {
           complexParameterMap[index] = parameter
         }
       }

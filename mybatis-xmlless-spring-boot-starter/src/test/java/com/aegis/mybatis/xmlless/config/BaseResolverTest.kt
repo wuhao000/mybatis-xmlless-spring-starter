@@ -1,5 +1,7 @@
 package com.aegis.mybatis.xmlless.config
 
+import com.aegis.mybatis.bean.Student
+import com.aegis.mybatis.dao.StudentDAO
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.baomidou.mybatisplus.core.MybatisConfiguration
@@ -12,8 +14,8 @@ import java.lang.reflect.Method
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 open class BaseResolverTest(
-    val modelClass: Class<*>,
-    val mapperClass: Class<*>,
+    val mapperClass: Class<*> = StudentDAO::class.java,
+    val modelClass: Class<*> = Student::class.java,
     vararg methods: String
 ) {
 
@@ -23,21 +25,13 @@ open class BaseResolverTest(
     this.isMapUnderscoreToCamelCase = true
   }
   protected val currentNameSpace = "np"
-  protected lateinit var queries: List<ResolvedQuery>
   protected val resource = modelClass.name.replace('.', '/') + ".java (best guess)"
   protected val builderAssistant = MapperBuilderAssistant(configuration, resource).apply {
     currentNamespace = currentNameSpace
   }
-  protected lateinit var tableInfo: TableInfo
+  protected val tableInfo: TableInfo = createTableInfo(modelClass)
+  protected val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
 
-
-  @BeforeAll
-  fun init() {
-    tableInfo = createTableInfo(modelClass)
-    queries = getFunctions().map {
-      QueryResolver.resolve(it, tableInfo, modelClass, mapperClass, builderAssistant)
-    }
-  }
 
   fun getFunctions(): List<Method> {
     return mapperClass.methods.filter { it.name in methods }

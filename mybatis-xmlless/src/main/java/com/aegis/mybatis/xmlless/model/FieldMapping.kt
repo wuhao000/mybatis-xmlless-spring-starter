@@ -10,7 +10,6 @@ import com.aegis.mybatis.xmlless.constant.PROPERTY_SUFFIX
 import com.aegis.mybatis.xmlless.methods.XmlLessMethods.Companion.HANDLER_PREFIX
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import com.aegis.mybatis.xmlless.util.FieldUtil
-import com.baomidou.mybatisplus.annotation.TableLogic
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import org.apache.ibatis.type.TypeHandler
 import org.springframework.core.annotation.AnnotationUtils
@@ -55,9 +54,6 @@ data class FieldMapping(
   /** 是否更新时忽略 */
   val updateIgnore: Boolean = FieldUtil.isUpdateIgnore(field)
 
-  /** 是否逻辑删除的标记字段 */
-  val isLogicDelFlag = field.isAnnotationPresent(TableLogic::class.java)
-
   /** 逻辑删除的标记为已删除字段值 */
   val logicDelValue: Any?
 
@@ -68,10 +64,9 @@ data class FieldMapping(
     selectIgnore = FieldUtil.isSelectIgnore(field)
     typeHandler = resolveTypeHandler(field)
     logicDelValue = parseLogicFlagValue(
-        if (isLogicDelFlag) {
-          val delValue = field.getAnnotation(TableLogic::class.java)?.delval
-          if (delValue.isNotNullAndNotBlank()) {
-            delValue
+        if (tableFieldInfo.isLogicDelete) {
+          if (tableFieldInfo.logicDeleteValue.isNotNullAndNotBlank()) {
+            tableFieldInfo.logicDeleteValue
           } else {
             "1"
           }
@@ -80,8 +75,8 @@ data class FieldMapping(
         }
     )
     logicNotDelValue = parseLogicFlagValue(
-        if (isLogicDelFlag) {
-          val notDelValue = field.getAnnotation(TableLogic::class.java)?.value
+        if (tableFieldInfo.isLogicDelete) {
+          val notDelValue = tableFieldInfo.logicNotDeleteValue
           if (notDelValue.isNotNullAndNotBlank()) {
             notDelValue
           } else {

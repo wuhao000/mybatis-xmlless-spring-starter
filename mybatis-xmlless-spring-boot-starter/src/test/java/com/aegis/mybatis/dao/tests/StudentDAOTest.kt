@@ -90,6 +90,10 @@ class StudentDAOTest : BaseTest() {
     ).apply {
       type = 2
     }, 6)
+    val list3 = dao.findVO()
+    list3.forEach {
+      println(it.createUserName)
+    }
   }
 
   /**

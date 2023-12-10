@@ -6,7 +6,6 @@ import com.aegis.mybatis.xmlless.enums.Operations
 import com.aegis.mybatis.xmlless.kotlin.split
 import com.aegis.mybatis.xmlless.model.*
 import com.aegis.mybatis.xmlless.util.FieldUtil
-import com.baomidou.mybatisplus.annotation.TableLogic
 import org.apache.ibatis.annotations.Param
 import java.lang.reflect.AnnotatedElement
 import java.lang.reflect.Field
@@ -24,7 +23,6 @@ object CriteriaResolver {
   fun resolveConditions(
       allConditionWords: List<String>,
       methodInfo: MethodInfo,
-      mappings: FieldMappings,
       queryType: QueryType
   ): List<QueryCriteria> {
     val nameConditions = if (allConditionWords.isNotEmpty()) {
@@ -34,7 +32,7 @@ object CriteriaResolver {
         // nameEq 解析为 name = #{name}
         // nameLikeKeywords 解析为 name  LIKE concat('%',#{keywords},'%')
         addPropertiesWords.split("Or").map { singleConditionWords ->
-          resolveCriteria(singleConditionWords, methodInfo, mappings, parameterOffsetHolder)
+          resolveCriteria(singleConditionWords, methodInfo, parameterOffsetHolder)
         }.apply {
           last().append = Append.AND
         }
@@ -46,24 +44,8 @@ object CriteriaResolver {
     val paramNames = methodInfo.paramNames
     methodInfo.parameters.forEachIndexed { index, parameter ->
       if (parameter.criteria.isNotEmpty()) {
-        parameterConditions.addAll(resolveCriteria(parameter, paramNames[index], methodInfo, mappings))
+        parameterConditions.addAll(resolveCriteria(parameter, paramNames[index], methodInfo))
       }
-    }
-    val logic = methodInfo.logic
-    if (logic != null && queryType == QueryType.Select) {
-      val mapper = mappings.mappings.find { it.field.isAnnotationPresent(TableLogic::class.java) }
-        ?: throw IllegalStateException("缺少逻辑删除字段，请在字段上添加@TableLogic注解")
-      parameterConditions.add(
-          QueryCriteria(
-              mapper.property, Operations.Eq,
-              specificValue = SpecificValue(
-                  stringValue = "",
-                  nonStringValue = mappings.getLogicDelFlagValue(logic).toString()
-              ),
-              mappings = mappings,
-              parameters = listOf()
-          )
-      )
     }
     return nameConditions + parameterConditions
   }
@@ -73,12 +55,12 @@ object CriteriaResolver {
     val parameterConditions = arrayListOf<QueryCriteria>()
     val paramNames = methodInfo.paramNames
     methodInfo.parameters.forEachIndexed { index, parameter ->
-      if (ParameterResolver.isComplexParameter(parameter.type)) {
+      if (ParameterResolver.isComplexType(parameter.type)) {
         ReflectUtil.getFields(TypeResolver.resolveRealType(parameter.type)).forEach { field ->
-          val criteriaInfo = FieldUtil.getCriteriaInfo(field)
+          val criteriaInfo = FieldUtil.getCriteriaInfo(field, methodInfo)
           if (criteriaInfo.isNotEmpty()) {
             parameterConditions.add(
-                resolveCriteriaFromProperty(field, paramNames[index], methodInfo, mappings)
+                resolveCriteriaFromProperty(field, paramNames[index], methodInfo)
             )
           }
         }
@@ -88,20 +70,21 @@ object CriteriaResolver {
   }
 
   private fun resolveCriteria(
-      parameter: ParameterInfo, paramName: String,
-      methodInfo: MethodInfo, mappings: FieldMappings
+      parameter: ParameterInfo,
+      paramName: String,
+      methodInfo: MethodInfo
   ): List<QueryCriteria> {
     val criteriaList = parameter.criteria
     return criteriaList.map { criteria ->
       QueryCriteria(
-          paramName, criteria.operator, Append.AND,
+          paramName, Operations.EqDefault, Append.AND,
           listOf(Pair(paramName, parameter.parameter)),
           methodInfo.resolvedName?.values?.firstOrNull {
             it.param == paramName
           }?.let {
             SpecificValue(it.stringValue, it.nonStringValue)
           },
-          mappings,
+          methodInfo
       )
     }
   }
@@ -109,7 +92,6 @@ object CriteriaResolver {
   private fun resolveCriteria(
       singleConditionWords: List<String>,
       methodInfo: MethodInfo,
-      mappings: FieldMappings,
       parameterOffsetHolder: ValueHolder<Int>
   ): QueryCriteria {
     // 获取表示条件表达式操作符的单词
@@ -158,7 +140,7 @@ object CriteriaResolver {
         property, op ?: Operations.EqDefault, Append.OR,
         parameters,
         specificValue,
-        mappings
+        methodInfo
     )
   }
 
@@ -260,8 +242,9 @@ object CriteriaResolver {
   }
 
   private fun resolveCriteriaFromProperty(
-      property: Field, paramName: String,
-      methodInfo: MethodInfo, mappings: FieldMappings
+      property: Field,
+      paramName: String,
+      methodInfo: MethodInfo
   ): QueryCriteria {
     return QueryCriteria(
         property.name, Operations.EqDefault, Append.AND,
@@ -270,7 +253,7 @@ object CriteriaResolver {
           it.param == paramName
         }?.let {
           SpecificValue(it.stringValue, it.nonStringValue)
-        }, mappings
+        }, methodInfo
     )
   }
 

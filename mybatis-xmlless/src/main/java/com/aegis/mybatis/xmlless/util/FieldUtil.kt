@@ -1,8 +1,10 @@
 package com.aegis.mybatis.xmlless.util
 
+import com.aegis.kotlin.toWords
 import com.aegis.mybatis.xmlless.annotations.*
-import com.aegis.mybatis.xmlless.model.CriteriaInfo
-import com.aegis.mybatis.xmlless.model.TestInfo
+import com.aegis.mybatis.xmlless.model.*
+import com.aegis.mybatis.xmlless.resolver.CriteriaResolver
+import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import jakarta.persistence.Column
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.Transient
@@ -58,19 +60,16 @@ object FieldUtil {
         || AnnotationUtils.findAnnotation(field, MyBatisIgnore::class.java)?.select == true
   }
 
-  fun getCriteriaInfo(field: AnnotatedElement): List<CriteriaInfo> {
+  fun getCriteriaInfo(field: AnnotatedElement, methodInfo: MethodInfo): List<CriteriaInfo> {
     val list = field.getAnnotationsByType(Criteria::class.java)
     return list.map { criteria ->
-      // todo
-//      val expressionWords = QueryResolver.toPascalCaseName(criteria.expression).toWords()
-//      CriteriaResolver.resolveConditions(
-//          expressionWords, methodInfo, mappings, resolveTypeResult.type
-//      )
+      val expressionWords = QueryResolver.toPascalCaseName(criteria.expression).toWords()
+      val queryCriteriaList =  CriteriaResolver.resolveConditions(
+          expressionWords, methodInfo, QueryType.Select
+      )
       CriteriaInfo(
-          criteria.property,
-          criteria.expression,
-          criteria.operator,
-          createTestInfo(criteria.test, field),
+          QueryCriteriaGroup(queryCriteriaList),
+          createTestInfo(criteria.testExpression, field),
       )
     }
   }
@@ -79,8 +78,8 @@ object FieldUtil {
     return AnnotationUtils.findAnnotation(field, Transient::class.java) != null
   }
 
-  private fun createTestInfo(test: TestExpression, field: AnnotatedElement): TestInfo {
-    return TestInfo(test.value, test.expression, field)
+  private fun createTestInfo(expression: String, field: AnnotatedElement): TestInfo {
+    return TestInfo(expression, field)
   }
 
 

@@ -10,12 +10,13 @@ import com.aegis.mybatis.xmlless.util.getTableInfo
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import kotlin.reflect.jvm.javaField
+import kotlin.reflect.jvm.javaMethod
 
 /**
  * Created by 吴昊 on 2023/12/9.
  */
 class QueryCriteriaTest : BaseResolverTest(
-    Student::class.java, StudentDAO::class.java,
+    StudentDAO::class.java, Student::class.java
 ) {
 
   @Test
@@ -60,7 +61,7 @@ class QueryCriteriaTest : BaseResolverTest(
         Append.AND,
         listOf("form.name" to StudentQueryForm::name.javaField!!),
         null,
-        mappings!!
+        MethodInfo(StudentDAO::find.javaMethod!!, modelClass, mappings!!, mappings)
     )
     assertEquals("form.name != null and form.name.length() &gt; 0", c.getTests(null))
   }
@@ -76,11 +77,14 @@ class QueryCriteriaTest : BaseResolverTest(
         Append.AND,
         listOf("form.type" to field),
         null,
-        mappings!!
+        MethodInfo(StudentDAO::find.javaMethod!!, modelClass, mappings!!, mappings)
     )
-    assertEquals("form.type == 5",
-        c.getTests(TestInfo(arrayOf(), "== 5", field)
-    ))
+    assertEquals(
+        "form.type == 5",
+        c.getTests(
+            TestInfo("== 5", field)
+        )
+    )
   }
 
   @Test

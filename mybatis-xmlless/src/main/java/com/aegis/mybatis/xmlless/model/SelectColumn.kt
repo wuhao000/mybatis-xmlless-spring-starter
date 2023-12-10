@@ -36,4 +36,7 @@ class SelectColumn(
     }
   }
 
+  override fun toString(): String {
+    return toSql()
+  }
 }

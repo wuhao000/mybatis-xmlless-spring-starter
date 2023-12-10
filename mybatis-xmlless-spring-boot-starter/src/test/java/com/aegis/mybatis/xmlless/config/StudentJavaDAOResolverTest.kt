@@ -3,6 +3,7 @@ package com.aegis.mybatis.xmlless.config
 import com.aegis.mybatis.bean.Score
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.StudentJavaDAO
+import com.aegis.mybatis.xmlless.model.MethodInfo
 import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
@@ -18,7 +19,8 @@ import kotlin.reflect.jvm.javaMethod
  * @since 0.0.1
  */
 class StudentJavaDAOResolverTest : BaseResolverTest(
-    Student::class.java, StudentJavaDAO::class.java,
+    StudentJavaDAO::class.java,
+    Student::class.java,
     "findById",
     "findAllPage"
 ) {
@@ -37,7 +39,8 @@ class StudentJavaDAOResolverTest : BaseResolverTest(
   @Test
   fun resolveColumns() {
     val mappings = MappingResolver.getMappingCache(Student::class.java)
-    val cols = ColumnsResolver.resolve(mappings!!, Properties())
+    val methodInfo = MethodInfo(StudentJavaDAO::findById.javaMethod!!, Student::class.java, mappings!!, mappings!!)
+    val cols = ColumnsResolver.resolve(Properties(), methodInfo)
     cols.map {
       it.toSql()
     }.forEach {
@@ -51,7 +54,7 @@ class StudentJavaDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveFindBySubjectId() {
-    val q = queries.find { it.method.name == "findBySubjectId" }
+    val q = createQueryForMethod(StudentJavaDAO::findBySubjectId.javaMethod!!)
     println(q)
   }
 
@@ -95,6 +98,7 @@ class StudentJavaDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resultMaps() {
+    createQueryForMethod(StudentJavaDAO::findById.javaMethod!!)
     val resultMaps = builderAssistant.configuration.resultMaps
     val resultMap = resultMaps.first {
       it.id == buildResultMapId(StudentJavaDAO::findById.javaMethod!!)

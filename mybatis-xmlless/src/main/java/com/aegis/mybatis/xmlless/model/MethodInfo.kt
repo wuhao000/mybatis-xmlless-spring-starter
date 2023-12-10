@@ -2,8 +2,7 @@ package com.aegis.mybatis.xmlless.model
 
 import cn.hutool.core.util.ReflectUtil
 import com.aegis.kotlin.isNotNullAndNotBlank
-import com.aegis.mybatis.xmlless.annotations.Logic
-import com.aegis.mybatis.xmlless.annotations.ResolvedName
+import com.aegis.mybatis.xmlless.annotations.*
 import com.aegis.mybatis.xmlless.resolver.ParameterResolver
 import com.aegis.mybatis.xmlless.util.FieldUtil
 import org.apache.ibatis.annotations.Param
@@ -21,7 +20,8 @@ import java.lang.reflect.Method
 class MethodInfo(
     val method: Method,
     val modelClass: Class<*>,
-    private val mappings: FieldMappings,
+    val mappings: FieldMappings,
+    val modelMappings: FieldMappings
 ) {
 
   val name: String = method.name
@@ -37,9 +37,21 @@ class MethodInfo(
   /** ResolvedName注解 */
   val resolvedName: ResolvedName? = method.getAnnotation(ResolvedName::class.java)
 
-  val logic: Logic? = method.getAnnotation(Logic::class.java)
-
   val paramNames: Array<String> = ParameterResolver.resolveNames(method)
+
+  fun getLogicType(): DeleteValue? {
+    val flag = method.getAnnotation(Logic::class.java)?.flag
+    if (flag != null) {
+      return flag
+    }
+    if (method.getAnnotation(Deleted::class.java) != null) {
+      return DeleteValue.Deleted
+    }
+    if (method.getAnnotation(NotDeleted::class.java) != null) {
+      return DeleteValue.NotDeleted
+    }
+    return null
+  }
 
   fun findOptionalParam(property: String): OptionalParam? {
     return optionalParameters.firstOrNull { it.name == property }
@@ -77,12 +89,12 @@ data class ParameterInfo(
     val parameter: AnnotatedElement,
     private val elementName: String,
     val type: Class<*>,
-    val isComplex: Boolean = ParameterResolver.isComplexParameter(type),
+    val isComplex: Boolean = ParameterResolver.isComplexType(type),
     private val methodInfo: MethodInfo
 ) {
 
   /** 条件注解 */
-  val criteria: List<CriteriaInfo> = FieldUtil.getCriteriaInfo(parameter)
+  val criteria: List<CriteriaInfo> = FieldUtil.getCriteriaInfo(parameter, methodInfo)
 
 
   /** Param注解 */

@@ -14,8 +14,8 @@ import jakarta.persistence.*
  * @author 吴昊
  * @since 0.0.1
  */
-@Table(name = "t_user")
 @Entity
+@Table(name = "t_user")
 data class User(
     @Id
     @TableField()

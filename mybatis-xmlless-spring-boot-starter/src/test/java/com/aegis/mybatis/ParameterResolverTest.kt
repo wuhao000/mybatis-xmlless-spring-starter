@@ -2,7 +2,6 @@ package com.aegis.mybatis
 
 import com.aegis.mybatis.dao.ThirdPartyInfoMapper
 import com.aegis.mybatis.xmlless.resolver.ParameterResolver
-import com.aegis.mybatis.xmlless.resolver.QueryResolver
 import org.junit.jupiter.api.Test
 
 /**
@@ -13,7 +12,7 @@ class ParameterResolverTest {
   @Test
   fun isComplexParameter() {
     ThirdPartyInfoMapper::class.java.methods.filter { it.name == "tenantList" }.forEach {
-      val a = ParameterResolver.isComplexParameter(it.returnType)
+      val a = ParameterResolver.isComplexType(it.returnType)
       println(it.name + "/" + a)
     }
   }

@@ -2,6 +2,9 @@
 
 v4.0.0
 * 升级到spring boot3.0.9
+* @Logic注解标记为过期
+* 移除@SelectIgnore，@UpdateIgnore，@InsertIgnore注解，使用@Transient或@Column(insertable = false, updatable = false)或@JoinColumn
+  (updatable = false, insertable = false)注解代替
 
 v3.5.4
 * 解决json数组查询时如果数组元素为非字符串时查询结果不正确的问题

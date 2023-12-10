@@ -3,9 +3,9 @@ package com.aegis.mybatis.dao
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.bean.StudentDetail
 import com.aegis.mybatis.bean.StudentState
+import com.aegis.mybatis.bean.StudentVO
 import com.aegis.mybatis.xmlless.XmlLessMapper
 import com.aegis.mybatis.xmlless.annotations.*
-import com.aegis.mybatis.xmlless.enums.TestType
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param
 import org.springframework.data.domain.Page
@@ -23,27 +23,19 @@ class StudentQueryForm(
 ) {
   @Criteria(
       expression = "name eq currentUserId",
-      test = TestExpression(
-          expression = "type = 1 and currentUserId != null",
-      )
+      testExpression = "type = 1 and currentUserId != null",
   )
   @Criteria(
       expression = "updateUserId eq currentUserId",
-      test = TestExpression(
-          expression = "type = 2 and currentUserId != null",
-      )
+      testExpression = "type = 2 and currentUserId != null"
   )
   @Criteria(
-      expression = "updateUserId eq currentUserId",
-      test = TestExpression(
-          expression = ">= 5 and currentUserId != null",
-      )
+      expression = "createUserId eq currentUserId",
+      testExpression = ">= 5 and currentUserId != null",
   )
   @Criteria(
-      expression = "updateUserId eq currentUserId",
-      test = TestExpression(
-          expression = "<= 12 and currentUserId != null",
-      )
+      expression = "userId eq currentUserId",
+      testExpression = "<= 12 and currentUserId != null",
   )
   var type: Int? = null
 
@@ -67,10 +59,27 @@ interface StudentDAO : XmlLessMapper<Student> {
         "order by createTime desc",
       ]
   )
+  @NotDeleted
   fun find(
       @Param("form") form: StudentQueryForm,
       @Param("currentUserId") currentUserId: Int? = null
   ): List<Student>
+
+
+  @NotDeleted
+  fun findByUserNameLike(keywords: String): List<Student>
+
+  @ResolvedName(
+      name = "find",
+  )
+  @NotDeleted
+  fun findVO(): List<StudentVO>
+
+
+  @ResolvedName("find")
+  fun findVOPage(
+      pageable: Pageable
+  ): Page<StudentVO>
 
   @ResolvedName(
       name = "findBy",
@@ -137,7 +146,7 @@ interface StudentDAO : XmlLessMapper<Student> {
    */
   @ResolvedName("findAllByNameEqAndSubjectIdEq")
   fun findAllPage(
-      @TestExpression([TestType.NotNull, TestType.NotEmpty]) name: String?,
+      name: String?,
       subjectId: Int?,
       @Param("pageable") page: Pageable
   ): Page<Student>
@@ -157,12 +166,8 @@ interface StudentDAO : XmlLessMapper<Student> {
    * @return
    */
   fun findByAgeBetweenMinAndMaxOrderByBirthday(
-      @Param("min")
-      @TestExpression([TestType.NotNull])
-      min: Int,
-      @Param("max")
-      @TestExpression([TestType.NotNull])
-      max: Int
+      @Param("min") min: Int,
+      @Param("max") max: Int
   ): List<Student>
 
   fun findByCreateTimeBetweenStartTimeAndEndTime(

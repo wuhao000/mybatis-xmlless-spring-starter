@@ -11,8 +11,6 @@ import com.aegis.mybatis.xmlless.XmlLessMapper;
 import com.aegis.mybatis.xmlless.annotations.ExcludeProperties;
 import com.aegis.mybatis.xmlless.annotations.ResolvedName;
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties;
-import com.aegis.mybatis.xmlless.annotations.TestExpression;
-import com.aegis.mybatis.xmlless.enums.TestType;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.data.domain.Page;
@@ -45,12 +43,12 @@ public interface StudentJavaDAO extends XmlLessMapper<Student> {
   List<Student> findAll();
 
   @ResolvedName(name = "findAllByNameEqAndSubjectIdEq")
-  Page<Student> findAllPage(@TestExpression({TestType.NotNull, TestType.NotEmpty}) String name, Integer subjectId, @Param("pageable") Pageable page);
+  Page<Student> findAllPage(String name, Integer subjectId, @Param("pageable") Pageable page);
 
   @ResolvedName(name = "findAll")
   Page<Student> findAllPageable(@Param("pageable") Pageable pageable);
 
-  List<Student> findByAgeBetweenMinAndMaxOrderByBirthday(@Param("min") @TestExpression(TestType.NotNull) int min, @Param("max") @TestExpression(TestType.NotNull) int max);
+  List<Student> findByAgeBetweenMinAndMaxOrderByBirthday(@Param("min") int min, @Param("max") int max);
 
   List<Student> findByCreateTimeBetweenStartTimeAndEndTime(@Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
 

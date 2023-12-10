@@ -5,7 +5,6 @@ import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.StudentDAO
 import com.aegis.mybatis.xmlless.annotations.*
 import com.aegis.mybatis.xmlless.config.MappingResolver
-import com.aegis.mybatis.xmlless.enums.TestType
 import com.aegis.mybatis.xmlless.model.FieldMappings
 import com.aegis.mybatis.xmlless.model.MethodInfo
 import com.aegis.mybatis.xmlless.model.QueryCriteria
@@ -47,7 +46,7 @@ class ConditionResolverTest {
     TestDAO::class.java.declaredMethods.forEach { method ->
       val exp = method.name.replace("findBy", "")
       println("${method.name} *********************")
-      val conditions = resolveConditions(exp, method, mappings, QueryType.Select)
+      val conditions = resolveConditions(exp, method, mappings)
       conditions.forEach {
         println(it)
       }
@@ -60,7 +59,7 @@ class ConditionResolverTest {
     val method = TestDAO::findByNameAndAge2.javaMethod!!
     val exp = "NameAndAge"
     assertEquals("NameAndAge", exp)
-    val conditions = resolveConditions(exp, method, mappings, QueryType.Select)
+    val conditions = resolveConditions(exp, method, mappings)
     assertEquals(2, conditions.size)
     assertEquals("name = #{f.name}", conditions[0].toString())
     assertEquals("age = #{f.age}", conditions[1].toString())
@@ -72,7 +71,7 @@ class ConditionResolverTest {
     val method = TestDAO::findByNameAndAge.javaMethod!!
     val exp = method.name.replace("findBy", "")
     assertEquals("NameAndAge", exp)
-    val conditions = resolveConditions(exp, method, mappings, QueryType.Select)
+    val conditions = resolveConditions(exp, method, mappings)
     assertEquals(2, conditions.size)
     assertEquals("name = #{name}", conditions[0].toString())
     assertEquals("age = #{age}", conditions[1].toString())
@@ -85,7 +84,7 @@ class ConditionResolverTest {
     val method = TestDAO::findByNameAndAge3.javaMethod!!
     val exp = "NameAndAge"
     assertEquals("NameAndAge", exp)
-    val conditions = resolveConditions(exp, method, mappings, QueryType.Select)
+    val conditions = resolveConditions(exp, method, mappings)
     assertEquals(2, conditions.size)
     assertEquals("name = #{name}", conditions[0].toString())
     assertEquals("age = #{age}", conditions[1].toString())
@@ -96,7 +95,7 @@ class ConditionResolverTest {
     val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
     val method = StudentDAO::findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd.javaMethod!!
     val exp = method.name.replace("findBy", "")
-    val conditions = resolveConditions(exp, method, mappings, QueryType.Select)
+    val conditions = resolveConditions(exp, method, mappings)
     assertEquals(3, conditions.size)
     assertEquals("name LIKE CONCAT('%', #{name},'%')", conditions[0].toString())
     assertEquals("age = #{age}", conditions[1].toString())
@@ -108,7 +107,7 @@ class ConditionResolverTest {
     val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
     val method = StudentDAO::findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable.javaMethod!!
     val exp = "NameLikeAndAgeAndCreateTimeBetweenStartAndEnd"
-    val conditions = resolveConditions(exp, method, mappings, QueryType.Select)
+    val conditions = resolveConditions(exp, method, mappings)
     assertEquals(3, conditions.size)
     assertEquals("name LIKE CONCAT('%', #{form.name},'%')", conditions[0].toString())
     assertEquals("age = #{form.age}", conditions[1].toString())
@@ -120,7 +119,7 @@ class ConditionResolverTest {
     val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
     val method = StudentDAO::findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable3.javaMethod!!
     val exp = "NameLikeAndAgeAndCreateTimeBetweenStartAndEnd"
-    val conditions = resolveConditions(exp, method, mappings, QueryType.Select)
+    val conditions = resolveConditions(exp, method, mappings)
     assertEquals(3, conditions.size)
     assertEquals("name LIKE CONCAT('%', #{form.name},'%')", conditions[0].toString())
     assertEquals("age = #{form.age}", conditions[1].toString())
@@ -133,7 +132,7 @@ class ConditionResolverTest {
     val method = TestDAO::findByAgeBetween.javaMethod!!
     val exp = method.name.replace("findBy", "")
     assertEquals("AgeBetween", exp)
-    val conditions = resolveConditions(exp, method, mappings, QueryType.Select)
+    val conditions = resolveConditions(exp, method, mappings)
     assertEquals(1, conditions.size)
     assertEquals("age BETWEEN #{minAge} AND #{maxAge}", conditions.first().toString())
   }
@@ -143,7 +142,7 @@ class ConditionResolverTest {
     val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
     val method = TestDAO::selectDictTypeList.javaMethod!!
     val exp = "DictNameAndStatusAndDictTypeAndCreateTimeBetweenBeginTimeAndEndTime"
-    val conditions = resolveConditions(exp, method, mappings, QueryType.Select)
+    val conditions = resolveConditions(exp, method, mappings)
     assertEquals(4, conditions.size)
     assertEquals("dictName = #{dictName}", conditions[0].toString())
     assertEquals("status = #{status}", conditions[1].toString())
@@ -157,18 +156,18 @@ class ConditionResolverTest {
     val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
     val method = TestDAO::selectDictTypeListPageable.javaMethod!!
     val exp = "DictNameAndStatusAndDictTypeAndCreateTimeBetweenBeginTimeAndEndTime"
-    val conditions = resolveConditions(exp, method, mappings, QueryType.Select)
+    val conditions = resolveConditions(exp, method, mappings)
     assertEquals(4, conditions.size)
     assertEquals("dictName = #{form.dictName}", conditions[0].toString())
     assertEquals("status = #{form.status}", conditions[1].toString())
     assertEquals("dictType = #{form.dictType}", conditions[2].toString())
     assertEquals("createTime BETWEEN #{form.beginTime} AND #{form.endTime}", conditions[3].toString())
-    println(conditions[0].toSql(mappings))
+    println(conditions[0].toSql())
     assertEquals(
         "<if test=\"form.dictName != null and form.dictName.length() &gt; 0\">\n" +
             "\tt_student.DICT_NAME = #{form.dictName} AND\n" +
             "</if>",
-        conditions[0].toSql(mappings)
+        conditions[0].toSql()
     )
   }
 
@@ -178,7 +177,7 @@ class ConditionResolverTest {
     val method = TestDAO::findByAgeBetweenMinAndMax.javaMethod!!
     val exp = method.name.replace("findBy", "")
     assertEquals("AgeBetweenMinAndMax", exp)
-    val conditions = resolveConditions(exp, method, mappings, QueryType.Select)
+    val conditions = resolveConditions(exp, method, mappings)
     assertEquals(1, conditions.size)
     assertEquals("age BETWEEN #{min} AND #{max}", conditions.first().toString())
   }
@@ -193,11 +192,10 @@ class ConditionResolverTest {
   private fun resolveConditions(
       conditionExpression: String,
       method: Method,
-      mappings: FieldMappings,
-      queryType: QueryType
+      mappings: FieldMappings
   ): List<QueryCriteria> {
     return CriteriaResolver.resolveConditions(
-        conditionExpression.toWords(), MethodInfo(method, modelClass, mappings), mappings, queryType
+        conditionExpression.toWords(), MethodInfo(method, modelClass, mappings, mappings), QueryType.Select
     )
   }
 
@@ -254,10 +252,8 @@ open class Form {
 
 class Form2 : Form() {
   @Criteria(
-      test = TestExpression(
-          value = [TestType.EqTrue]
-      ),
-      expression = "1 = 2"
+      expression = "1 = 2",
+      testExpression = "= true"
   )
   var active: Boolean = false
 }

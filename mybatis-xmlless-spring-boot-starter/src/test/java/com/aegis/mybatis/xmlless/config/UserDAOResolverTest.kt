@@ -14,7 +14,9 @@ import kotlin.reflect.jvm.javaMethod
  * @since 0.0.1
  */
 class UserDAOResolverTest : BaseResolverTest(
-    User::class.java, UserDAO::class.java, method, "save"
+    UserDAO::class.java,
+    User::class.java,
+    method, "save"
 ) {
 
   companion object {
@@ -24,7 +26,8 @@ class UserDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveFindAll() {
-    println(queries.first { it.method == UserDAO::findAll.javaMethod })
+    val q = createQueryForMethod(UserDAO::findAll.javaMethod!!)
+    println(q)
   }
 
   @Test
@@ -41,10 +44,12 @@ class UserDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveResultMap() {
+    val method = UserDAO::findAll.javaMethod!!
+    createQueryForMethod(method)
     val resultMaps = builderAssistant.configuration.resultMaps
     val ids = resultMaps.map { it.id }
-    println(builderAssistant.hashCode())
-    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_UserDAO_$method"))
+    println(ids)
+    assert(ids.contains("$currentNameSpace.com_aegis_mybatis_dao_UserDAO_${method.name}"))
   }
 
   @Test

@@ -6,8 +6,8 @@ import com.aegis.mybatis.bean.TenantInfoVO;
 import com.aegis.mybatis.bean.ThirdPartyInfo;
 import com.aegis.mybatis.bean.ThirdPartyInfoForm;
 import com.aegis.mybatis.xmlless.XmlLessMapper;
-import com.aegis.mybatis.xmlless.annotations.DeleteValue;
-import com.aegis.mybatis.xmlless.annotations.Logic;
+import com.aegis.mybatis.xmlless.annotations.Deleted;
+import com.aegis.mybatis.xmlless.annotations.NotDeleted;
 import com.aegis.mybatis.xmlless.annotations.ResolvedName;
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties;
 import org.apache.ibatis.annotations.Param;
@@ -20,7 +20,7 @@ public interface ThirdPartyInfoMapper extends XmlLessMapper<ThirdPartyInfo> {
    * @param appId 应用ID
    * @return 第三方登录平台信息数据
    */
-  @Logic(flag = DeleteValue.NotDeleted)
+  @NotDeleted
   ThirdPartyInfo findByAppId(String appId);
 
   /**
@@ -41,7 +41,7 @@ public interface ThirdPartyInfoMapper extends XmlLessMapper<ThirdPartyInfo> {
    * @param appSecret 应用密钥
    * @return 单点登录平台信息数据
    */
-  @Logic(flag = DeleteValue.NotDeleted)
+  @NotDeleted
   ThirdPartyInfo findByAppIdAndAppSecret(@Param("appId") String appId,
                                          @Param("appSecret") String appSecret);
 
@@ -51,7 +51,7 @@ public interface ThirdPartyInfoMapper extends XmlLessMapper<ThirdPartyInfo> {
    * @param deptName 租户名称
    * @return 单点登录平台信息数据
    */
-  @Logic(flag = DeleteValue.NotDeleted)
+  @NotDeleted
   ThirdPartyInfo findByDeptName(String deptName);
 
   /**
@@ -60,7 +60,7 @@ public interface ThirdPartyInfoMapper extends XmlLessMapper<ThirdPartyInfo> {
    * @param tenantCode 租户代码
    * @return 单点登录平台信息数据
    */
-  @Logic(flag = DeleteValue.NotDeleted)
+  @NotDeleted
   ThirdPartyInfo selectByTenantCode(String tenantCode);
 
   void insert(ThirdPartyInfo entity);
@@ -69,14 +69,14 @@ public interface ThirdPartyInfoMapper extends XmlLessMapper<ThirdPartyInfo> {
 
   void updateById(ThirdPartyInfo entity);
 
-  @Logic(flag = DeleteValue.Deleted)
+  @Deleted
   void deleteByIdIn(List<String> ids);
 
-  @Logic(flag = DeleteValue.Deleted)
+  @Deleted
   void deleteById(String id);
 
   @SelectedProperties(properties = {"id", "tenantName", "tenantCode"})
-  @Logic(flag = DeleteValue.NotDeleted)
+  @NotDeleted
   @ResolvedName(name = "findAll")
   List<TenantInfoVO> tenantList();
 

@@ -17,5 +17,5 @@ import org.intellij.lang.annotations.Language
   AnnotationTarget.FIELD
 ])
 annotation class TestExpression(val value: Array<TestType> = [],
-                                @Language("ThymeleafExpressions")
+                                @Language("sql")
                                 val expression: String = "")

@@ -32,7 +32,7 @@ open class NameAlias(
           else                -> name
         }
 
-        else -> throw IllegalStateException("无法识别的join表名称: $target")
+        else -> error("无法识别的join表名称: $target")
       }
       return NameAlias(name, alias.replace('.', '_'))
     }

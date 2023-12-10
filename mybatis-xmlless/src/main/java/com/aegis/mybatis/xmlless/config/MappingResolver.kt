@@ -60,6 +60,10 @@ object MappingResolver {
     return instance.getMappingCache(modelClass)
   }
 
+  fun resolveNonEntityClass(clazz: Class<*>, modelClass: Class<*>, tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant): FieldMappings {
+    return instance.resolveNonEntityClass(clazz, modelClass, tableInfo, builderAssistant)
+  }
+
   fun resolve(modelClass: Class<*>, tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant): FieldMappings {
     return instance.resolve(modelClass, tableInfo, builderAssistant)
   }
