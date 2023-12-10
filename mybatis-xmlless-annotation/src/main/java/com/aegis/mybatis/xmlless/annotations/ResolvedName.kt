@@ -16,12 +16,17 @@ import org.intellij.lang.annotations.Language
  *    例如：findByNameEq, 如果values为 [@ValueAssign(param="name", stringValue="张三")]
  *     则最终sql中的查询条件为 name = '张三'
  */
-@Target(allowedTargets = [
-  AnnotationTarget.FUNCTION
-])
-annotation class ResolvedName(val name: String,
-                              @Language("GenericSQL")
-                              val partNames: Array<String> = [],
-                              val values: Array<ValueAssign> = [],
-                              val whereAppend: String = "",
-                              val joinAppend: String = "")
+@Target(
+    allowedTargets = [
+      AnnotationTarget.FUNCTION
+    ]
+)
+annotation class ResolvedName(
+    val name: String,
+    @Language("GenericSQL")
+    val partNames: Array<String> = [],
+    val values: Array<ValueAssign> = [],
+    val whereAppend: String = "",
+    val joinAppend: String = "",
+    val scriptAppend: String = ""
+)

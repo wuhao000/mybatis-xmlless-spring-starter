@@ -21,6 +21,7 @@ VALUES
 
 internal const val SCRIPT_TEMPLATE = """<script>
 %s
+%s
 </script>"""
 
 internal const val BATCH_INSERT_OR_UPDATE = """<script>
@@ -40,6 +41,7 @@ ON DUPLICATE KEY UPDATE
 internal const val DELETE = """<script>
 DELETE FROM
   %s
+%s
 %s
 </script>"""
 
@@ -89,6 +91,7 @@ SELECT
 FROM
   %s
 %s
+%s
 </script>"""
 
 /**  子查询构建模板 */
@@ -104,6 +107,7 @@ internal const val UPDATE = """<script>
 UPDATE
   %s
   %s
+%s
 %s
 </script>"""
 

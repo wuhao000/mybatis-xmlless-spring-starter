@@ -1,9 +1,11 @@
 package com.aegis.mybatis.xmlless.resolver
 
 import cn.hutool.core.util.ReflectUtil
+import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
 import com.aegis.mybatis.xmlless.model.MatchedParameter
 import com.aegis.mybatis.xmlless.model.MethodInfo
 import com.aegis.mybatis.xmlless.model.ParameterInfo
+import com.baomidou.mybatisplus.core.metadata.IPage
 import org.apache.ibatis.reflection.ParamNameResolver
 import org.apache.ibatis.session.Configuration
 import org.springframework.data.domain.Page
@@ -27,9 +29,11 @@ object ParameterResolver {
     return (!realType.name.startsWith("java.")
         && realType != Void.TYPE
         && !realType.isPrimitive
+        && !type.isAnnotationPresent(JsonMappingProperty::class.java)
         && !realType.isArray
         && !realType.isEnum
         && !Pageable::class.java.isAssignableFrom(realType)
+        && !IPage::class.java.isAssignableFrom(realType)
         && !Page::class.java.isAssignableFrom(realType)
         && realType != Sort::class.java && realType != Sort.Order::class.java)
   }

@@ -27,10 +27,10 @@ class ColumnsResolverTest : BaseResolverTest() {
 
   @Test
   fun resolveColumnByPropertyName() {
-    val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
+    val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
     val result = ColumnsResolver.resolveColumnByPropertyName(
         "userName", true,
-        MethodInfo(StudentDAO::findByUserNameLike.javaMethod!!, modelClass, mappings, mappings)
+        MethodInfo(StudentDAO::findByUserNameLike.javaMethod!!, modelClass, builderAssistant, mappings, mappings)
     )
     assertEquals(1, result.size)
     assertEquals("user_id_t_user.name", result.first().toSql())

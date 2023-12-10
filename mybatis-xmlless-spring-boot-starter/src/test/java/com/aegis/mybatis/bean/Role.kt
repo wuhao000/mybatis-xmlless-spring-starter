@@ -26,8 +26,9 @@ data class Role(
     @JsonMappingProperty
     var deps: List<Int> = listOf(),
     @JoinObject(
-        toEntity = JoinEntity(Dep::class, joinOnProperty = "id"),
-        joinOnProperty = "deps"
+        Dep::class,
+        "id",
+        joinOnThisProperty = "deps"
     )
     @SelectedProperties(["id", "name"])
     var depList: MutableList<Dep> = arrayListOf(),

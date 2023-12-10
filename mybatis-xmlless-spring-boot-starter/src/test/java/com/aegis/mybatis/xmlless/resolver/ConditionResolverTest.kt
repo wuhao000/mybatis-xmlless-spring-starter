@@ -3,15 +3,18 @@ package com.aegis.mybatis.xmlless.resolver
 import com.aegis.kotlin.toWords
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.StudentDAO
-import com.aegis.mybatis.xmlless.annotations.*
+import com.aegis.mybatis.xmlless.annotations.Criteria
+import com.aegis.mybatis.xmlless.annotations.ExcludeProperties
+import com.aegis.mybatis.xmlless.annotations.ResolvedName
+import com.aegis.mybatis.xmlless.annotations.ValueAssign
 import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.model.FieldMappings
 import com.aegis.mybatis.xmlless.model.MethodInfo
 import com.aegis.mybatis.xmlless.model.QueryCriteria
 import com.aegis.mybatis.xmlless.model.QueryType
+import com.aegis.mybatis.xmlless.util.initTableInfo
 import com.baomidou.mybatisplus.core.MybatisConfiguration
 import com.baomidou.mybatisplus.core.metadata.TableInfo
-import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import org.apache.ibatis.annotations.Param
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.junit.jupiter.api.Test
@@ -42,7 +45,7 @@ class ConditionResolverTest {
 
   @Test
   fun resolveConditions() {
-    val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
+    val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
     TestDAO::class.java.declaredMethods.forEach { method ->
       val exp = method.name.replace("findBy", "")
       println("${method.name} *********************")
@@ -55,7 +58,7 @@ class ConditionResolverTest {
 
   @Test
   fun resolveNamedComplexParam() {
-    val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
+    val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
     val method = TestDAO::findByNameAndAge2.javaMethod!!
     val exp = "NameAndAge"
     assertEquals("NameAndAge", exp)
@@ -67,7 +70,7 @@ class ConditionResolverTest {
 
   @Test
   fun resolveComplexParam() {
-    val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
+    val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
     val method = TestDAO::findByNameAndAge.javaMethod!!
     val exp = method.name.replace("findBy", "")
     assertEquals("NameAndAge", exp)
@@ -80,7 +83,7 @@ class ConditionResolverTest {
 
   @Test
   fun resolveComplexParam9() {
-    val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
+    val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
     val method = TestDAO::findByNameAndAge3.javaMethod!!
     val exp = "NameAndAge"
     assertEquals("NameAndAge", exp)
@@ -92,7 +95,7 @@ class ConditionResolverTest {
 
   @Test
   fun resolveComplexParam2() {
-    val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
+    val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
     val method = StudentDAO::findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd.javaMethod!!
     val exp = method.name.replace("findBy", "")
     val conditions = resolveConditions(exp, method, mappings)
@@ -104,7 +107,7 @@ class ConditionResolverTest {
 
   @Test
   fun resolveComplexParam3() {
-    val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
+    val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
     val method = StudentDAO::findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable.javaMethod!!
     val exp = "NameLikeAndAgeAndCreateTimeBetweenStartAndEnd"
     val conditions = resolveConditions(exp, method, mappings)
@@ -116,7 +119,7 @@ class ConditionResolverTest {
 
   @Test
   fun resolveComplexParam4() {
-    val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
+    val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
     val method = StudentDAO::findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable3.javaMethod!!
     val exp = "NameLikeAndAgeAndCreateTimeBetweenStartAndEnd"
     val conditions = resolveConditions(exp, method, mappings)
@@ -128,7 +131,7 @@ class ConditionResolverTest {
 
   @Test
   fun resolveBetweenWithoutParamName() {
-    val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
+    val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
     val method = TestDAO::findByAgeBetween.javaMethod!!
     val exp = method.name.replace("findBy", "")
     assertEquals("AgeBetween", exp)
@@ -139,7 +142,7 @@ class ConditionResolverTest {
 
   @Test
   fun resolveBetweenWithoutParamName7() {
-    val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
+    val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
     val method = TestDAO::selectDictTypeList.javaMethod!!
     val exp = "DictNameAndStatusAndDictTypeAndCreateTimeBetweenBeginTimeAndEndTime"
     val conditions = resolveConditions(exp, method, mappings)
@@ -153,7 +156,7 @@ class ConditionResolverTest {
 
   @Test
   fun resolveBetweenWithoutParamName11() {
-    val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
+    val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
     val method = TestDAO::selectDictTypeListPageable.javaMethod!!
     val exp = "DictNameAndStatusAndDictTypeAndCreateTimeBetweenBeginTimeAndEndTime"
     val conditions = resolveConditions(exp, method, mappings)
@@ -173,7 +176,7 @@ class ConditionResolverTest {
 
   @Test
   fun resolveBetween() {
-    val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
+    val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
     val method = TestDAO::findByAgeBetweenMinAndMax.javaMethod!!
     val exp = method.name.replace("findBy", "")
     assertEquals("AgeBetweenMinAndMax", exp)
@@ -183,10 +186,9 @@ class ConditionResolverTest {
   }
 
   private fun createTableInfo(modelClass: Class<*>): TableInfo {
-    TableInfoHelper.initTableInfo(
+    return initTableInfo(
         builderAssistant, modelClass
     )
-    return TableInfoHelper.getTableInfo(modelClass)
   }
 
   private fun resolveConditions(
@@ -195,7 +197,8 @@ class ConditionResolverTest {
       mappings: FieldMappings
   ): List<QueryCriteria> {
     return CriteriaResolver.resolveConditions(
-        conditionExpression.toWords(), MethodInfo(method, modelClass, mappings, mappings), QueryType.Select
+        conditionExpression.toWords(), MethodInfo(method, modelClass, builderAssistant, mappings, mappings),
+        QueryType.Select
     )
   }
 

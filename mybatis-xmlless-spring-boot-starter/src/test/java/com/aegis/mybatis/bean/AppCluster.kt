@@ -1,7 +1,5 @@
 package com.aegis.mybatis.bean
 
-import com.aegis.mybatis.xmlless.annotations.JoinProperty
-import com.aegis.mybatis.xmlless.annotations.JoinTable
 import com.aegis.mybatis.xmlless.annotations.JoinTableColumn
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue

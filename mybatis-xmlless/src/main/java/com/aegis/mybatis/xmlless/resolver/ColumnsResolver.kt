@@ -2,12 +2,10 @@ package com.aegis.mybatis.xmlless.resolver
 
 import com.aegis.kotlin.toCamelCase
 import com.aegis.kotlin.toUnderlineCase
-import com.aegis.mybatis.xmlless.config.getFieldInfoMap
 import com.aegis.mybatis.xmlless.constant.SQLKeywords
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.model.*
 import com.aegis.mybatis.xmlless.model.Properties
-import com.aegis.mybatis.xmlless.util.getTableInfo
 import org.slf4j.LoggerFactory
 import java.util.*
 
@@ -115,7 +113,7 @@ object ColumnsResolver {
     }
 
     // 从关联对象中匹配
-    val resolvedFromJoinObject = resolveFromObjectJoinInfo(mappings.mappings, property)
+    val resolvedFromJoinObject = resolveFromObjectJoinInfo(mappings.mappings, property, methodInfo)
     if (resolvedFromJoinObject.isNotEmpty()) {
       return resolvedFromJoinObject
     }
@@ -161,15 +159,10 @@ object ColumnsResolver {
     if (originColumn != null) {
       return originColumn
     }
-    val returnClass = QueryResolver.resolveReturnType(methodInfo.method, methodInfo.mappings.modelClass)
-    if (ParameterResolver.isComplexType(returnClass) && returnClass != methodInfo.modelClass) {
-      val returnTableInfo = getTableInfo(returnClass) ?: return null
-      return returnTableInfo.getFieldInfoMap(returnClass)[property]?.column
-    }
     return null
   }
 
-  private fun resolveFromObjectJoinInfo(mappings: List<FieldMapping>, property: String): List<SelectColumn> {
+  private fun resolveFromObjectJoinInfo(mappings: List<FieldMapping>, property: String, methodInfo: MethodInfo): List<SelectColumn> {
     // 如果持久化对象中找不到这个属性，在关联的对象中进行匹配，匹配的规则是，关联对象的字段名称+属性名称
     // 例如，当前的model是Student，有一个名为scores的属性类型为List<Score>,表示该学生的成绩列表,
     // Score对象中有一个属性subjectId，那么scoresSubjectId可以匹配到关联对象的subjectId属性上
@@ -202,7 +195,7 @@ object ColumnsResolver {
     val matchedJoinInfos = mappings.filter {
       it.joinInfo is ObjectJoinInfo
     }.filter { mapping ->
-      mapping.joinInfo?.getJoinTableInfo()?.fieldList?.firstOrNull { it.property == property } != null
+      mapping.joinInfo?.getJoinTableInfo(methodInfo)?.fieldList?.firstOrNull { it.property == property } != null
     }.map { it.joinInfo as ObjectJoinInfo }
     return when {
       matchedJoinInfos.size > 1  -> throw BuildSQLException(

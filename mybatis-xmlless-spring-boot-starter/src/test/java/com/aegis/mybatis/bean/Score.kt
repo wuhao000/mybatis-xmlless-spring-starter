@@ -22,7 +22,8 @@ class Score {
   var score: Int = 0
   var studentId: String = ""
   @JoinObject(
-      joinOnProperty = "subjectId"
+      entity = Subject::class,
+      joinOnThisProperty = "subjectId"
   )
   @SelectedProperties(["id", "name"])
   var subject: Subject? = null

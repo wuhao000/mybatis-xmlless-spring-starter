@@ -75,7 +75,7 @@ object CriteriaResolver {
       methodInfo: MethodInfo
   ): List<QueryCriteria> {
     val criteriaList = parameter.criteria
-    return criteriaList.map { criteria ->
+    return criteriaList.map {
       QueryCriteria(
           paramName, Operations.EqDefault, Append.AND,
           listOf(Pair(paramName, parameter.parameter)),

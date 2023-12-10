@@ -2,7 +2,6 @@
 
 package com.aegis.mybatis.bean
 
-import com.aegis.mybatis.xmlless.annotations.JoinEntity
 import com.aegis.mybatis.xmlless.annotations.JoinObject
 import com.aegis.mybatis.xmlless.annotations.JsonMappingProperty
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
@@ -35,8 +34,8 @@ data class User(
   var roles: List<Int> = listOf()
 
   @JoinObject(
-      toEntity = JoinEntity(Role::class, joinOnProperty = "id"),
-      joinOnProperty = "roles"
+      Role::class, "id",
+      joinOnThisProperty = "roles"
   )
   @SelectedProperties(["id", "name", "deps", "depList"])
   var roleList: MutableList<Role> = arrayListOf()

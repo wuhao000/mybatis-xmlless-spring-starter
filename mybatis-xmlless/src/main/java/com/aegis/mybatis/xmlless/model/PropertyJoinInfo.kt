@@ -8,6 +8,7 @@ import jakarta.persistence.criteria.JoinType
  * Created by 吴昊 on 2018/12/17.
  */
 class PropertyJoinInfo(
+    val entity: Class<*>?,
     val propertyColumn: ColumnName,
     joinTable: TableName,
     type: JoinType,
@@ -19,7 +20,7 @@ class PropertyJoinInfo(
     joinTable, type, joinProperty, targetColumn, javaType
 ) {
 
-  override fun getJoinTableInfo(): TableInfo? {
+  override fun getJoinTableInfo(methodInfo: MethodInfo): TableInfo? {
     return null
   }
 

@@ -17,9 +17,9 @@ annotation class JoinEntityProperty(
     /** 要连接的表对应的实体类 */
     val entity: KClass<*>,
     /** 要连接的表对应的实体类字段名称，用于映射到当前注解所在字段 */
-    val propertyMapTo: String = "",
+    val propertyMapTo: String = "id",
     /** 要连接的表对应的实体类用于连接条件的属性名称, 默认为主键 */
-    val joinOnProperty: String = "",
+    val joinOnProperty: String = "id",
     val joinType: JoinType = JoinType.LEFT,
     /** 当前对象用于连接的属性名称（非表字段名称），如果为空则默认为主键 */
     val joinOnThisProperty: String

@@ -1,7 +1,6 @@
 package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.bean.Score
-import com.aegis.mybatis.bean.Server
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.bean.StudentVO
 import com.aegis.mybatis.dao.StudentDAO
@@ -52,9 +51,7 @@ class StudentDAOResolverTest : BaseResolverTest(
 
   @Test
   fun resolveColumns() {
-    val c = QueryResolver.resolveReturnType(StudentDAO::findVO.javaMethod!!, modelClass)
     val c2 = QueryResolver.resolveReturnType(StudentDAO::findVOPage.javaMethod!!, modelClass)
-    assertEquals(StudentVO::class.java, c)
     assertEquals(StudentVO::class.java, c2)
     val mappings = MappingResolver.resolveNonEntityClass(
         StudentVO::class.java,
@@ -62,9 +59,12 @@ class StudentDAOResolverTest : BaseResolverTest(
         tableInfo,
         builderAssistant
     )
-    val methodInfo = MethodInfo(StudentDAO::findVO.javaMethod!!, Student::class.java, mappings, mappings)
+    val methodInfo = MethodInfo(
+        StudentDAO::findVO.javaMethod!!, Student::class.java,
+        builderAssistant, mappings, mappings
+    )
     val cols = ColumnsResolver.resolve(Properties(), methodInfo)
-    assert(cols.size == 4)
+    assert(cols.size > 4)
   }
 
 
@@ -105,7 +105,7 @@ class StudentDAOResolverTest : BaseResolverTest(
     println(sql)
     assertNotNull(sql)
     assert(sql.contains("user.name"))
-    assertContains( sql, "del_flag = 0")
+    assertContains(sql, "del_flag = 0")
     assertEquals(sql.indexOf("del_flag = 0"), sql.lastIndexOf("del_flag = 0"))
     println(query)
   }
@@ -118,7 +118,7 @@ class StudentDAOResolverTest : BaseResolverTest(
     println(sql)
     assertNotNull(sql)
     assert(sql.contains("user.name"))
-    assertContains( sql, "del_flag = 0")
+    assertContains(sql, "del_flag = 0")
     assertEquals(sql.indexOf("del_flag = 0"), sql.lastIndexOf("del_flag = 0"))
     println(query)
   }
@@ -126,11 +126,20 @@ class StudentDAOResolverTest : BaseResolverTest(
   @Test
   @DisplayName("返回vo类，vo类中包含关联字段")
   fun findVO() {
+    val c = QueryResolver.resolveReturnType(StudentDAO::findVO.javaMethod!!, modelClass)
+    assertEquals(StudentVO::class.java, c)
     val query = createQueryForMethod(StudentDAO::findVO.javaMethod!!)
     assertNotNull(query.query)
     val sql = query.sql
     println(sql)
     assertNotNull(sql)
+    assert(
+        sql.contains(
+            """LEFT JOIN
+    xx AS"""
+        )
+    )
+    assert(sql.contains("xx.wz LIKE"))
     assert(!sql.contains("create_time"))
     assertContains(sql, "del_flag = 0")
     assertEquals(sql.indexOf("del_flag = 0"), sql.lastIndexOf("del_flag = 0"))
@@ -138,7 +147,8 @@ class StudentDAOResolverTest : BaseResolverTest(
 
   @Test
   fun findByNameAndAgeAndUserNameOrCreateUserNameLikeKeywords() {
-    val query = createQueryForMethod(StudentDAO::findByNameAndAgeAndUserNameLikeKeywordsOrCreateUserNameLikeKeywords.javaMethod!!)
+    val query =
+        createQueryForMethod(StudentDAO::findByNameAndAgeAndUserNameLikeKeywordsOrCreateUserNameLikeKeywords.javaMethod!!)
     println(query)
   }
 

@@ -63,7 +63,7 @@ abstract class JoinInfo(
   /**
    * 获取连接的表的表信息
    */
-  abstract fun getJoinTableInfo(): TableInfo?
+  abstract fun getJoinTableInfo(methodInfo: MethodInfo): TableInfo?
 
   fun resolveColumnProperty(property: String): String {
     return property.toUnderlineCase().lowercase(Locale.getDefault())

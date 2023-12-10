@@ -1,7 +1,6 @@
 package com.aegis.mybatis.bean
 
 import com.aegis.mybatis.xmlless.annotations.JoinObject
-import com.aegis.mybatis.xmlless.annotations.JoinTable
 import com.aegis.mybatis.xmlless.annotations.SelectedProperties
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
@@ -21,17 +20,20 @@ data class Server(
     var parentId: Int? = null,
     var providerId: Int = 0,
     @JoinObject(
-        toTable = JoinTable("t_server AS parent_server", joinOnColumn = "id"),
-        joinOnProperty = "parentId"
+        Server::class,
+        joinOnProperty = "id",
+        joinOnThisProperty = "parentId"
     )
     @SelectedProperties(["name", "ip"])
     var parent: Server? = null
 ) {
 
   var order: Int = 1
+
   @JoinObject(
-      toTable = JoinTable("t_server_provider AS server_provider", joinOnColumn = "id"),
-      joinOnProperty = "providerId"
+      ServerProvider::class,
+      "id",
+      joinOnThisProperty = "providerId"
   )
   var provider: ServerProvider? = null
 

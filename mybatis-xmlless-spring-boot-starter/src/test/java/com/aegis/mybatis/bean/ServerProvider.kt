@@ -1,5 +1,9 @@
 package com.aegis.mybatis.bean
 
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
+import jakarta.persistence.Table
+
 
 /**
  *
@@ -8,5 +12,10 @@ package com.aegis.mybatis.bean
  * @author 吴昊
  * @since 0.0.9
  */
-data class ServerProvider(var id: Int = 0,
-                          var name: String = "")
+@Entity
+@Table(name = "t_server_provider")
+data class ServerProvider(
+    @Id
+    var id: Int = 0,
+    var name: String = ""
+)

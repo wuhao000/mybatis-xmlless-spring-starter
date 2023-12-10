@@ -14,8 +14,10 @@ import com.aegis.mybatis.xmlless.kotlin.split
 import com.aegis.mybatis.xmlless.model.*
 import com.aegis.mybatis.xmlless.util.AnnotationUtil
 import com.aegis.mybatis.xmlless.util.MethodUtil
+import com.aegis.mybatis.xmlless.util.getTableInfo
 import com.baomidou.mybatisplus.core.metadata.IPage
 import com.baomidou.mybatisplus.core.metadata.TableInfo
+import com.baomidou.mybatisplus.core.metadata.TableResolver
 import com.baomidou.mybatisplus.core.override.XmlLessPageMapperMethod
 import com.baomidou.mybatisplus.core.toolkit.StringPool.DOT
 import com.fasterxml.jackson.databind.JavaType
@@ -64,12 +66,10 @@ object QueryResolver {
     }
     try {
       val clazz = resolveReturnType(method, mapperClass)
+
       val returnMappings = if (clazz != modelClass
           && !MethodUtil.isJsonResult(method)
-          && !clazz.name.startsWith("java.lang")
-          && !clazz.isPrimitive
-          && !clazz.isAnnotationPresent(JsonMappingProperty::class.java)
-          && !clazz.isEnum
+          && ParameterResolver.isComplexType(clazz)
       ) {
         MappingResolver.resolveNonEntityClass(
             clazz, modelClass, tableInfo, builderAssistant
@@ -77,8 +77,15 @@ object QueryResolver {
       } else {
         null
       }
-      val modelMappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
-      val methodInfo = MethodInfo(method, modelClass, returnMappings ?: modelMappings, modelMappings)
+      val modelMappings = MappingResolver.resolve(tableInfo, builderAssistant)
+      val methodInfo = MethodInfo(method, modelClass, builderAssistant, returnMappings ?: modelMappings, modelMappings)
+      returnMappings?.mappings?.mapNotNull { it.joinInfo }?.forEach {
+        if (it is ObjectJoinInfo) {
+          TableResolver.fixTableInfo(it.entity, getTableInfo(it.entity, builderAssistant), builderAssistant)
+        } else if (it is PropertyJoinInfo && it.entity != null) {
+          TableResolver.fixTableInfo(it.entity, getTableInfo(it.entity, builderAssistant), builderAssistant)
+        }
+      }
       val resolvedNames = getResolvedName(methodInfo)
       val resolveSortsResult = resolveSorts(resolvedNames)
       val resolveTypeResult = resolveType(resolveSortsResult.remainNames.first(), method)
@@ -297,7 +304,6 @@ object QueryResolver {
       in listOf("Delete", "Remove")                  -> {
         val logicDelete = AnnotationUtil.hasAnyAnnotation(
             method,
-            Logic::class.java,
             Deleted::class.java,
             NotDeleted::class.java
         )

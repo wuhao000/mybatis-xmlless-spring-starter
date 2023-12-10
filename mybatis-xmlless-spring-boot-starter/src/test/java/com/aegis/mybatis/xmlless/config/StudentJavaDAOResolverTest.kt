@@ -39,7 +39,10 @@ class StudentJavaDAOResolverTest : BaseResolverTest(
   @Test
   fun resolveColumns() {
     val mappings = MappingResolver.getMappingCache(Student::class.java)
-    val methodInfo = MethodInfo(StudentJavaDAO::findById.javaMethod!!, Student::class.java, mappings!!, mappings!!)
+    val methodInfo = MethodInfo(
+        StudentJavaDAO::findById.javaMethod!!, Student::class.java,
+        builderAssistant, mappings!!, mappings!!
+    )
     val cols = ColumnsResolver.resolve(Properties(), methodInfo)
     cols.map {
       it.toSql()

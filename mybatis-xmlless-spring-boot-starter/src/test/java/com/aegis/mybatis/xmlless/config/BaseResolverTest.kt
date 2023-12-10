@@ -4,11 +4,11 @@ import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.StudentDAO
 import com.aegis.mybatis.xmlless.model.ResolvedQuery
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
+import com.aegis.mybatis.xmlless.util.getTableInfo
+import com.aegis.mybatis.xmlless.util.initTableInfo
 import com.baomidou.mybatisplus.core.MybatisConfiguration
 import com.baomidou.mybatisplus.core.metadata.TableInfo
-import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import org.apache.ibatis.builder.MapperBuilderAssistant
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
 import java.lang.reflect.Method
 
@@ -30,7 +30,7 @@ open class BaseResolverTest(
     currentNamespace = currentNameSpace
   }
   protected val tableInfo: TableInfo = createTableInfo(modelClass)
-  protected val mappings = MappingResolver.resolve(modelClass, tableInfo, builderAssistant)
+  protected val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
 
 
   fun getFunctions(): List<Method> {
@@ -38,10 +38,10 @@ open class BaseResolverTest(
   }
 
   private fun createTableInfo(modelClass: Class<*>): TableInfo {
-    TableInfoHelper.initTableInfo(
+    initTableInfo(
         builderAssistant, modelClass
     )
-    return TableInfoHelper.getTableInfo(modelClass)
+    return getTableInfo(modelClass, builderAssistant)!!
   }
 
 

@@ -42,7 +42,10 @@ class DogDAOResolverTest : BaseResolverTest(
   @Test
   fun resolveColumns() {
     val mappings = MappingResolver.getMappingCache(Dog::class.java)
-    val methodInfo = MethodInfo(DogDAO::findById.javaMethod!!, Dog::class.java, mappings!!, mappings!!)
+    val methodInfo = MethodInfo(
+        DogDAO::findById.javaMethod!!, Dog::class.java, builderAssistant,
+        mappings!!, mappings
+    )
     val cols = ColumnsResolver.resolve(Properties(), methodInfo)
     cols.map {
       it.toSql()

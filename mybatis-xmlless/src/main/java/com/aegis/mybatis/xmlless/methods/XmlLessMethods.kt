@@ -44,7 +44,7 @@ class XmlLessMethods : AbstractMethod("") {
       tableInfo: TableInfo
   ): MappedStatement {
     // 修正表信息，主要是针对一些JPA注解的支持以及本项目中自定义的一些注解的支持，
-    MappingResolver.fixTableInfo(modelClass, tableInfo, builderAssistant)
+    MappingResolver.fixTableInfo(tableInfo, builderAssistant)
     // 判断Mapper方法是否已经定义了sql声明，如果没有定义才进行注入，这样如果存在Mapper方法在xml文件中有定义则会优先使用，如果没有定义才会进行推断
     val unmappedMethods = mapperClass.methods.filter {
       it.declaringClass != Object::class.java

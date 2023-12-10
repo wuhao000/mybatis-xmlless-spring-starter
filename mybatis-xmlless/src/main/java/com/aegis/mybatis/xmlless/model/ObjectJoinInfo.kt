@@ -16,15 +16,20 @@ import java.util.*
  * Created by 吴昊 on 2018/12/17.
  */
 class ObjectJoinInfo(
-    val selectProperties: Properties, joinTable: TableName, type: JoinType, joinProperty: String, targetColumn: String,
+    val entity: Class<*>,
+    val selectProperties: Properties,
+    joinTable: TableName,
+    type: JoinType,
+    joinProperty: String,
+    targetColumn: String,
     /**  关联表查询的列的别名前缀 */
     val associationPrefix: String,
     /**  join的对象或者属性的类型 */
     javaType: Type
 ) : JoinInfo(joinTable, type, joinProperty, targetColumn, javaType) {
 
-  override fun getJoinTableInfo(): TableInfo? {
-    return getTableInfo(realType())
+  override fun getJoinTableInfo(methodInfo: MethodInfo): TableInfo? {
+    return getTableInfo(realType(), methodInfo.builderAssistant)
   }
 
   override fun selectFields(level: Int, prefix: String?): List<SelectColumn> {

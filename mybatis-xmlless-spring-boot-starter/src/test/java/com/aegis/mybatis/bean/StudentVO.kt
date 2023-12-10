@@ -25,10 +25,29 @@ class StudentVO {
   )
   var createUserName: String? = null
 
+  /** 当事人身份  */
+  @JoinEntityProperty(
+      entity = School::class,
+      joinOnProperty = "studentId",
+      propertyMapTo = "location",
+      joinOnThisProperty = "id"
+  )
+  var schoolLocation: String? = null
+
   @JoinEntityProperty(
       entity = User::class,
       propertyMapTo = "name",
       joinOnThisProperty = "updateUserId"
   )
   var updateUserName: String? = null
+
+  var schoolId: String? = null
+
+  @JoinEntityProperty(
+      entity = School::class,
+      joinOnProperty = "id",
+      propertyMapTo = "name",
+      joinOnThisProperty = "schoolId"
+  )
+  var schoolName: String? = null
 }

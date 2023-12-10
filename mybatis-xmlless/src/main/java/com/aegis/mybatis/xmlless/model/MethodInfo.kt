@@ -6,6 +6,7 @@ import com.aegis.mybatis.xmlless.annotations.*
 import com.aegis.mybatis.xmlless.resolver.ParameterResolver
 import com.aegis.mybatis.xmlless.util.FieldUtil
 import org.apache.ibatis.annotations.Param
+import org.apache.ibatis.builder.MapperBuilderAssistant
 import java.lang.reflect.AnnotatedElement
 import java.lang.reflect.Method
 
@@ -20,6 +21,7 @@ import java.lang.reflect.Method
 class MethodInfo(
     val method: Method,
     val modelClass: Class<*>,
+    val builderAssistant: MapperBuilderAssistant,
     val mappings: FieldMappings,
     val modelMappings: FieldMappings
 ) {
@@ -37,13 +39,15 @@ class MethodInfo(
   /** ResolvedName注解 */
   val resolvedName: ResolvedName? = method.getAnnotation(ResolvedName::class.java)
 
+  val scriptAppend = resolvedName?.scriptAppend ?: ""
+
+  val joinAppend = resolvedName?.joinAppend ?: ""
+
+  val whereAppend = resolvedName?.whereAppend ?: ""
+
   val paramNames: Array<String> = ParameterResolver.resolveNames(method)
 
   fun getLogicType(): DeleteValue? {
-    val flag = method.getAnnotation(Logic::class.java)?.flag
-    if (flag != null) {
-      return flag
-    }
     if (method.getAnnotation(Deleted::class.java) != null) {
       return DeleteValue.Deleted
     }

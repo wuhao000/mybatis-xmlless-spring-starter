@@ -1,18 +1,13 @@
 package com.aegis.mybatis.xmlless.model
 
-import com.aegis.kotlin.toCamelCase
-import com.aegis.kotlin.toUnderlineCase
 import com.aegis.mybatis.xmlless.annotations.DeleteValue
-import com.aegis.mybatis.xmlless.config.getFieldInfoMap
 import com.aegis.mybatis.xmlless.exception.BuildSQLException
 import com.aegis.mybatis.xmlless.model.component.FromDeclaration
 import com.aegis.mybatis.xmlless.model.component.JoinConditionDeclaration
 import com.aegis.mybatis.xmlless.model.component.JoinDeclaration
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
-import com.aegis.mybatis.xmlless.resolver.QueryResolver
-import com.aegis.mybatis.xmlless.util.getTableInfo
+import com.baomidou.mybatisplus.core.metadata.TableResolver
 import com.baomidou.mybatisplus.core.metadata.TableInfo
-import java.util.*
 
 
 /**
@@ -26,7 +21,7 @@ data class FieldMappings(
     val modelClass: Class<*>
 ) {
 
-  val tableName = tableInfo.tableName
+  val tableName = TableResolver.getTableName(tableInfo)
 
   /**
    * 获取from后的表名称及join信息的语句

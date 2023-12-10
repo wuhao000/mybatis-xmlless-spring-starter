@@ -24,7 +24,6 @@ object FieldUtil {
         && AnnotationUtils.findAnnotation(field, MyBatisIgnore::class.java)?.select != true
         && AnnotationUtils.findAnnotation(field, JoinColumn::class.java) == null
         && AnnotationUtils.findAnnotation(field, JoinObject::class.java) == null
-        && AnnotationUtils.findAnnotation(field, JoinProperty::class.java) == null
         && AnnotationUtils.findAnnotation(field, JoinTableColumn::class.java) == null
         && AnnotationUtils.findAnnotation(field, JoinEntityProperty::class.java) == null
   }
@@ -35,7 +34,6 @@ object FieldUtil {
         || AnnotationUtils.findAnnotation(field, JoinColumn::class.java)?.insertable == false
         || AnnotationUtils.findAnnotation(field, Count::class.java) != null
         || AnnotationUtils.findAnnotation(field, JoinObject::class.java) != null
-        || AnnotationUtils.findAnnotation(field, JoinProperty::class.java) != null
         || AnnotationUtils.findAnnotation(field, JoinEntityProperty::class.java) != null
         || AnnotationUtils.findAnnotation(field, JoinTableColumn::class.java) != null
         || AnnotationUtils.findAnnotation(field, MyBatisIgnore::class.java)?.insert == true
@@ -48,7 +46,6 @@ object FieldUtil {
         || AnnotationUtils.findAnnotation(field, Count::class.java) != null
         || AnnotationUtils.findAnnotation(field, MyBatisIgnore::class.java)?.update == true
         || AnnotationUtils.findAnnotation(field, JoinObject::class.java) != null
-        || AnnotationUtils.findAnnotation(field, JoinProperty::class.java) != null
         || AnnotationUtils.findAnnotation(field, JoinTableColumn::class.java) != null
         || AnnotationUtils.findAnnotation(field, JoinEntityProperty::class.java) != null
         || AnnotationUtils.findAnnotation(field, CreatedDate::class.java) != null

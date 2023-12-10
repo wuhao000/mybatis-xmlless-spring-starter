@@ -106,8 +106,9 @@ class Student() {
   var deleted: Boolean = false
 
   @JoinObject(
-      toEntity = JoinEntity(Score::class, joinOnProperty = "studentId"),
-      joinOnProperty = "id"
+      Score::class,
+      joinOnProperty = "studentId",
+      joinOnThisProperty = "id"
   )
   @SelectedProperties(["score", "subjectId", "subject"])
   @JoinColumn(insertable = false, updatable = false)

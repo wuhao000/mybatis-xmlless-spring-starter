@@ -57,12 +57,14 @@ data class Query(
     // 必须先解析查询条件才能确定条件中用于判断的字段来自哪张表
     val where = resolveWhere()
     val from = resolveFrom(false, where, "", true)
-    return String.format(SELECT_COUNT, from.toSql(), where.toSql())
+    return String.format(SELECT_COUNT, from.toSql(),
+        where.toSql(), methodInfo.scriptAppend)
   }
 
   private fun buildUpdateSql(): String {
     return String.format(
-        UPDATE, tableName().name, resolveUpdateProperties(false), resolveUpdateWhere()
+        UPDATE, tableName().name, resolveUpdateProperties(false),
+        resolveUpdateWhere(), methodInfo.scriptAppend
     )
   }
 
@@ -181,18 +183,19 @@ data class Query(
 
   fun toSql(): String {
     return when (type) {
-      QueryType.Delete -> buildDeleteSql()
-      QueryType.Insert -> buildInsertSql()
-      QueryType.Select -> buildSelectSql()
-      QueryType.Update -> buildUpdateSql()
-      QueryType.Count -> buildCountSql()
-      QueryType.Exists -> buildExistsSql()
+      QueryType.Delete      -> buildDeleteSql()
+      QueryType.Insert      -> buildInsertSql()
+      QueryType.Select      -> buildSelectSql()
+      QueryType.Update      -> buildUpdateSql()
+      QueryType.Count       -> buildCountSql()
+      QueryType.Exists      -> buildExistsSql()
       QueryType.LogicDelete -> buildLogicDeleteSql()
     }
   }
 
   private fun buildDeleteSql(): String {
-    return String.format(DELETE, tableName().name, resolveWhere().toSql())
+    return String.format(DELETE, tableName().name,
+        resolveWhere().toSql(), methodInfo.scriptAppend)
   }
 
   private fun buildExistsSql(): String {
@@ -255,14 +258,15 @@ data class Query(
       ?: throw IllegalStateException("缺少逻辑删除字段，请在字段上添加@TableLogic注解")
     val logicType = methodInfo.getLogicType()!!
     val value = this.mappings.getLogicDelFlagValue(logicType)
-    return "<script>UPDATE ${tableName().name} SET ${mapper.column} = $value " + resolveWhere().toSql() + "</script>"
+    return "<script>UPDATE ${tableName().name} SET ${mapper.column} = $value " +
+        resolveWhere().toSql() + " ${methodInfo.scriptAppend ?: ""}</script>"
   }
 
   private fun buildScript(vararg args: String): String {
     val formattedSql = String.format(SELECT, *args).trim()
     return when {
       formattedSql.startsWith(SCRIPT_START) -> formattedSql
-      else                                  -> SCRIPT_TEMPLATE.format(formattedSql.trim())
+      else                                  -> SCRIPT_TEMPLATE.format(formattedSql.trim(), methodInfo.scriptAppend)
     }
   }
 
@@ -282,7 +286,7 @@ data class Query(
       limitInSubQuery -> buildScript(
           buildColsResult.joinToString(",\n\t") { it.toSql() },
           from.toSql(),
-          methodInfo.resolvedName?.joinAppend ?: "",
+          methodInfo.joinAppend,
           "",
           groupBy,
           order,
@@ -292,7 +296,7 @@ data class Query(
       else            -> buildScript(
           buildColsResult.joinToString(",\n\t") { it.toSql() },
           from.toSql(),
-          methodInfo.resolvedName?.joinAppend ?: "",
+          methodInfo.joinAppend,
           where.toSql(),
           groupBy,
           order,
@@ -375,7 +379,7 @@ data class Query(
     val groupBuilders = groups.map {
       it.toSql(true)
     }
-    val whereAppend = methodInfo.resolvedName?.whereAppend
+    val whereAppend = methodInfo.whereAppend
     return WhereDeclaration(criterion, groupBuilders, whereAppend)
   }
 

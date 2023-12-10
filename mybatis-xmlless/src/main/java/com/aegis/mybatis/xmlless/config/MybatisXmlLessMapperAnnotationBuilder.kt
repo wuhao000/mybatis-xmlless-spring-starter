@@ -17,8 +17,8 @@ package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.xmlless.resolver.ParameterResolver
 import com.aegis.mybatis.xmlless.resolver.QueryResolver
+import com.aegis.mybatis.xmlless.util.initTableInfo
 import com.baomidou.mybatisplus.core.mapper.Mapper
-import com.baomidou.mybatisplus.core.metadata.TableInfoHelper
 import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils
 import com.baomidou.mybatisplus.core.toolkit.ReflectionKit
 import com.baomidou.mybatisplus.core.toolkit.StringPool
@@ -107,7 +107,7 @@ class MybatisXmlLessMapperAnnotationBuilder(configuration: Configuration, type: 
         }.filter {
           ParameterResolver.isComplexType(it)
         }.distinct().filter { it != modelClass }.forEach {
-          TableInfoHelper.initTableInfo(assistant, it)
+          initTableInfo(assistant, it)
         }
       }
       GlobalConfigUtils.getSqlInjector(configuration).inspectInject(assistant, type)

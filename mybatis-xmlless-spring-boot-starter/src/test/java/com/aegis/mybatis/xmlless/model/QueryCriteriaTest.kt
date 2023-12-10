@@ -53,7 +53,7 @@ class QueryCriteriaTest : BaseResolverTest(
 
   @Test
   fun getTests() {
-    MappingResolver.resolve(modelClass, getTableInfo(modelClass, builderAssistant)!!, builderAssistant)
+    MappingResolver.resolve(getTableInfo(modelClass, builderAssistant)!!, builderAssistant)
     val mappings = MappingResolver.getMappingCache(modelClass)
     val c = QueryCriteria(
         "name",
@@ -61,14 +61,14 @@ class QueryCriteriaTest : BaseResolverTest(
         Append.AND,
         listOf("form.name" to StudentQueryForm::name.javaField!!),
         null,
-        MethodInfo(StudentDAO::find.javaMethod!!, modelClass, mappings!!, mappings)
+        MethodInfo(StudentDAO::find.javaMethod!!, modelClass, builderAssistant, mappings!!, mappings)
     )
     assertEquals("form.name != null and form.name.length() &gt; 0", c.getTests(null))
   }
 
   @Test
   fun getTests2() {
-    MappingResolver.resolve(modelClass, getTableInfo(modelClass, builderAssistant)!!, builderAssistant)
+    MappingResolver.resolve(getTableInfo(modelClass, builderAssistant)!!, builderAssistant)
     val mappings = MappingResolver.getMappingCache(modelClass)
     val field = StudentQueryForm::type.javaField!!
     val c = QueryCriteria(
@@ -77,7 +77,10 @@ class QueryCriteriaTest : BaseResolverTest(
         Append.AND,
         listOf("form.type" to field),
         null,
-        MethodInfo(StudentDAO::find.javaMethod!!, modelClass, mappings!!, mappings)
+        MethodInfo(
+            StudentDAO::find.javaMethod!!, modelClass,
+            builderAssistant, mappings!!, mappings
+        )
     )
     assertEquals(
         "form.type == 5",

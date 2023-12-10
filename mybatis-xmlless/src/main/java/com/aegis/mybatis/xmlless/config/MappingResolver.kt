@@ -1,6 +1,7 @@
 package com.aegis.mybatis.xmlless.config
 
 import com.aegis.mybatis.xmlless.model.FieldMappings
+import com.baomidou.mybatisplus.core.metadata.TableResolver
 import com.baomidou.mybatisplus.annotation.TableId
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo
 import com.baomidou.mybatisplus.core.metadata.TableInfo
@@ -44,12 +45,17 @@ fun TableInfo.getFieldInfoMap(modelClass: Class<*>): MutableMap<String, TableFie
 object MappingResolver {
 
   private val instance: MappingResolverProxy = MappingResolverProxy()
+  private val fixed = mutableListOf<Class<*>>()
 
   fun fixTableInfo(
-      modelClass: Class<*>, tableInfo: TableInfo,
-      builderAssistant: MapperBuilderAssistant
+      tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant
   ) {
-    instance.fixTableInfo(modelClass, tableInfo, builderAssistant)
+    val modelClass = tableInfo.entityType
+    if (fixed.contains(modelClass)) {
+      return
+    }
+    TableResolver.fixTableInfo(modelClass, tableInfo, builderAssistant)
+    fixed.add(modelClass)
   }
 
   fun getAllMappings(): List<FieldMappings> {
@@ -60,12 +66,17 @@ object MappingResolver {
     return instance.getMappingCache(modelClass)
   }
 
-  fun resolveNonEntityClass(clazz: Class<*>, modelClass: Class<*>, tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant): FieldMappings {
+  fun resolveNonEntityClass(
+      clazz: Class<*>,
+      modelClass: Class<*>,
+      tableInfo: TableInfo,
+      builderAssistant: MapperBuilderAssistant
+  ): FieldMappings {
     return instance.resolveNonEntityClass(clazz, modelClass, tableInfo, builderAssistant)
   }
 
-  fun resolve(modelClass: Class<*>, tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant): FieldMappings {
-    return instance.resolve(modelClass, tableInfo, builderAssistant)
+  fun resolve(tableInfo: TableInfo, builderAssistant: MapperBuilderAssistant): FieldMappings {
+    return instance.resolve(tableInfo, builderAssistant)
   }
 
   fun resolveFields(modelClass: Class<*>): List<Field> {

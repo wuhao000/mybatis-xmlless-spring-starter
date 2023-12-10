@@ -1,10 +1,7 @@
 package com.aegis.mybatis.dao
 
-import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.xmlless.XmlLessMapper
-import com.baomidou.mybatisplus.annotation.TableField
 import com.baomidou.mybatisplus.core.mapper.BaseMapper
-import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table

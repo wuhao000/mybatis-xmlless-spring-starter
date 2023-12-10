@@ -71,9 +71,12 @@ interface StudentDAO : XmlLessMapper<Student> {
 
   @ResolvedName(
       name = "find",
+      partNames = [
+        "schoolLocation like keywords"
+      ]
   )
   @NotDeleted
-  fun findVO(): List<StudentVO>
+  fun findVO(keywords: String? = null): List<StudentVO>
 
 
   @ResolvedName("find")
