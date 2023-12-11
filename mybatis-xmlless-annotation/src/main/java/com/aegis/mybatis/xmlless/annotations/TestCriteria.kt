@@ -18,7 +18,7 @@ import org.intellij.lang.annotations.Language
     ]
 )
 @Repeatable
-annotation class Criteria(
+annotation class TestCriteria(
     /**
      * 条件表达式包裹的sql查询条件，例如：age gt 5 或 name like keywords, 和Mapper方法名称中的表达方式一致
      */

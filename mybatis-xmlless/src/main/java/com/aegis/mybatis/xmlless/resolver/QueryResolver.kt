@@ -2,6 +2,7 @@
 
 package com.aegis.mybatis.xmlless.resolver
 
+import cn.hutool.core.util.ReflectUtil
 import com.aegis.kotlin.toCamelCase
 import com.aegis.kotlin.toPascalCase
 import com.aegis.kotlin.toWords
@@ -90,7 +91,7 @@ object QueryResolver {
       val resolvedNames = getResolvedName(methodInfo)
       val resolveSortsResult = resolveSorts(resolvedNames, methodInfo.resolvedName?.sort?.toList() ?: listOf())
       val resolveTypeResult = resolveType(resolveSortsResult.remainNames.first(), method)
-      val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords, method)
+      val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords, methodInfo)
       val conditionWordsList = resolveSortsResult.remainNames.drop(1).map { it.toWords() }
       val conditions = getFinalGroupedConditionList(
           resolvePropertiesResult,
@@ -150,9 +151,9 @@ object QueryResolver {
   /**
    * 解析要查询或者更新的字段
    */
-  fun resolveProperties(remainWords: List<String>, method: Method): ResolvePropertiesResult {
+  fun resolveProperties(remainWords: List<String>, methodInfo: MethodInfo): ResolvePropertiesResult {
     val byIndex = remainWords.indexOf("By")
-    var properties: List<String> = if (byIndex == 0 || method.name == "selectOne") {
+    var properties: List<String> = if (byIndex == 0 || methodInfo.name == "selectOne") {
       listOf()
     } else {
       val propertiesWords = if (byIndex > 0) {
@@ -172,6 +173,7 @@ object QueryResolver {
     var excludeProperties = listOf<String>()
     var updateExcludeProperties = listOf<String>()
     // 如果方法指定了要查询或者更新的属性，从方法名称解析的字段无效
+    val method = methodInfo.method
     if (method.getAnnotation(SelectedProperties::class.java) != null) {
       properties = method.getAnnotation(SelectedProperties::class.java)!!.properties.toList()
     }
@@ -179,15 +181,17 @@ object QueryResolver {
       excludeProperties = method.getAnnotation(ExcludeProperties::class.java)!!.properties.toList()
       updateExcludeProperties = method.getAnnotation(ExcludeProperties::class.java)!!.update.toList()
     }
+    val returnType = resolveJavaType(methodInfo.method, methodInfo.modelClass)
+    val propertyMappings = if (returnType != null && returnType != Void.TYPE) {
+      ReflectUtil.getFields(returnType.rawClass).mapNotNull {
+        it.getAnnotation(PropertyMapping::class.java)
+      }.associate { it.property to it.value }
+    } else {
+      mapOf()
+    }
     return ResolvePropertiesResult(
         properties, conditionWords, excludeProperties, updateExcludeProperties,
-        if (method.getAnnotation(PropertiesMapping::class.java) != null) {
-          method.getAnnotation(PropertiesMapping::class.java).value.map {
-            it.property to it.value
-          }.toMap()
-        } else {
-          mapOf()
-        }
+        propertyMappings
     )
   }
 
@@ -216,13 +220,6 @@ object QueryResolver {
       val type = ResolvableType.forMethodReturnType(function, clazz).generics[0].resolve()
       if (type is Class<*>) {
         type
-      } else if (type is ParameterizedType) {
-        val rawType = type.rawType
-        if (rawType is Class<*>) {
-          rawType
-        } else {
-          function.returnType
-        }
       } else {
         function.returnType
       }

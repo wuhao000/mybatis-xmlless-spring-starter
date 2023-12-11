@@ -28,7 +28,7 @@
     <maven.compiler.target>17</maven.compiler.target>
     <maven.compiler.source>17</maven.compiler.source>
     <kotlin.version>1.9.20</kotlin.version>
-    <aegis-commons.version>1.0.4-1</aegis-commons.version>
+    <aegis-commons.version>1.0.4-2</aegis-commons.version>
     <mybatis-plus.version>3.5.4.1</mybatis-plus.version>
     <mysql.version>8.0.33</mysql.version>
     <mybatis-starter.version>3.0.2</mybatis-starter.version>

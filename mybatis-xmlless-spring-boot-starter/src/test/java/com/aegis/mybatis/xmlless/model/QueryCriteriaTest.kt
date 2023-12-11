@@ -58,10 +58,10 @@ class QueryCriteriaTest : BaseResolverTest(
     val c = QueryCriteria(
         "name",
         Operations.Like,
-        Append.AND,
         listOf(CriteriaParameter("form.name", StudentQueryForm::name.javaField!!)),
         null,
-        MethodInfo(StudentDAO::find.javaMethod!!, modelClass, builderAssistant, mappings!!, mappings)
+        MethodInfo(StudentDAO::find.javaMethod!!, modelClass, builderAssistant, mappings!!, mappings),
+        Append.AND
     )
     assertEquals("form.name != null and form.name.length() &gt; 0", c.getTests(null))
   }
@@ -74,13 +74,13 @@ class QueryCriteriaTest : BaseResolverTest(
     val c = QueryCriteria(
         "type",
         Operations.Like,
-        Append.AND,
         listOf(CriteriaParameter("form.type", field)),
         null,
         MethodInfo(
             StudentDAO::find.javaMethod!!, modelClass,
             builderAssistant, mappings!!, mappings
-        )
+        ),
+        Append.AND
     )
     assertEquals(
         "form.type == 5",

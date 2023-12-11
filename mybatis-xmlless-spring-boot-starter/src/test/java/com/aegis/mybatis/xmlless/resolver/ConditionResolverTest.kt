@@ -3,7 +3,7 @@ package com.aegis.mybatis.xmlless.resolver
 import com.aegis.kotlin.toWords
 import com.aegis.mybatis.bean.Student
 import com.aegis.mybatis.dao.StudentDAO
-import com.aegis.mybatis.xmlless.annotations.Criteria
+import com.aegis.mybatis.xmlless.annotations.TestCriteria
 import com.aegis.mybatis.xmlless.annotations.ExcludeProperties
 import com.aegis.mybatis.xmlless.annotations.ResolvedName
 import com.aegis.mybatis.xmlless.annotations.ValueAssign
@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import java.lang.reflect.Method
+import java.util.*
 import kotlin.reflect.jvm.javaMethod
 import kotlin.test.assertEquals
 
@@ -34,7 +35,7 @@ interface TestDAO {
   @ResolvedName(
       name = "findBy",
       conditions = [
-        "name eq 0"
+        "name EQ 0"
       ]
   )
   fun findByNameEq0()
@@ -123,6 +124,14 @@ class ConditionResolverTest {
   }
   private val tableInfo = createTableInfo(modelClass)
   protected val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
+
+
+  @Test
+  fun toWords() {
+    println("aEq0".toWords())
+    println("aEqB".toWords())
+    println("UserName Eq B".toWords())
+  }
 
   @Test
   fun resolveConditions() {
@@ -297,7 +306,7 @@ open class Form {
 
 class Form2 : Form() {
 
-  @Criteria(
+  @TestCriteria(
       expression = "1 = 2",
       testExpression = "= true"
   )

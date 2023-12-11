@@ -1,5 +1,7 @@
 package com.aegis.mybatis.bean
 
+import com.aegis.mybatis.xmlless.annotations.PropertyMapping
+
 /**
  * 学生信息统计
  *
@@ -10,7 +12,13 @@ package com.aegis.mybatis.bean
  */
 data class StudentStats(
     val grade: Int = 0,
+    @PropertyMapping("count", "count(*)")
     val count: Int = 0,
+    @PropertyMapping("sumAge", "sum(age)")
     val sumAge: Double = 0.0,
+    @PropertyMapping("avgAge", "avg(age)")
     val avgAge: Double = 0.0
-)
+) {
+
+
+}

@@ -385,10 +385,10 @@ class StudentDAOTest : BaseTest() {
   @Test
   fun findByPhoneNumberLikeLeft() {
     insertStudents()
-    assert(dao.findByPhoneNumberLikeLeft(mobile.substring(0, 4)).isNotEmpty())
-    assert(dao.findByPhoneNumberLikeLeft(mobile.substring(2, 6)).isEmpty())
-    assert(dao.findByPhoneNumberLikeRight(mobile.substring(mobile.length - 6, mobile.length)).isNotEmpty())
+    assert(dao.findByPhoneNumberLikeRight(mobile.substring(0, 4)).isNotEmpty())
     assert(dao.findByPhoneNumberLikeRight(mobile.substring(2, 6)).isEmpty())
+    assert(dao.findByPhoneNumberLikeLeft(mobile.substring(mobile.length - 6, mobile.length)).isNotEmpty())
+    assert(dao.findByPhoneNumberLikeLeft(mobile.substring(2, 6)).isEmpty())
   }
 
   @Test
@@ -437,8 +437,8 @@ class StudentDAOTest : BaseTest() {
     dao.save(
         Student("2", "李四", "17705184916", 22)
     )
-    assert(dao.findByPhoneNumberLikeRight("4916").isNotEmpty())
-    assert(dao.findByPhoneNumberLikeRight("180").isEmpty())
+    assert(dao.findByPhoneNumberLikeLeft("4916").isNotEmpty())
+    assert(dao.findByPhoneNumberLikeLeft("180").isEmpty())
     dao.deleteById("2")
   }
 

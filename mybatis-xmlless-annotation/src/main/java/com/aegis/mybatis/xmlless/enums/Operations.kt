@@ -3,8 +3,6 @@ package com.aegis.mybatis.xmlless.enums
 import com.aegis.kotlin.toWords
 import com.aegis.mybatis.xmlless.constant.IN_TEMPLATE
 import com.aegis.mybatis.xmlless.constant.NO_VALUE
-import com.aegis.mybatis.xmlless.constant.PROPERTY_PREFIX
-import com.aegis.mybatis.xmlless.constant.PROPERTY_SUFFIX
 
 /**
  * 数据库支持的操作符
@@ -62,10 +60,11 @@ enum class Operations(
     return when (this) {
       LtDate, LteDate, NeDate, GtDate, GteDate,
       EqDate    -> "AND date_format(%s, '%%Y-%%m-%%d') %s date_format(%s, '%%Y-%%m-%%d')"
+
       EqMonth   -> "AND date_format(%s, '%%Y-%%m') %s date_format(%s, '%%Y-%%m')"
       Like      -> "%s %s CONCAT('%%', %s,'%%')"
-      LikeLeft  -> "%s %s CONCAT(%s, '%%')"
-      LikeRight -> "%s %s CONCAT('%%', %s)"
+      LikeLeft  -> "%s %s CONCAT('%%', %s)"
+      LikeRight -> "%s %s CONCAT(%s, '%%')"
       In        -> IN_TEMPLATE
       in listOf(
           NotNull, IsNotNull,

@@ -10,7 +10,8 @@ package com.aegis.mybatis.xmlless.annotations
  */
 @Target(
     allowedTargets = [
-      AnnotationTarget.ANNOTATION_CLASS
+      AnnotationTarget.ANNOTATION_CLASS,
+      AnnotationTarget.FIELD
     ]
 )
 annotation class PropertyMapping(

@@ -3,6 +3,8 @@ package com.aegis.mybatis.dao
 import com.aegis.mybatis.bean.*
 import com.aegis.mybatis.xmlless.XmlLessMapper
 import com.aegis.mybatis.xmlless.annotations.*
+import com.aegis.mybatis.xmlless.annotations.criteria.Criteria
+import com.aegis.mybatis.xmlless.enums.Operations
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param
 import org.springframework.data.domain.Page
@@ -29,8 +31,7 @@ interface StudentDAO : XmlLessMapper<Student> {
   @ResolvedName(
       name = "findBy",
       conditions = [
-        "name like", "age", "createTime between start and end",
-        "userName like keywords"
+        "createTime between start and end"
       ],
       sort = ["createTime desc"]
   )
@@ -65,15 +66,7 @@ interface StudentDAO : XmlLessMapper<Student> {
    */
   @NotDeleted
   @ResolvedName(
-      name = "find",
-      groupBy = ["grade"]
-  )
-  @PropertiesMapping(
-      [
-        PropertyMapping("sumAge", "sum(age)"),
-        PropertyMapping("avgAge", "avg(age)"),
-        PropertyMapping("count", "count(*)")
-      ]
+      name = "find", groupBy = ["grade"]
   )
   fun statistics(): List<StudentStats>
 
@@ -385,26 +378,29 @@ interface StudentDAO : XmlLessMapper<Student> {
 }
 
 class StudentQueryForm(
+    @Criteria(Operations.Eq)
     var age: Int? = null,
+    @Criteria(Operations.Like)
     var name: String? = null,
     var start: Date? = null,
     var end: Date? = null,
+    @Criteria(Operations.Like, ["userName"])
     var keywords: String? = null
 ) {
 
-  @Criteria(
+  @TestCriteria(
       expression = "name eq currentUserId",
-      testExpression = "type = 1 and currentUserId != null",
+      testExpression = "= 1 and currentUserId != null",
   )
-  @Criteria(
+  @TestCriteria(
       expression = "updateUserId eq currentUserId",
-      testExpression = "type = 2 and currentUserId != null"
+      testExpression = "= 2 and currentUserId != null"
   )
-  @Criteria(
+  @TestCriteria(
       expression = "createUserId eq currentUserId",
       testExpression = ">= 5 and currentUserId != null",
   )
-  @Criteria(
+  @TestCriteria(
       expression = "userId eq currentUserId",
       testExpression = "<= 12 and currentUserId != null",
   )

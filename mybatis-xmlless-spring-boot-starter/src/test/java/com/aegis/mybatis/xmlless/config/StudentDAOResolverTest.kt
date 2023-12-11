@@ -1,9 +1,12 @@
 package com.aegis.mybatis.xmlless.config
 
+import cn.hutool.core.util.ReflectUtil
 import com.aegis.mybatis.bean.Score
 import com.aegis.mybatis.bean.Student
+import com.aegis.mybatis.bean.StudentStats
 import com.aegis.mybatis.bean.StudentVO
 import com.aegis.mybatis.dao.StudentDAO
+import com.aegis.mybatis.xmlless.annotations.PropertyMapping
 import com.aegis.mybatis.xmlless.model.MethodInfo
 import com.aegis.mybatis.xmlless.model.Properties
 import com.aegis.mybatis.xmlless.resolver.ColumnsResolver
@@ -116,6 +119,7 @@ class StudentDAOResolverTest : BaseResolverTest(
     println(sql)
     assertNotNull(sql)
     assert(sql.contains("user.name"))
+    assert(!sql.contains("\"name"))
     assertContains(sql, "del_flag = 0")
     assertEquals(sql.indexOf("del_flag = 0"), sql.lastIndexOf("del_flag = 0"))
     println(query)
@@ -123,6 +127,10 @@ class StudentDAOResolverTest : BaseResolverTest(
 
   @Test
   fun statistics() {
+    val a = ReflectUtil.getFields(StudentStats::class.java).mapNotNull {
+      it.getAnnotation(PropertyMapping::class.java)
+    }.map { it.property to it.value }
+    println(a)
     val query = createQueryForMethod(StudentDAO::statistics.javaMethod!!)
     assertNotNull(query.query)
     val sql = query.sql

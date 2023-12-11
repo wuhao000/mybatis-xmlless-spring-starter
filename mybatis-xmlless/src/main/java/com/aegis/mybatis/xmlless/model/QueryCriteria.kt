@@ -36,10 +36,10 @@ data class CriteriaParameter(
 data class QueryCriteria(
     val property: String,
     val operator: Operations,
-    var append: Append = Append.AND,
     var parameters: List<CriteriaParameter>,
     val specificValue: SpecificValue?,
-    private val methodInfo: MethodInfo
+    private val methodInfo: MethodInfo,
+    var append: Append = Append.AND
 ) {
 
   /** 额外他的test判断条件 */
@@ -149,7 +149,7 @@ data class QueryCriteria(
     if (operator == Operations.Between) {
       val realParams = realParams()
       val s1 = QueryCriteria(
-          property, Operations.Gte, append, parameters.dropLast(1), specificValue, methodInfo
+          property, Operations.Gte, parameters.dropLast(1), specificValue, methodInfo, append
       ).apply {
         extraTestConditions = listOf(
             TestConditionDeclaration(
@@ -158,7 +158,7 @@ data class QueryCriteria(
         )
       }.toSql()
       val s2 = QueryCriteria(
-          property, Operations.Lte, append, parameters.drop(1), specificValue, methodInfo
+          property, Operations.Lte, parameters.drop(1), specificValue, methodInfo, append
       ).apply {
         extraTestConditions = listOf(
             TestConditionDeclaration(

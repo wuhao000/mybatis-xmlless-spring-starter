@@ -50,8 +50,8 @@ object CriteriaResolver {
   }
 
 
-  fun createComplexParameterCondition(methodInfo: MethodInfo, mappings: FieldMappings): ArrayList<QueryCriteria> {
-    val parameterConditions = arrayListOf<QueryCriteria>()
+  fun createComplexParameterCondition(methodInfo: MethodInfo, mappings: FieldMappings): List<List<QueryCriteria>> {
+    val parameterConditions = arrayListOf<List<QueryCriteria>>()
     val paramNames = methodInfo.paramNames
     methodInfo.parameters.forEachIndexed { index, parameter ->
       if (ParameterResolver.isComplexType(parameter.type)) {
@@ -59,9 +59,10 @@ object CriteriaResolver {
           val criteriaInfo = FieldUtil.getCriteriaInfo(field, methodInfo)
           if (criteriaInfo.isNotEmpty()) {
             parameterConditions.add(
-                resolveCriteriaFromProperty(field, paramNames[index], methodInfo)
+                listOf(resolveCriteriaFromProperty(field, paramNames[index], methodInfo))
             )
           }
+          parameterConditions.add(FieldUtil.getCriteria(field, methodInfo))
         }
       }
     }
@@ -76,14 +77,14 @@ object CriteriaResolver {
     val criteriaList = parameter.criteria
     return criteriaList.map {
       QueryCriteria(
-          paramName, Operations.EqDefault, Append.AND,
-          listOf(CriteriaParameter(paramName, parameter.parameter)),
+          paramName, Operations.EqDefault, listOf(CriteriaParameter(paramName, parameter.parameter)),
           methodInfo.resolvedName?.values?.firstOrNull {
             it.param == paramName
           }?.let {
             SpecificValue(it.stringValue, it.nonStringValue)
           },
-          methodInfo
+          methodInfo,
+          Append.AND
       )
     }
   }
@@ -140,10 +141,10 @@ object CriteriaResolver {
     }
 
     return QueryCriteria(
-        property, op ?: Operations.EqDefault, Append.OR,
-        parameters,
+        property, op ?: Operations.EqDefault, parameters,
         specificValue,
-        methodInfo
+        methodInfo,
+        Append.OR
     )
   }
 
@@ -206,7 +207,7 @@ object CriteriaResolver {
     return paramNames
   }
 
-  private fun chooseFromParameter(
+  fun chooseFromParameter(
       methodInfo: MethodInfo,
       property: String,
       parameterOffsetHolder: ValueHolder<Int>
@@ -253,13 +254,13 @@ object CriteriaResolver {
       methodInfo: MethodInfo
   ): QueryCriteria {
     return QueryCriteria(
-        property.name, Operations.EqDefault, Append.AND,
-        listOf(CriteriaParameter(paramName + "." + property.name, property)),
+        property.name, Operations.EqDefault, listOf(CriteriaParameter(paramName + "." + property.name, property)),
         methodInfo.resolvedName?.values?.firstOrNull {
           it.param == paramName
         }?.let {
           SpecificValue(it.stringValue, it.nonStringValue)
-        }, methodInfo
+        },
+        methodInfo, Append.AND
     )
   }
 
