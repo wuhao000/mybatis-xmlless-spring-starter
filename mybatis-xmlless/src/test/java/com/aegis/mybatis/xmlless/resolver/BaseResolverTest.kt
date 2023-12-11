@@ -1,21 +1,16 @@
-package com.aegis.mybatis.xmlless.config
+package com.aegis.mybatis.xmlless.resolver
 
-import com.aegis.mybatis.bean.Student
-import com.aegis.mybatis.dao.StudentDAO
-import com.aegis.mybatis.xmlless.model.ResolvedQuery
-import com.aegis.mybatis.xmlless.resolver.QueryResolver
+import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.util.getTableInfo
 import com.aegis.mybatis.xmlless.util.initTableInfo
 import com.baomidou.mybatisplus.core.MybatisConfiguration
 import com.baomidou.mybatisplus.core.metadata.TableInfo
 import org.apache.ibatis.builder.MapperBuilderAssistant
 import org.junit.jupiter.api.TestInstance
-import java.lang.reflect.Method
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-open class BaseResolverTest(
-    val mapperClass: Class<*> = StudentDAO::class.java,
-    val modelClass: Class<*> = Student::class.java,
+open class BaseResolverTest<T>(
+    val modelClass: Class<T>,
     vararg methods: String
 ) {
 
@@ -32,11 +27,6 @@ open class BaseResolverTest(
   protected val tableInfo: TableInfo = createTableInfo(modelClass)
   protected val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
 
-
-  fun getFunctions(): List<Method> {
-    return mapperClass.methods.filter { it.name in methods }
-  }
-
   private fun createTableInfo(modelClass: Class<*>): TableInfo {
     initTableInfo(
         builderAssistant, modelClass
@@ -44,12 +34,4 @@ open class BaseResolverTest(
     return getTableInfo(modelClass, builderAssistant)
   }
 
-
-  protected fun createQueryForMethod(method: Method): ResolvedQuery {
-    return QueryResolver.resolve(method, tableInfo, modelClass, mapperClass, builderAssistant)
-  }
-
-  protected fun buildResultMapId(method: Method): String {
-    return "$currentNameSpace.${mapperClass.name.replace(".", "_")}_${method.name}"
-  }
 }

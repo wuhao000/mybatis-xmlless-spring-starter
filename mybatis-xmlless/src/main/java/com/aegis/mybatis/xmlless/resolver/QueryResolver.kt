@@ -42,6 +42,7 @@ object QueryResolver {
   private val log = LoggerFactory.getLogger(QueryResolver::class.java)
   private val QUERY_CACHE = hashMapOf<String, ResolvedQuery>()
   private val SPECIAL_NAME_PART = listOf("OrUpdate", "OrUpdateAll")
+  private val MULTIPLE_SPACE_REG = "\\s+".toRegex()
 
   @Suppress("unused")
   fun getQueryCache(key: String): ResolvedQuery? {
@@ -87,7 +88,7 @@ object QueryResolver {
         }
       }
       val resolvedNames = getResolvedName(methodInfo)
-      val resolveSortsResult = resolveSorts(resolvedNames)
+      val resolveSortsResult = resolveSorts(resolvedNames, methodInfo.resolvedName?.sort?.toList() ?: listOf())
       val resolveTypeResult = resolveType(resolveSortsResult.remainNames.first(), method)
       val resolvePropertiesResult = resolveProperties(resolveTypeResult.remainWords, method)
       val conditionWordsList = resolveSortsResult.remainNames.drop(1).map { it.toWords() }
@@ -103,10 +104,12 @@ object QueryResolver {
           Properties(
               resolvePropertiesResult.properties,
               resolvePropertiesResult.excludeProperties,
-              resolvePropertiesResult.updateExcludeProperties
+              resolvePropertiesResult.updateExcludeProperties,
+              resolvePropertiesResult.propertiesMapping
           ),
           conditions.filter { it.isNotEmpty() },
           resolveSortsResult.sorts,
+          getGroupBy(methodInfo),
           methodInfo
       )
       method.parameters.forEachIndexed { index, param ->
@@ -132,44 +135,6 @@ object QueryResolver {
     }
   }
 
-  private fun getFinalGroupedConditionList(
-      resolvePropertiesResult: ResolvePropertiesResult,
-      methodInfo: MethodInfo,
-      resolveTypeResult: ResolveTypeResult,
-      conditionWordsList: List<List<String>>,
-      mappings: FieldMappings
-  ): List<List<QueryCriteria>> {
-    val result = mutableListOf<List<QueryCriteria>>()
-    result += CriteriaResolver.resolveConditions(
-        resolvePropertiesResult.conditionWords, methodInfo, resolveTypeResult.type
-    ).map { listOf(it) }
-    result += conditionWordsList.map {
-      CriteriaResolver.resolveConditions(
-          it, methodInfo, resolveTypeResult.type
-      )
-    }
-    result += CriteriaResolver.createComplexParameterCondition(methodInfo, mappings)
-    val logicType = methodInfo.getLogicType()
-    if (logicType != null && resolveTypeResult.type == QueryType.Select) {
-      val logicDeleteFieldInfo = methodInfo.mappings.tableInfo.logicDeleteFieldInfo
-        ?: throw IllegalStateException("缺少逻辑删除字段，请在字段上添加@TableLogic注解")
-      result += listOf(
-          QueryCriteria(
-              logicDeleteFieldInfo.property,
-              Operations.Eq,
-              parameters = listOf(),
-              specificValue = SpecificValue(
-                  stringValue = "",
-                  nonStringValue = methodInfo.mappings.getLogicDelFlagValue(logicType).toString()
-              ),
-              methodInfo = methodInfo
-          )
-      )
-    }
-    return result
-  }
-
-
   fun resolveJavaType(method: Method, clazz: Class<*>, forceSingleValue: Boolean = false): JavaType? {
     val type = if (!forceSingleValue && Collection::class.java.isAssignableFrom(method.returnType)) {
       ResolvableType.forMethodReturnType(method, clazz).generics[0]
@@ -185,9 +150,9 @@ object QueryResolver {
   /**
    * 解析要查询或者更新的字段
    */
-  fun resolveProperties(remainWords: List<String>, function: Method): ResolvePropertiesResult {
+  fun resolveProperties(remainWords: List<String>, method: Method): ResolvePropertiesResult {
     val byIndex = remainWords.indexOf("By")
-    var properties: List<String> = if (byIndex == 0 || function.name == "selectOne") {
+    var properties: List<String> = if (byIndex == 0 || method.name == "selectOne") {
       listOf()
     } else {
       val propertiesWords = if (byIndex > 0) {
@@ -207,14 +172,23 @@ object QueryResolver {
     var excludeProperties = listOf<String>()
     var updateExcludeProperties = listOf<String>()
     // 如果方法指定了要查询或者更新的属性，从方法名称解析的字段无效
-    if (function.getAnnotation(SelectedProperties::class.java) != null) {
-      properties = function.getAnnotation(SelectedProperties::class.java)!!.properties.toList()
+    if (method.getAnnotation(SelectedProperties::class.java) != null) {
+      properties = method.getAnnotation(SelectedProperties::class.java)!!.properties.toList()
     }
-    if (function.getAnnotation(ExcludeProperties::class.java) != null) {
-      excludeProperties = function.getAnnotation(ExcludeProperties::class.java)!!.properties.toList()
-      updateExcludeProperties = function.getAnnotation(ExcludeProperties::class.java)!!.update.toList()
+    if (method.getAnnotation(ExcludeProperties::class.java) != null) {
+      excludeProperties = method.getAnnotation(ExcludeProperties::class.java)!!.properties.toList()
+      updateExcludeProperties = method.getAnnotation(ExcludeProperties::class.java)!!.update.toList()
     }
-    return ResolvePropertiesResult(properties, conditionWords, excludeProperties, updateExcludeProperties)
+    return ResolvePropertiesResult(
+        properties, conditionWords, excludeProperties, updateExcludeProperties,
+        if (method.getAnnotation(PropertiesMapping::class.java) != null) {
+          method.getAnnotation(PropertiesMapping::class.java).value.map {
+            it.property to it.value
+          }.toMap()
+        } else {
+          mapOf()
+        }
+    )
   }
 
   fun resolveResultMap(
@@ -257,29 +231,18 @@ object QueryResolver {
     }
   }
 
-  fun resolveSorts(names: List<String>): ResolveSortsResult {
+  fun getGroupBy(methodInfo: MethodInfo): List<String> {
+    return methodInfo.resolvedName?.groupBy?.toList() ?: listOf()
+  }
+
+  fun resolveSorts(names: List<String>, sortExpressions: List<String>): ResolveSortsResult {
     val remainNames = mutableListOf<String>()
     val sorts = mutableListOf<Sort.Order>()
     names.forEach { name ->
       val orderByIndex = name.indexOf("OrderBy")
       if (orderByIndex >= 0) {
         val orderByString = name.substring(orderByIndex).replace("OrderBy", "")
-        val sortStrings = orderByString.split("And").filter { it.isNotBlank() }
-        sorts.addAll(
-            sortStrings.map {
-              var direction = Sort.Direction.ASC
-              val sortProperty = when {
-                it.endsWith("Desc") -> {
-                  direction = Sort.Direction.DESC
-                  it.substring(0, it.length - 4)
-                }
-
-                it.endsWith("Asc")  -> it.substring(0, it.length - 3)
-                else                -> it
-              }
-              Sort.Order(direction, sortProperty.toCamelCase())
-            }
-        )
+        sorts.addAll(resolveSortFromExpression(orderByString))
       }
       val remainName = if (orderByIndex >= 0) {
         name.substring(0, orderByIndex)
@@ -289,6 +252,9 @@ object QueryResolver {
       if (remainName.isNotBlank()) {
         remainNames.add(remainName)
       }
+    }
+    sortExpressions.forEach {
+      sorts.addAll(resolveSortFromExpression(it))
     }
     return ResolveSortsResult(sorts, remainNames)
   }
@@ -329,6 +295,98 @@ object QueryResolver {
     return typeFactory.constructType(type)
   }
 
+  fun toPascalCaseName(name: String): String {
+    return name.split(MULTIPLE_SPACE_REG).joinToString("") { it.toPascalCase() }
+  }
+
+  fun resolveSortFromExpression(
+      str: String
+  ): List<Sort.Order> {
+    val orderByString = if (str.startsWith("OrderBy")) {
+      str.drop(7)
+    } else if (str.replace(MULTIPLE_SPACE_REG, " ").lowercase().startsWith("order by ")) {
+      str.replace(MULTIPLE_SPACE_REG, " ").drop("order by ".length)
+    } else {
+      str
+    }
+    if (orderByString.contains(" ")) {
+      return resolveFromSpaceSplitExpression(orderByString, str)
+    }
+    val sortStrings = orderByString.split("And").filter { it.isNotBlank() }
+    return sortStrings.map {
+      var direction = Sort.Direction.ASC
+      val sortProperty = when {
+        it.endsWith("Desc") -> {
+          direction = Sort.Direction.DESC
+          it.substring(0, it.length - 4)
+        }
+
+        it.endsWith("Asc")  -> it.substring(0, it.length - 3)
+        else                -> it
+      }
+      Sort.Order(direction, sortProperty.toCamelCase())
+    }
+  }
+
+  private fun resolveFromSpaceSplitExpression(
+      orderByString: String,
+      str: String
+  ): List<Sort.Order> {
+    val words = orderByString.replace(" and ", " AND ").split(" ")
+    return words.split("AND").map {
+      if (it.size == 2) {
+        if (it[1] in listOf("asc", "ASC")) {
+          Sort.Order(Sort.Direction.ASC, it.first())
+        } else if (it[1] in listOf("desc", "DESC")) {
+          Sort.Order(Sort.Direction.DESC, it.first())
+        } else {
+          error("从表达式【${str}】中解析排序条件失败")
+        }
+      } else if (it.size == 1) {
+        Sort.Order(Sort.Direction.ASC, it.first())
+      } else {
+        error("从表达式【${str}】中解析排序条件失败")
+      }
+    }
+  }
+
+  private fun getFinalGroupedConditionList(
+      resolvePropertiesResult: ResolvePropertiesResult,
+      methodInfo: MethodInfo,
+      resolveTypeResult: ResolveTypeResult,
+      conditionWordsList: List<List<String>>,
+      mappings: FieldMappings
+  ): List<List<QueryCriteria>> {
+    val result = mutableListOf<List<QueryCriteria>>()
+    result += CriteriaResolver.resolveConditions(
+        resolvePropertiesResult.conditionWords, methodInfo
+    ).map { listOf(it) }
+    result += conditionWordsList.map {
+      CriteriaResolver.resolveConditions(
+          it, methodInfo
+      )
+    }
+    result += CriteriaResolver.createComplexParameterCondition(methodInfo, mappings)
+    val logicType = methodInfo.getLogicType()
+    if (logicType != null && resolveTypeResult.type == QueryType.Select) {
+      val logicDeleteFieldInfo = methodInfo.mappings.tableInfo.logicDeleteFieldInfo
+        ?: throw IllegalStateException("缺少逻辑删除字段，请在字段上添加@TableLogic注解")
+      result += listOf(
+          QueryCriteria(
+              logicDeleteFieldInfo.property,
+              Operations.Eq,
+              parameters = listOf(),
+              specificValue = SpecificValue(
+                  stringValue = "",
+                  nonStringValue = methodInfo.mappings.getLogicDelFlagValue(logicType).toString()
+              ),
+              methodInfo = methodInfo
+          )
+      )
+    }
+    return result
+  }
+
   private fun getResolvedName(methodInfo: MethodInfo): List<String> {
     val resolvedNameAnnotation = methodInfo.resolvedName
     val list = arrayListOf<String>()
@@ -337,18 +395,14 @@ object QueryResolver {
         if (resolvedNameAnnotation.name.isNotBlank()) {
           list.add(toPascalCaseName(resolvedNameAnnotation.name))
         } else {
-          list.add("FindBy")
+          list.add(methodInfo.name)
         }
-        list.addAll(resolvedNameAnnotation.partNames.map { toPascalCaseName(it) })
+        list.addAll(resolvedNameAnnotation.conditions.map { toPascalCaseName(it) })
       }
 
       else                           -> list.add(methodInfo.name)
     }
     return list.toList()
-  }
-
-  fun toPascalCaseName(name: String): String {
-    return name.split("\\s+".toRegex()).map { it.toPascalCase() }.joinToString("")
   }
 
   /**
@@ -360,7 +414,8 @@ object QueryResolver {
       val properties: List<String>,
       val conditionWords: List<String>,
       val excludeProperties: List<String>,
-      val updateExcludeProperties: List<String>
+      val updateExcludeProperties: List<String>,
+      val propertiesMapping: Map<String, String>
   )
 
   /**

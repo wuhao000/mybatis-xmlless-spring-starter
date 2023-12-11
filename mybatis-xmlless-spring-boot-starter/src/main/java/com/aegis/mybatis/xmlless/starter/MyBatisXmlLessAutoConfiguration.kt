@@ -2,6 +2,7 @@ package com.aegis.mybatis.xmlless.starter
 
 import com.aegis.mybatis.xmlless.generator.IdGeneratorUtil
 import com.aegis.mybatis.xmlless.generator.SnowflakeKeyGenerator
+import com.aegis.mybatis.xmlless.util.TypeUtil
 import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusProperties
 import com.baomidou.mybatisplus.autoconfigure.SpringBootVFS
@@ -129,7 +130,9 @@ class MyBatisXmlLessAutoConfiguration(
     }
     factory.setGlobalConfig(globalConfig)
     log.info("mybatis xmlless 初始化完成")
-    return factory.getObject()!!
+    val fac = factory.getObject()!!
+    TypeUtil.init(fac)
+    return fac
   }
 
   @Bean

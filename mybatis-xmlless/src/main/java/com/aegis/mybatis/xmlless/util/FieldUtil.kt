@@ -62,7 +62,7 @@ object FieldUtil {
     return list.map { criteria ->
       val expressionWords = QueryResolver.toPascalCaseName(criteria.expression).toWords()
       val queryCriteriaList =  CriteriaResolver.resolveConditions(
-          expressionWords, methodInfo, QueryType.Select
+          expressionWords, methodInfo
       )
       CriteriaInfo(
           QueryCriteriaGroup(queryCriteriaList),

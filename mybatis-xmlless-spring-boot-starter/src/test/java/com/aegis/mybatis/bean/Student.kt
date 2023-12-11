@@ -69,6 +69,9 @@ class Student() {
   @Transient
   var count: Int = 0
 
+  /** 年级 */
+  var grade: Int = 0
+
   @CreatedDate
   var createTime: LocalDateTime? = null
 

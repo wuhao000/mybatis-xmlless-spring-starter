@@ -81,7 +81,8 @@ internal const val SELECT = """SELECT
   %s
 FROM
   %s %s
-%s %s %s
+%s 
+%s %s
 %s"""
 
 /**  count语句模板 */

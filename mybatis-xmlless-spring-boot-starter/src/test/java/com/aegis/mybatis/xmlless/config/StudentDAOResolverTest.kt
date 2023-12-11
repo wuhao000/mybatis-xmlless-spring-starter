@@ -67,7 +67,6 @@ class StudentDAOResolverTest : BaseResolverTest(
     assert(cols.size > 4)
   }
 
-
   @Test
   fun resolveFindAll() {
   }
@@ -77,7 +76,6 @@ class StudentDAOResolverTest : BaseResolverTest(
     val q = createQueryForMethod(StudentDAO::findByCreateTimeEqDate.javaMethod!!)
     println(q)
   }
-
 
   @Test
   fun resolveFindByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd() {
@@ -121,6 +119,18 @@ class StudentDAOResolverTest : BaseResolverTest(
     assertContains(sql, "del_flag = 0")
     assertEquals(sql.indexOf("del_flag = 0"), sql.lastIndexOf("del_flag = 0"))
     println(query)
+  }
+
+  @Test
+  fun statistics() {
+    val query = createQueryForMethod(StudentDAO::statistics.javaMethod!!)
+    assertNotNull(query.query)
+    val sql = query.sql
+    assertNotNull(sql)
+    assert(sql.contains("AS avg_age"))
+    assert(sql.contains("AS sum_age"))
+    assert(sql.contains("sum(t_student.age)"))
+    assert(sql.contains("avg(t_student.age)"))
   }
 
   @Test
@@ -236,6 +246,5 @@ class StudentDAOResolverTest : BaseResolverTest(
       println("${it.property}/${it.column}/${it.javaType}")
     }
   }
-
 
 }

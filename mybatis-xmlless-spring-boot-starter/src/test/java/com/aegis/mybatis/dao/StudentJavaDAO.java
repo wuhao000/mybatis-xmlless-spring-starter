@@ -52,7 +52,7 @@ public interface StudentJavaDAO extends XmlLessMapper<Student> {
 
   List<Student> findByCreateTimeBetweenStartTimeAndEndTime(@Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
 
-  @ResolvedName(name = "findByAge", partNames = "name")
+  @ResolvedName(name = "findByAge", conditions = "name")
   List<Student> findByAge(@Param("age") int age, @Param("name") String name);
 
   List<Student> findByAgeGte(@Param("age") int age);

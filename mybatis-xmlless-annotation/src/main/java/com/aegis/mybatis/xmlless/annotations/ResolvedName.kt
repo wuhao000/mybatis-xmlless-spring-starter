@@ -10,7 +10,7 @@ import org.intellij.lang.annotations.Language
  * @author 吴昊
  * @since 0.0.2
  * @param name 解析使用的名称
- * @param partNames 为了防止条件过多导致name过长，将name中的条件分割成多个字符串，并使用And进行连接，即
+ * @param conditions 为了防止条件过多导致name过长，将name中的条件分割成多个字符串，并使用And进行连接，即
  *        name="findBy", partNames=["nameLike","ageGte"] 的情况下最终解析的名称为findByNameLikeAndAgeGte
  * @param values 使用指定值作为解析出的条件中的查询值
  *    例如：findByNameEq, 如果values为 [@ValueAssign(param="name", stringValue="张三")]
@@ -22,9 +22,10 @@ import org.intellij.lang.annotations.Language
     ]
 )
 annotation class ResolvedName(
-    val name: String,
-    @Language("GenericSQL")
-    val partNames: Array<String> = [],
+    val name: String = "",
+    val conditions: Array<String> = [],
+    val groupBy: Array<String> = [],
+    val sort: Array<String> = [],
     val values: Array<ValueAssign> = [],
     val whereAppend: String = "",
     val joinAppend: String = "",

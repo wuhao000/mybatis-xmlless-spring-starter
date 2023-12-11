@@ -22,8 +22,7 @@ object CriteriaResolver {
 
   fun resolveConditions(
       allConditionWords: List<String>,
-      methodInfo: MethodInfo,
-      queryType: QueryType
+      methodInfo: MethodInfo
   ): List<QueryCriteria> {
     val nameConditions = if (allConditionWords.isNotEmpty()) {
       val parameterOffsetHolder = ValueHolder(0)
@@ -78,7 +77,7 @@ object CriteriaResolver {
     return criteriaList.map {
       QueryCriteria(
           paramName, Operations.EqDefault, Append.AND,
-          listOf(Pair(paramName, parameter.parameter)),
+          listOf(CriteriaParameter(paramName, parameter.parameter)),
           methodInfo.resolvedName?.values?.firstOrNull {
             it.param == paramName
           }?.let {
@@ -130,10 +129,14 @@ object CriteriaResolver {
       listOf()
     }
     val parameters = paramNames.map { paramName ->
-      val parameterData = ParameterResolver.resolve(paramName, methodInfo)
-        ?: error("无法识别${methodInfo.method}的参数【$paramName】")
-      val parameter = parameterData.property ?: parameterData.parameter.parameter
-      Pair(paramName, parameter)
+      if (paramName.matches("\\d+".toRegex()) || paramName in listOf("true", "false")) {
+        CriteriaParameter(paramName, null, true)
+      } else {
+        val parameterData = ParameterResolver.resolve(paramName, methodInfo)
+          ?: error("无法识别${methodInfo.method}的参数【$paramName】")
+        val parameter = parameterData.property ?: parameterData.parameter?.parameter
+        CriteriaParameter(paramName, parameter)
+      }
     }
 
     return QueryCriteria(
@@ -208,6 +211,9 @@ object CriteriaResolver {
       property: String,
       parameterOffsetHolder: ValueHolder<Int>
   ): String {
+    if (property.matches("\\d+".toRegex()) || property in listOf("true", "false")) {
+      return property
+    }
     val optionalParam = methodInfo.findOptionalParam(property)
     return if (optionalParam != null) {
       optionalParam.name()
@@ -248,7 +254,7 @@ object CriteriaResolver {
   ): QueryCriteria {
     return QueryCriteria(
         property.name, Operations.EqDefault, Append.AND,
-        listOf(Pair(paramName + "." + property.name, property)),
+        listOf(CriteriaParameter(paramName + "." + property.name, property)),
         methodInfo.resolvedName?.values?.firstOrNull {
           it.param == paramName
         }?.let {

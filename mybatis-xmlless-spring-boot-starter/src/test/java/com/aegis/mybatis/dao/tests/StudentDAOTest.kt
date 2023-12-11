@@ -4,6 +4,7 @@ import com.aegis.mybatis.BaseTest
 import com.aegis.mybatis.bean.*
 import com.aegis.mybatis.dao.*
 import jakarta.annotation.Resource
+import org.apache.ibatis.session.SqlSessionFactory
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.BeanUtils
@@ -28,6 +29,9 @@ class StudentDAOTest : BaseTest() {
 
   @Resource
   private lateinit var dao: StudentDAO
+
+  @Resource
+  private lateinit var factory: SqlSessionFactory
 
   @Resource
   private lateinit var userDAO: UserDAO
@@ -85,14 +89,42 @@ class StudentDAOTest : BaseTest() {
     assertEquals(1, dao.find(StudentQueryForm(age = 22, name = "张")).size)
     assertEquals(1, dao.find(StudentQueryForm(keywords = "顺溜")).size)
     assertEquals(0, dao.find(StudentQueryForm(keywords = "啧啧啧")).size)
-    val list2 = dao.find(StudentQueryForm(
-        keywords = "王"
-    ).apply {
-      type = 2
-    }, 6)
+    val list2 = dao.find(
+        StudentQueryForm(
+            keywords = "王"
+        ).apply {
+          type = 2
+        }, 6
+    )
     val list3 = dao.findVO()
     list3.forEach {
       println(it.createUserName)
+    }
+  }
+
+  @Test
+  @DisplayName("测试分组统计")
+  fun statistics() {
+    val students = listOf(Student().apply {
+      grade = 1
+      age = 3
+    }, Student().apply {
+      grade = 2
+      age = 5
+    }, Student().apply {
+      grade = 1
+      age = 4
+    }, Student().apply {
+      grade = 3
+      age = 7
+    })
+    dao.saveAll(students)
+    val list = dao.statistics()
+    assertEquals(students.map { it.grade }.distinct().size, list.size)
+    list.forEach {
+      assertEquals(it.count, students.count { s -> s.grade == it.grade })
+      assert(it.avgAge > 0)
+      assert(it.sumAge > 0)
     }
   }
 
@@ -383,7 +415,6 @@ class StudentDAOTest : BaseTest() {
     dao.deleteById("3")
   }
 
-
   @Test
   fun findByCreateTimeEqMonth2() {
     dao.save(
@@ -432,6 +463,8 @@ class StudentDAOTest : BaseTest() {
     val students = dao.findBySubjectId(1)
     println(students)
     assert(students.isNotEmpty())
+    val a = factory.configuration.typeAliasRegistry.resolveAlias<Any>("Student")
+    println(a)
   }
 
   /**
@@ -513,7 +546,6 @@ class StudentDAOTest : BaseTest() {
     assert(s3.isEmpty())
   }
 
-
   @Test
   fun findByAgeBetweenNullable() {
     dao.save(
@@ -532,7 +564,6 @@ class StudentDAOTest : BaseTest() {
     assertEquals(0, dao.findByAgeBetween(null, 52).size)
     assertEquals(1, dao.findByAgeBetween(null, null).size)
   }
-
 
   @Test
   fun getJsonObject() {

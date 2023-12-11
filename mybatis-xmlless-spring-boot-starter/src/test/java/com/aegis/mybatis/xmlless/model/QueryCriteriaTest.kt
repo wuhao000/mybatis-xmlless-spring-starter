@@ -53,13 +53,13 @@ class QueryCriteriaTest : BaseResolverTest(
 
   @Test
   fun getTests() {
-    MappingResolver.resolve(getTableInfo(modelClass, builderAssistant)!!, builderAssistant)
+    MappingResolver.resolve(getTableInfo(modelClass, builderAssistant), builderAssistant)
     val mappings = MappingResolver.getMappingCache(modelClass)
     val c = QueryCriteria(
         "name",
         Operations.Like,
         Append.AND,
-        listOf("form.name" to StudentQueryForm::name.javaField!!),
+        listOf(CriteriaParameter("form.name", StudentQueryForm::name.javaField!!)),
         null,
         MethodInfo(StudentDAO::find.javaMethod!!, modelClass, builderAssistant, mappings!!, mappings)
     )
@@ -68,14 +68,14 @@ class QueryCriteriaTest : BaseResolverTest(
 
   @Test
   fun getTests2() {
-    MappingResolver.resolve(getTableInfo(modelClass, builderAssistant)!!, builderAssistant)
+    MappingResolver.resolve(getTableInfo(modelClass, builderAssistant), builderAssistant)
     val mappings = MappingResolver.getMappingCache(modelClass)
     val field = StudentQueryForm::type.javaField!!
     val c = QueryCriteria(
         "type",
         Operations.Like,
         Append.AND,
-        listOf("form.type" to field),
+        listOf(CriteriaParameter("form.type", field)),
         null,
         MethodInfo(
             StudentDAO::find.javaMethod!!, modelClass,
@@ -149,4 +149,5 @@ class QueryCriteriaTest : BaseResolverTest(
   @Test
   fun testEquals() {
   }
+
 }

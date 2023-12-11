@@ -1,9 +1,6 @@
 package com.aegis.mybatis.dao
 
-import com.aegis.mybatis.bean.Student
-import com.aegis.mybatis.bean.StudentDetail
-import com.aegis.mybatis.bean.StudentState
-import com.aegis.mybatis.bean.StudentVO
+import com.aegis.mybatis.bean.*
 import com.aegis.mybatis.xmlless.XmlLessMapper
 import com.aegis.mybatis.xmlless.annotations.*
 import org.apache.ibatis.annotations.Mapper
@@ -13,33 +10,6 @@ import org.springframework.data.domain.Pageable
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
-
-class StudentQueryForm(
-    var age: Int? = null,
-    var name: String? = null,
-    var start: Date? = null,
-    var end: Date? = null,
-    var keywords: String? = null
-) {
-  @Criteria(
-      expression = "name eq currentUserId",
-      testExpression = "type = 1 and currentUserId != null",
-  )
-  @Criteria(
-      expression = "updateUserId eq currentUserId",
-      testExpression = "type = 2 and currentUserId != null"
-  )
-  @Criteria(
-      expression = "createUserId eq currentUserId",
-      testExpression = ">= 5 and currentUserId != null",
-  )
-  @Criteria(
-      expression = "userId eq currentUserId",
-      testExpression = "<= 12 and currentUserId != null",
-  )
-  var type: Int? = null
-
-}
 
 /**
  *
@@ -51,13 +21,18 @@ class StudentQueryForm(
 @Mapper
 interface StudentDAO : XmlLessMapper<Student> {
 
+  /**
+   * @param form
+   * @param currentUserId
+   * @return
+   */
   @ResolvedName(
       name = "findBy",
-      partNames = [
+      conditions = [
         "name like", "age", "createTime between start and end",
-        "userName like keywords",
-        "order by createTime desc",
-      ]
+        "userName like keywords"
+      ],
+      sort = ["createTime desc"]
   )
   @NotDeleted
   fun find(
@@ -65,28 +40,59 @@ interface StudentDAO : XmlLessMapper<Student> {
       @Param("currentUserId") currentUserId: Int? = null
   ): List<Student>
 
-
+  /**
+   * @param keywords
+   * @return
+   */
   @NotDeleted
   fun findByUserNameLike(keywords: String): List<Student>
 
+  /**
+   * @param keywords
+   * @return
+   */
   @ResolvedName(
       name = "find",
-      partNames = [
+      conditions = [
         "schoolLocation like keywords"
       ]
   )
   @NotDeleted
   fun findVO(keywords: String? = null): List<StudentVO>
 
+  /**
+   * @return
+   */
+  @NotDeleted
+  @ResolvedName(
+      name = "find",
+      groupBy = ["grade"]
+  )
+  @PropertiesMapping(
+      [
+        PropertyMapping("sumAge", "sum(age)"),
+        PropertyMapping("avgAge", "avg(age)"),
+        PropertyMapping("count", "count(*)")
+      ]
+  )
+  fun statistics(): List<StudentStats>
 
+  /**
+   * @param pageable
+   * @return
+   */
   @ResolvedName("find")
   fun findVOPage(
       pageable: Pageable
   ): Page<StudentVO>
 
+  /**
+   * @param form
+   * @return
+   */
   @ResolvedName(
       name = "findBy",
-      partNames = [
+      conditions = [
         "name", "age", "userName like keywords or createUserName like keywords"
       ]
   )
@@ -173,11 +179,21 @@ interface StudentDAO : XmlLessMapper<Student> {
       @Param("max") max: Int
   ): List<Student>
 
+  /**
+   * @param startTime
+   * @param endTime
+   * @return
+   */
   fun findByCreateTimeBetweenStartTimeAndEndTime(
       @Param("startTime") startTime: LocalDateTime?, @Param("endTime") endTime: LocalDateTime?
   ): List<Student>
 
-  @ResolvedName("findByAge", partNames = ["name"])
+  /**
+   * @param age
+   * @param name
+   * @return
+   */
+  @ResolvedName("findByAge", conditions = ["name"])
   fun findByAge(@Param("age") age: Int, @Param("name") name: String): List<Student>
 
   /**
@@ -215,10 +231,17 @@ interface StudentDAO : XmlLessMapper<Student> {
    */
   fun findByPhoneNumberLikeLeft(@Param("phoneNumber") phoneNumber: String): List<Student>
 
+  /**
+   * @param createTime
+   * @return
+   */
   fun findByCreateTimeEqDate(createTime: LocalDate): List<Student>
 
+  /**
+   * @param createTime
+   * @return
+   */
   fun findByCreateTimeEqMonth(createTime: LocalDate): List<Student>
-
 
   /**
    *
@@ -303,31 +326,91 @@ interface StudentDAO : XmlLessMapper<Student> {
   @ResolvedName("update")
   fun updatePartly(student: Student): Int
 
+  /**
+   * @param form
+   * @return
+   */
   fun findByNameOrAge(form: QueryForm): List<Student>
 
+  /**
+   * @param form
+   * @return
+   */
   fun findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd(form: QueryForm): List<Student>
 
+  /**
+   * @param form
+   * @param pageable
+   * @return
+   */
   @ResolvedName("findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd")
   fun findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable3(
       form: QueryForm, pageable: Pageable
   ): Page<Student>
 
+  /**
+   * @param form
+   * @param pageable
+   * @return
+   */
   @ResolvedName("findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd")
   fun findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable(
       @Param("form") form: QueryForm, pageable: Pageable
   ): Page<Student>
 
-
+  /**
+   * @param form
+   * @param pageable
+   * @return
+   */
   @ResolvedName("findByNameLikeAndAgeAndCreateTimeBetweenStartAndEnd")
   fun findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable2(
       @Param("form") form: QueryForm, @Param("p") pageable: Pageable
   ): Page<Student>
 
+  /**
+   * @param min
+   * @param max
+   * @return
+   */
   fun findByAgeBetween(min: Int?, max: Int?): List<Student>
 
+  /**
+   * @param min
+   * @param max
+   * @return
+   */
   fun findByAgeBetweenMinAndMax(min: Int?, max: Int?): List<Student>
+
 }
 
+class StudentQueryForm(
+    var age: Int? = null,
+    var name: String? = null,
+    var start: Date? = null,
+    var end: Date? = null,
+    var keywords: String? = null
+) {
+
+  @Criteria(
+      expression = "name eq currentUserId",
+      testExpression = "type = 1 and currentUserId != null",
+  )
+  @Criteria(
+      expression = "updateUserId eq currentUserId",
+      testExpression = "type = 2 and currentUserId != null"
+  )
+  @Criteria(
+      expression = "createUserId eq currentUserId",
+      testExpression = ">= 5 and currentUserId != null",
+  )
+  @Criteria(
+      expression = "userId eq currentUserId",
+      testExpression = "<= 12 and currentUserId != null",
+  )
+  var type: Int? = null
+
+}
 
 class QueryForm(
     val name: String? = null,

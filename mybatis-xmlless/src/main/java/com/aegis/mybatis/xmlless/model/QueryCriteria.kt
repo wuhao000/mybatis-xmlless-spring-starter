@@ -15,6 +15,20 @@ import java.util.*
 
 
 /**
+ * 条件参数
+ *
+ * @author 吴昊
+ * @date 2023/12/11
+ * @version 1.0
+ * @since v4.0.0
+ */
+data class CriteriaParameter(
+    val name: String,
+    val element: AnnotatedElement?,
+    val specificValue: Boolean = false
+)
+
+/**
  *
  * @author 吴昊
  * @since 0.0.1
@@ -23,11 +37,10 @@ data class QueryCriteria(
     val property: String,
     val operator: Operations,
     var append: Append = Append.AND,
-    var parameters: List<Pair<String, AnnotatedElement>>,
+    var parameters: List<CriteriaParameter>,
     val specificValue: SpecificValue?,
     private val methodInfo: MethodInfo
 ) {
-
 
   /** 额外他的test判断条件 */
   private var extraTestConditions: List<TestConditionDeclaration> = listOf()
@@ -43,7 +56,7 @@ data class QueryCriteria(
   /** 选中的列 */
   fun getColumns(): List<SelectColumn> {
     return ColumnsResolver.resolveColumnByPropertyName(
-        property, false, methodInfo
+        property, methodInfo, false
     )
   }
 
@@ -58,36 +71,6 @@ data class QueryCriteria(
       }
     }
     return createSql(null)
-  }
-
-  private fun createSql(
-      criteriaInfo: CriteriaInfo? = null
-  ): String {
-    val sqlBuilder = toSqlWithoutTest(criteriaInfo)
-    val exp = wrapWithTests(sqlBuilder, criteriaInfo)
-    if (operator == Operations.Between) {
-      val realParams = realParams()
-      val s1 = QueryCriteria(
-          property, Operations.Gte, append, parameters.dropLast(1), specificValue, methodInfo
-      ).apply {
-        extraTestConditions = listOf(
-            TestConditionDeclaration(
-                realParams[1], TestType.IsNull
-            )
-        )
-      }.toSql()
-      val s2 = QueryCriteria(
-          property, Operations.Lte, append, parameters.drop(1), specificValue, methodInfo
-      ).apply {
-        extraTestConditions = listOf(
-            TestConditionDeclaration(
-                realParams[0], TestType.IsNull
-            )
-        )
-      }.toSql()
-      return listOf(exp, s1, s2).joinToString("\n")
-    }
-    return exp
   }
 
   fun toSqlWithoutTest(criteriaInfo: CriteriaInfo?): String {
@@ -138,6 +121,56 @@ data class QueryCriteria(
     return sql
   }
 
+  fun getCriteriaList(): List<CriteriaInfo> {
+    val parameter = getOnlyParameter()
+    if (parameter != null) {
+      return FieldUtil.getCriteriaInfo(parameter, methodInfo)
+    }
+    return listOf()
+  }
+
+  fun getTests(parameterTest: TestInfo?): String {
+    if (parameterTest != null) {
+      return resolveTests(parameterTest)
+    }
+    var tests = listOf<TestConditionDeclaration>()
+    when (val parameter = getOnlyParameter()) {
+      is Parameter -> tests = resolveTestsFromType(parameter.type)
+      is Field     -> tests = resolveTestsFromType(parameter.type)
+    }
+    return (tests + extraTestConditions).joinToString(Strings.TESTS_CONNECTOR) { it.toSql() }
+  }
+
+  private fun createSql(
+      criteriaInfo: CriteriaInfo? = null
+  ): String {
+    val sqlBuilder = toSqlWithoutTest(criteriaInfo)
+    val exp = wrapWithTests(sqlBuilder, criteriaInfo)
+    if (operator == Operations.Between) {
+      val realParams = realParams()
+      val s1 = QueryCriteria(
+          property, Operations.Gte, append, parameters.dropLast(1), specificValue, methodInfo
+      ).apply {
+        extraTestConditions = listOf(
+            TestConditionDeclaration(
+                realParams[1].toString(), TestType.IsNull
+            )
+        )
+      }.toSql()
+      val s2 = QueryCriteria(
+          property, Operations.Lte, append, parameters.drop(1), specificValue, methodInfo
+      ).apply {
+        extraTestConditions = listOf(
+            TestConditionDeclaration(
+                realParams[0].toString(), TestType.IsNull
+            )
+        )
+      }.toSql()
+      return listOf(exp, s1, s2).joinToString("\n")
+    }
+    return exp
+  }
+
   private fun buildJsonQuery(
       columnResult: String, operator: Operations, mapping: FieldMapping
   ): String {
@@ -147,7 +180,7 @@ data class QueryCriteria(
       return String.format(
           """JSON_CONTAINS(%s -> '$[*]', '${quote("\${%s}", quote)}', '$')""",
           columnResult,
-          *scriptParams().toTypedArray()
+          *scriptParams(wrap = false).toTypedArray()
       )
     } else if (operator in listOf(Operations.In)) {
       return String.format(
@@ -169,43 +202,27 @@ data class QueryCriteria(
   }
 
   private fun getOnlyParameter(): AnnotatedElement? {
-    return parameters.firstOrNull()?.second
-  }
-
-  fun getCriteriaList(): List<CriteriaInfo> {
-    val parameter = getOnlyParameter()
-    if (parameter != null) {
-      return FieldUtil.getCriteriaInfo(parameter, methodInfo)
-    }
-    return listOf()
+    return parameters.firstOrNull()?.element
   }
 
   private fun getOnlyParameterName(): String? {
-    return parameters.firstOrNull()?.first
-  }
-
-  fun getTests(parameterTest: TestInfo?): String {
-    if (parameterTest != null) {
-      return resolveTests(parameterTest)
-    }
-    var tests = listOf<TestConditionDeclaration>()
-    when (val parameter = getOnlyParameter()) {
-      is Parameter -> tests = resolveTestsFromType(parameter.type)
-      is Field     -> tests = resolveTestsFromType(parameter.type)
-    }
-    return (tests + extraTestConditions).joinToString(Strings.TESTS_CONNECTOR) { it.toSql() }
+    return parameters.firstOrNull()?.name
   }
 
   private fun resolveTests(parameterTest: TestInfo): String {
-    return parameterTest.getExpression(parameters)
+    return parameterTest.getExpression(parameters.filter { it.element != null })
   }
 
-  private fun realParams(): List<String> {
+  private fun realParams(): List<ParamHolder> {
     if (parameters.isEmpty()) {
-      return listOf(property)
+      return listOf(ParamHolder(property, null))
     }
     return parameters.map {
-      it.first
+      if (it.specificValue) {
+        ParamHolder(null, it.name)
+      } else {
+        ParamHolder(it.name, null)
+      }
     }
   }
 
@@ -213,7 +230,7 @@ data class QueryCriteria(
     val realParams = realParams()
     val tests = ArrayList<TestConditionDeclaration>()
     if (!type.isPrimitive) {
-      tests.addAll(realParams.map { TestConditionDeclaration(it, TestType.NotNull) })
+      tests.addAll(realParams.map { TestConditionDeclaration(it.toString(), TestType.NotNull) })
     }
     if (type == String::class.java) {
       tests.addAll(realParams.map { TestConditionDeclaration("$it.length()", TestType.GtZero) })
@@ -242,7 +259,7 @@ data class QueryCriteria(
     }
   }
 
-  private fun scriptParams(propertyMapping: FieldMapping? = null): List<String> {
+  private fun scriptParams(propertyMapping: FieldMapping? = null, wrap: Boolean = true): List<String> {
     val realParams = realParams()
     // 如果存在realParam未 xxInXx的情况
     if (operator == Operations.In) {
@@ -253,7 +270,9 @@ data class QueryCriteria(
       }
       return listOf(String.format(FOREACH, realParams[0], "item", ", ", "#{item}"))
     }
-    return realParams
+    return realParams.map {
+      it.toExpression(wrap)
+    }
   }
 
 }
@@ -270,6 +289,27 @@ class SpecificValue(
     val stringValue: String, val nonStringValue: String
 )
 
+/**
+ * @author 吴昊
+ * @date 2023/12/11
+ * @version 1.0
+ * @since v4.0.0
+ */
+class ParamHolder(val name: String?, val value: String?) {
+
+  override fun toString(): String {
+    return name ?: value ?: ""
+  }
+
+  fun toExpression(wrap: Boolean): String {
+    return if (wrap && name != null) {
+      "#{$name}"
+    } else {
+      name ?: value ?: ""
+    }
+  }
+
+}
 
 /**
  * 条件连接后缀类型
@@ -281,6 +321,7 @@ class SpecificValue(
  */
 enum class Append {
 
-  AND, OR;
+  AND,
+  OR;
 
 }

@@ -11,7 +11,6 @@ import com.aegis.mybatis.xmlless.config.MappingResolver
 import com.aegis.mybatis.xmlless.model.FieldMappings
 import com.aegis.mybatis.xmlless.model.MethodInfo
 import com.aegis.mybatis.xmlless.model.QueryCriteria
-import com.aegis.mybatis.xmlless.model.QueryType
 import com.aegis.mybatis.xmlless.util.initTableInfo
 import com.baomidou.mybatisplus.core.MybatisConfiguration
 import com.baomidou.mybatisplus.core.metadata.TableInfo
@@ -23,6 +22,87 @@ import org.springframework.data.domain.Pageable
 import java.lang.reflect.Method
 import kotlin.reflect.jvm.javaMethod
 import kotlin.test.assertEquals
+
+/**
+ *
+ * @author 吴昊
+ * @since 0.0.8
+ */
+@Suppress("unused")
+interface TestDAO {
+
+  @ResolvedName(
+      name = "findBy",
+      conditions = [
+        "name eq 0"
+      ]
+  )
+  fun findByNameEq0()
+
+  /**
+   * @param min
+   * @param max
+   */
+  fun findByAgeBetweenMinAndMax(min: Int, max: Int)
+
+  /**
+   * @param dictType
+   * @return
+   */
+  @ResolvedName(name = "findByDictNameAndStatusAndDictTypeAndCreateTimeBetweenBeginTimeAndEndTime")
+  @ExcludeProperties(properties = ["remark"])
+  fun selectDictTypeList(dictType: SysDictTypeQueryForm?): List<SysDictType>
+
+  /**
+   * @param form
+   * @param pageable
+   * @return
+   */
+  @ResolvedName(name = "findByDictNameAndStatusAndDictTypeAndCreateTimeBetweenBeginTimeAndEndTime")
+  fun selectDictTypeListPageable(
+      @Param("form") form: SysDictTypeQueryForm?,
+      @Param("pageable") pageable: Pageable?
+  ): @ExcludeProperties(properties = ["remark"]) Page<SysDictType>
+
+  /**
+   * @param minAge
+   * @param maxAge
+   */
+  fun findByAgeBetween(minAge: Int, maxAge: Int)
+
+  /**
+   */
+  @ResolvedName(
+      name = "findByName",
+      values = [
+        ValueAssign(param = "name", stringValue = "wuhao")
+      ]
+  )
+  fun findByNameEq()
+
+  /**
+   * @param keywords
+   */
+  fun findByNameLikeKeywords(keywords: String)
+
+  /**
+   * @param form
+   */
+  fun findByNameAndAge(form: Form)
+
+  /**
+   * @param form
+   */
+  @ResolvedName("findByNameAndAge")
+  fun findByNameAndAge3(form: Form2)
+
+  /**
+   * @param fffffform
+   */
+  @ResolvedName("findByNameAndAge")
+  fun findByNameAndAge2(@Param("f") fffffform: Form)
+
+}
 
 /**
  * 测试条件解析
@@ -42,6 +122,7 @@ class ConditionResolverTest {
     currentNamespace = currentNameSpace
   }
   private val tableInfo = createTableInfo(modelClass)
+  protected val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
 
   @Test
   fun resolveConditions() {
@@ -80,7 +161,6 @@ class ConditionResolverTest {
     assertEquals("age = #{age}", conditions[1].toString())
   }
 
-
   @Test
   fun resolveComplexParam9() {
     val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
@@ -107,7 +187,6 @@ class ConditionResolverTest {
 
   @Test
   fun resolveComplexParam3() {
-    val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
     val method = StudentDAO::findByNameLikeAndAgeAndCreateTimeBetweenStartAndEndPageable.javaMethod!!
     val exp = "NameLikeAndAgeAndCreateTimeBetweenStartAndEnd"
     val conditions = resolveConditions(exp, method, mappings)
@@ -153,7 +232,6 @@ class ConditionResolverTest {
     assertEquals("createTime BETWEEN #{beginTime} AND #{endTime}", conditions[3].toString())
   }
 
-
   @Test
   fun resolveBetweenWithoutParamName11() {
     val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
@@ -176,13 +254,20 @@ class ConditionResolverTest {
 
   @Test
   fun resolveBetween() {
-    val mappings = MappingResolver.resolve(tableInfo, builderAssistant)
     val method = TestDAO::findByAgeBetweenMinAndMax.javaMethod!!
     val exp = method.name.replace("findBy", "")
     assertEquals("AgeBetweenMinAndMax", exp)
     val conditions = resolveConditions(exp, method, mappings)
     assertEquals(1, conditions.size)
     assertEquals("age BETWEEN #{min} AND #{max}", conditions.first().toString())
+  }
+
+  @Test
+  fun resolveEq0() {
+    val method = TestDAO::findByNameEq0.javaMethod!!
+    val conditions = resolveConditions("name eq 0", method, mappings)
+    assertEquals(1, conditions.size)
+    assertEquals("name = 0", conditions.first().toString())
   }
 
   private fun createTableInfo(modelClass: Class<*>): TableInfo {
@@ -197,52 +282,9 @@ class ConditionResolverTest {
       mappings: FieldMappings
   ): List<QueryCriteria> {
     return CriteriaResolver.resolveConditions(
-        conditionExpression.toWords(), MethodInfo(method, modelClass, builderAssistant, mappings, mappings),
-        QueryType.Select
+        conditionExpression.toWords(), MethodInfo(method, modelClass, builderAssistant, mappings, mappings)
     )
   }
-
-}
-
-/**
- *
- * @author 吴昊
- * @since 0.0.8
- */
-@Suppress("unused")
-interface TestDAO {
-
-  fun findByAgeBetweenMinAndMax(min: Int, max: Int)
-
-  @ResolvedName(name = "findByDictNameAndStatusAndDictTypeAndCreateTimeBetweenBeginTimeAndEndTime")
-  @ExcludeProperties(properties = ["remark"])
-  fun selectDictTypeList(dictType: SysDictTypeQueryForm?): List<SysDictType>
-
-  @ResolvedName(name = "findByDictNameAndStatusAndDictTypeAndCreateTimeBetweenBeginTimeAndEndTime")
-  fun selectDictTypeListPageable(
-      @Param("form") form: SysDictTypeQueryForm?,
-      @Param("pageable") pageable: Pageable?
-  ): @ExcludeProperties(properties = ["remark"]) Page<SysDictType>
-
-  fun findByAgeBetween(minAge: Int, maxAge: Int)
-
-  @ResolvedName(
-      name = "findByName",
-      values = [
-        ValueAssign(param = "name", stringValue = "wuhao")
-      ]
-  )
-  fun findByNameEq()
-
-  fun findByNameLikeKeywords(keywords: String)
-
-  fun findByNameAndAge(form: Form)
-
-  @ResolvedName("findByNameAndAge")
-  fun findByNameAndAge3(form: Form2)
-
-  @ResolvedName("findByNameAndAge")
-  fun findByNameAndAge2(@Param("f") fffffform: Form)
 
 }
 
@@ -254,9 +296,11 @@ open class Form {
 }
 
 class Form2 : Form() {
+
   @Criteria(
       expression = "1 = 2",
       testExpression = "= true"
   )
   var active: Boolean = false
+
 }

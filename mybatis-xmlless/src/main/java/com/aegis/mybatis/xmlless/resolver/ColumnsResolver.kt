@@ -36,46 +36,15 @@ object ColumnsResolver {
     }
   }
 
-  private fun resolveColumns(
-      properties: Properties,
-      methodInfo: MethodInfo
-  ): List<SelectColumn> {
-    val mappings = methodInfo.mappings
-    if (LOG.isDebugEnabled) {
-      LOG.debug("Available properties for class ${mappings.modelClass}: ${mappings.mappings.map { it.property }}")
-      LOG.debug("Fetch properties for class ${mappings.modelClass}: $properties")
-    }
-    return selectFields(properties, methodInfo)
-  }
-
-
-  /**
-   * 获取select查询的列名称语句
-   */
-  private fun selectFields(properties: Properties, methodInfo: MethodInfo): List<SelectColumn> {
-    if (properties.isIncludeNotEmpty()) {
-      return properties.includes.map {
-        resolveColumnByPropertyName(it, methodInfo = methodInfo)
-      }.flatten()
-    }
-    return methodInfo.mappings.mappings.asSequence().filter {
-      !it.selectIgnore && it.property !in properties.excludes
-    }.map { mapping ->
-      when {
-        mapping.joinInfo != null -> mapping.joinInfo.selectFields(1)
-        else                     -> listOf(SelectColumn(TableName(methodInfo.mappings.tableName), mapping.column))
-      }
-    }.flatten().filter { it.column.isNotBlank() }.distinctBy { it.toSql() }.toList()
-  }
-
-
   /**
    * 根据属性名称获取数据库表的列名称，返回的列名称包含表名称
+   *
+   *
    */
   fun resolveColumnByPropertyName(
       property: String,
-      validate: Boolean = true,
-      methodInfo: MethodInfo
+      methodInfo: MethodInfo,
+      validate: Boolean = true
   ): List<SelectColumn> {
     val mappings = methodInfo.mappings
     // 如果属性中存在.则该属性表示一个关联对象的属性，例如student.subjectId
@@ -124,6 +93,46 @@ object ColumnsResolver {
     }
   }
 
+  private fun resolveColumns(
+      properties: Properties,
+      methodInfo: MethodInfo
+  ): List<SelectColumn> {
+    val mappings = methodInfo.mappings
+    if (LOG.isDebugEnabled) {
+      LOG.debug("Available properties for class ${mappings.modelClass}: ${mappings.mappings.map { it.property }}")
+      LOG.debug("Fetch properties for class ${mappings.modelClass}: $properties")
+    }
+    return selectFields(properties, methodInfo)
+  }
+
+  /**
+   * 获取select查询的列名称语句
+   */
+  private fun selectFields(properties: Properties, methodInfo: MethodInfo): List<SelectColumn> {
+    if (properties.isIncludeNotEmpty()) {
+      return properties.includes.map {
+        if (it in properties.propertiesMapping) {
+          val exp = ExpressionResolver.parseExpression(properties.propertiesMapping[it]!!, methodInfo)
+          listOf(SelectColumn(null, exp, it.toUnderlineCase().lowercase(), null))
+        } else {
+          resolveColumnByPropertyName(it, methodInfo)
+        }
+      }.flatten()
+    }
+    return methodInfo.mappings.mappings.asSequence().filter {
+      !it.selectIgnore && it.property !in properties.excludes
+    }.map { mapping ->
+      when {
+        mapping.property in properties.propertiesMapping -> {
+          val exp = ExpressionResolver.parseExpression(properties.propertiesMapping[mapping.property]!!, methodInfo)
+          listOf(SelectColumn(null, exp, mapping.property.toUnderlineCase().lowercase(), null))
+        }
+        mapping.joinInfo != null -> mapping.joinInfo.selectFields(1)
+        else                     -> listOf(SelectColumn(TableName(methodInfo.mappings.tableName), mapping.column))
+      }
+    }.flatten().filter { it.column.isNotBlank() }.distinctBy { it.toSql() }.toList()
+  }
+
   private fun findFromMappings(
       mappings: List<FieldMapping>,
       objectProperty: String,
@@ -144,7 +153,6 @@ object ColumnsResolver {
     )
   }
 
-
   /**
    * 从表信息中解析对象属性名称对应的数据库表的列名称
    */
@@ -162,7 +170,11 @@ object ColumnsResolver {
     return null
   }
 
-  private fun resolveFromObjectJoinInfo(mappings: List<FieldMapping>, property: String, methodInfo: MethodInfo): List<SelectColumn> {
+  private fun resolveFromObjectJoinInfo(
+      mappings: List<FieldMapping>,
+      property: String,
+      methodInfo: MethodInfo
+  ): List<SelectColumn> {
     // 如果持久化对象中找不到这个属性，在关联的对象中进行匹配，匹配的规则是，关联对象的字段名称+属性名称
     // 例如，当前的model是Student，有一个名为scores的属性类型为List<Score>,表示该学生的成绩列表,
     // Score对象中有一个属性subjectId，那么scoresSubjectId可以匹配到关联对象的subjectId属性上
@@ -198,7 +210,7 @@ object ColumnsResolver {
       mapping.joinInfo?.getJoinTableInfo(methodInfo)?.fieldList?.firstOrNull { it.property == property } != null
     }.map { it.joinInfo as ObjectJoinInfo }
     return when {
-      matchedJoinInfos.size > 1  -> throw BuildSQLException(
+      matchedJoinInfos.size > 1 -> throw BuildSQLException(
           "在${matchedJoinInfos.joinToString(",") { it.realType().simpleName }}发现了相同的属性$property, " +
               "无法确定属性对应的表及字段"
       )
@@ -210,7 +222,7 @@ object ColumnsResolver {
           )
       )
 
-      else                       -> listOf()
+      else -> listOf()
     }
   }
 
@@ -231,4 +243,5 @@ object ColumnsResolver {
     }
     return null
   }
+
 }

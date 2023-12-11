@@ -58,31 +58,27 @@ enum class Operations(
     }
   }
 
-  fun getTemplate(value: Boolean = false): String {
-    val valueHolder = when {
-      value -> "%s"
-      else  -> "${PROPERTY_PREFIX}%s${PROPERTY_SUFFIX}"
-    }
+  fun getTemplate(): String {
     return when (this) {
       LtDate, LteDate, NeDate, GtDate, GteDate,
-      EqDate    -> "AND date_format(%s, '%%Y-%%m-%%d') %s date_format($valueHolder, '%%Y-%%m-%%d')"
-      EqMonth   -> "AND date_format(%s, '%%Y-%%m') %s date_format($valueHolder, '%%Y-%%m')"
-      Like      -> "%s %s CONCAT('%%', $valueHolder,'%%')"
-      LikeLeft  -> "%s %s CONCAT($valueHolder, '%%')"
-      LikeRight -> "%s %s CONCAT('%%', $valueHolder)"
+      EqDate    -> "AND date_format(%s, '%%Y-%%m-%%d') %s date_format(%s, '%%Y-%%m-%%d')"
+      EqMonth   -> "AND date_format(%s, '%%Y-%%m') %s date_format(%s, '%%Y-%%m')"
+      Like      -> "%s %s CONCAT('%%', %s,'%%')"
+      LikeLeft  -> "%s %s CONCAT(%s, '%%')"
+      LikeRight -> "%s %s CONCAT('%%', %s)"
       In        -> IN_TEMPLATE
       in listOf(
           NotNull, IsNotNull,
           IsNull, EqTrue, EqFalse
       )         -> NO_VALUE
 
-      Between   -> "%s %s $valueHolder AND $valueHolder"
-      else      -> "%s %s $valueHolder"
+      Between   -> "%s %s %s AND %s"
+      else      -> "%s %s %s"
     }
   }
 
   fun getValueTemplate(): String {
-    return getTemplate(true)
+    return getTemplate()
   }
 
 }

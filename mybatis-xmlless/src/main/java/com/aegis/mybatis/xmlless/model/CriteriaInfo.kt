@@ -29,8 +29,8 @@ class TestInfo(
     private val field: AnnotatedElement
 ) {
 
-  fun getExpression(parameters: List<Pair<String, AnnotatedElement>>): String {
-    val name = parameters.find { it.second == field }?.first
+  fun getExpression(parameters: List<CriteriaParameter>): String {
+    val name = parameters.find { it.element == field }?.name
     return preHandleTestExpression(expression, field, name)
   }
 
